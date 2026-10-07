@@ -19,8 +19,8 @@ return new class extends Migration {
             $table->foreignUuid('barangay_id')->references('id')->on('barangays');
             $table->dateTime('transaction_date');
             $table->enum('status', ['draft', 'pending', 'verified', 'rejected', 'cancelled'])->default('draft');
-            $table->decimal('total_reference_value');
-            $table->decimal('total_selling_price');
+            $table->decimal('total_reference_value', 14, 2)->default(0);
+            $table->decimal('total_selling_price', 14, 2)->default(0);
             $table->foreignUuid('encoded_by')->references('id')->on('users');
             $table->foreignUuid('verified_by')->nullable()->references('id')->on('users');
             $table->dateTime('verified_at')->nullable();

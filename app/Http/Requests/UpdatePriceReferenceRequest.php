@@ -34,6 +34,10 @@ class UpdatePriceReferenceRequest extends FormRequest
                 'uuid',
                 'exists:breeds,id',
             ],
+            'sale_purpose' => [
+                'sometimes',
+                'in:slaughter,breeding,fattening,work',
+            ],
 
             'price_per_kg' => [
                 'sometimes',

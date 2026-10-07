@@ -24,6 +24,7 @@ class PriceValidationController extends BaseController
                     'species_id',
                     'breed_id',
                     'barangay_id',
+                    'sale_purpose',
                 ])
             );
 

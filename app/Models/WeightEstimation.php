@@ -12,34 +12,53 @@ class WeightEstimation extends Model
 
     protected $fillable = [
         'livestock_id',
-        'chest_girth_cm',
+        'formula_profile_id',
+        'heart_girth_cm',
         'body_length_cm',
-        'body_frame',
+        'rump_height_cm',
         'estimated_weight_kg',
+        'formula_code',
         'formula_version',
+        'estimate_confidence',
+        'warnings',
+        'frame_category',
+        'frame_z',
+        'reference_mean_body_length_cm',
+        'reference_sd_body_length_cm',
+        'reference_n',
+        'reference_group',
+        'frame_stats_version',
         'calculated_by',
     ];
 
     protected function casts(): array
     {
         return [
-            'chest_girth_cm' => 'decimal:2',
+            'heart_girth_cm' => 'decimal:2',
             'body_length_cm' => 'decimal:2',
-            'estimated_weight_kg' => 'decimal:2',
+            'rump_height_cm' => 'decimal:2',
+            'estimated_weight_kg' => 'decimal:4',
+            'frame_z' => 'decimal:4',
+            'reference_mean_body_length_cm' => 'decimal:4',
+            'reference_sd_body_length_cm' => 'decimal:4',
+            'reference_n' => 'integer',
+            'warnings' => 'array',
         ];
     }
 
-    /**
-     * Livestock associated with this weight estimation.
-     */
     public function livestock(): BelongsTo
     {
-        return $this->belongsTo(LivestockRecord::class, 'livestock_id');
+        return $this->belongsTo(
+            LivestockRecord::class,
+            'livestock_id'
+        );
     }
 
-    /**
-     * User who calculated the weight estimation.
-     */
+    public function formulaProfile(): BelongsTo
+    {
+        return $this->belongsTo(FormulaProfile::class);
+    }
+
     public function calculator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'calculated_by');

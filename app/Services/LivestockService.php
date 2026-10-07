@@ -11,6 +11,52 @@ use Illuminate\Validation\ValidationException;
 
 class LivestockService
 {
+
+
+    public function __construct(
+        private readonly AgeGroupService $ageGroupService
+    ) {
+    }
+
+    private function prepareLivestockUpdate(
+        LivestockRecord $livestock,
+        array $data
+    ): array {
+        $speciesId =
+            $data['species_id'] ?? $livestock->species_id;
+
+        $species = \App\Models\Species::findOrFail(
+            $speciesId
+        );
+
+        $ageMonths = array_key_exists(
+            'age_months',
+            $data
+        )
+            ? $data['age_months']
+            : $livestock->age_months;
+
+        $weightKg = array_key_exists(
+            'actual_weight_kg',
+            $data
+        )
+            ? $data['actual_weight_kg']
+            : $livestock->actual_weight_kg;
+
+        $data['age_group'] =
+            $this->ageGroupService->resolve(
+                $species,
+                $ageMonths !== null
+                ? (int) $ageMonths
+                : null,
+                $weightKg !== null
+                ? (float) $weightKg
+                : null
+            );
+
+        return $data;
+    }
+
     /*
     |--------------------------------------------------------------------------
     | Farmer Operations
@@ -83,19 +129,42 @@ class LivestockService
         $this->ensureFarmerIsVerified($user);
 
         return DB::transaction(function () use ($user, $farmer, $data) {
+            $species = \App\Models\Species::findOrFail(
+                $data['species_id']
+            );
+
+            $ageGroup = $this->ageGroupService->resolve(
+                $species,
+                $data['age_months'] ?? null,
+                isset($data['actual_weight_kg'])
+                ? (float) $data['actual_weight_kg']
+                : null
+            );
+
             $livestock = LivestockRecord::create([
                 'farmer_id' => $farmer->id,
 
                 'species_id' => $data['species_id'],
                 'breed_id' => $data['breed_id'] ?? null,
 
-                'sex' => $data['sex'] ?? null,
-                'age' => $data['age'] ?? null,
+                'sex' => $data['sex'],
 
-                'classification' =>
-                    $data['classification'] ?? null,
+                'age_months' =>
+                    $data['age_months'] ?? null,
 
-                'condition' => $data['condition'],
+                'age_group' => $ageGroup,
+
+                'reproductive_status' =>
+                    $data['reproductive_status'] ?? 'unknown',
+
+                'parity' =>
+                    $data['parity'] ?? null,
+
+                'sale_purpose' =>
+                    $data['sale_purpose'],
+
+                'condition_score' =>
+                    $data['condition_score'],
 
                 'actual_weight_kg' =>
                     $data['actual_weight_kg'] ?? null,
@@ -133,6 +202,11 @@ class LivestockService
         );
 
         $this->ensureEditable($livestock);
+
+        $data = $this->prepareLivestockUpdate(
+            $livestock,
+            $data
+        );
 
         $livestock->update($data);
 
@@ -293,19 +367,42 @@ class LivestockService
         }
 
         return DB::transaction(function () use ($encoder, $farmer, $data) {
+            $species = \App\Models\Species::findOrFail(
+                $data['species_id']
+            );
+
+            $ageGroup = $this->ageGroupService->resolve(
+                $species,
+                $data['age_months'] ?? null,
+                isset($data['actual_weight_kg'])
+                ? (float) $data['actual_weight_kg']
+                : null
+            );
+
             $livestock = LivestockRecord::create([
                 'farmer_id' => $farmer->id,
 
                 'species_id' => $data['species_id'],
                 'breed_id' => $data['breed_id'] ?? null,
 
-                'sex' => $data['sex'] ?? null,
-                'age' => $data['age'] ?? null,
+                'sex' => $data['sex'],
 
-                'classification' =>
-                    $data['classification'] ?? null,
+                'age_months' =>
+                    $data['age_months'] ?? null,
 
-                'condition' => $data['condition'],
+                'age_group' => $ageGroup,
+
+                'reproductive_status' =>
+                    $data['reproductive_status'] ?? 'unknown',
+
+                'parity' =>
+                    $data['parity'] ?? null,
+
+                'sale_purpose' =>
+                    $data['sale_purpose'],
+
+                'condition_score' =>
+                    $data['condition_score'],
 
                 'actual_weight_kg' =>
                     $data['actual_weight_kg'] ?? null,
@@ -343,6 +440,11 @@ class LivestockService
         );
 
         $this->ensureEditable($livestock);
+
+        $data = $this->prepareLivestockUpdate(
+            $livestock,
+            $data
+        );
 
         $livestock->update($data);
 

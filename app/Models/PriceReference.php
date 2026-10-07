@@ -22,6 +22,7 @@ class PriceReference extends Model
         'source',
         'remarks',
         'status',
+        'sale_purpose',
         'submitted_by',
         'submitted_at',
         'reviewed_by',

@@ -34,6 +34,11 @@ class PriceReferenceService
                     $query->where('breed_id', $breedId)
             )
             ->when(
+                $filters['sale_purpose'] ?? null,
+                fn($query, $salePurpose) =>
+                    $query->where('sale_purpose', $salePurpose)
+            )
+            ->when(
                 $filters['barangay_id'] ?? null,
                 fn($query, $barangayId) =>
                     $query->where('barangay_id', $barangayId)
@@ -79,6 +84,8 @@ class PriceReferenceService
                 'barangay_id' => $data['barangay_id'] ?? null,
                 'species_id' => $data['species_id'],
                 'breed_id' => $data['breed_id'] ?? null,
+
+                'sale_purpose' => $data['sale_purpose'],
 
                 'price_per_kg' => $data['price_per_kg'],
 

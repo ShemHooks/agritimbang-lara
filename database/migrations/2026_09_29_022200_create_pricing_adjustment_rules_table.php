@@ -7,17 +7,15 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('price_references', function (Blueprint $table) {
+        Schema::create('pricing_adjustment_rules', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
-            $table->foreignUuid('municipality_id')
-                ->references('id')
-                ->on('municipalities');
-
-            $table->foreignUuid('barangay_id')
-                ->nullable()
-                ->references('id')
-                ->on('barangays');
+            $table->enum('dimension', [
+                'breed',
+                'age_stage',
+                'reproductive_status',
+                'frame',
+            ]);
 
             $table->foreignUuid('species_id')
                 ->references('id')
@@ -28,66 +26,56 @@ return new class extends Migration {
                 ->references('id')
                 ->on('breeds');
 
+            /*
+             * Examples:
+             * finisher
+             * has_given_birth
+             * large
+             * etc.
+             */
+            $table->string('category_key');
+
             $table->enum('sale_purpose', [
                 'slaughter',
                 'breeding',
                 'fattening',
                 'work',
-            ])->default('slaughter');
+            ])->nullable();
 
-            $table->decimal('price_per_kg', 10, 2);
+            $table->decimal('factor', 8, 4)->default(1.0000);
 
             $table->date('effective_from');
             $table->date('effective_to')->nullable();
 
-            $table->string('source');
-            $table->text('remarks')->nullable();
+            $table->text('source_note')->nullable();
 
             $table->enum('status', [
                 'draft',
-                'pending_review',
-                'official',
-                'rejected',
+                'approved',
                 'archived',
             ])->default('draft');
-
-            $table->foreignUuid('submitted_by')
-                ->references('id')
-                ->on('users');
-
-            $table->dateTime('submitted_at')->nullable();
-
-            $table->foreignUuid('reviewed_by')
-                ->nullable()
-                ->references('id')
-                ->on('users');
-
-            $table->dateTime('reviewed_at')->nullable();
 
             $table->foreignUuid('approved_by')
                 ->nullable()
                 ->references('id')
                 ->on('users');
 
-            $table->dateTime('approved_at')->nullable();
-
             $table->timestamps();
 
             $table->index(
                 [
-                    'municipality_id',
                     'species_id',
-                    'breed_id',
-                    'sale_purpose',
+                    'dimension',
+                    'category_key',
                     'status',
                 ],
-                'price_refs_lookup_idx'
+                'pricing_rules_lookup_idx'
             );
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('price_references');
+        Schema::dropIfExists('pricing_adjustment_rules');
     }
 };

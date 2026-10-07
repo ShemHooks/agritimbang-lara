@@ -7,45 +7,45 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Breed extends Model
+class FormulaProfile extends Model
 {
     use HasUuids;
 
     protected $fillable = [
-        'species_id',
+        'formula_code',
         'name',
-        'code',
-        'description',
+        'species_id',
+        'breed_id',
+        'required_inputs',
+        'applicability',
+        'version',
+        'source',
+        'is_fallback',
         'is_active',
     ];
 
     protected function casts(): array
     {
         return [
+            'required_inputs' => 'array',
+            'applicability' => 'array',
+            'is_fallback' => 'boolean',
             'is_active' => 'boolean',
         ];
     }
 
-    /**
-     * Species this breed belongs to.
-     */
     public function species(): BelongsTo
     {
         return $this->belongsTo(Species::class);
     }
 
-    public function formulaProfiles(): HasMany
+    public function breed(): BelongsTo
     {
-        return $this->hasMany(FormulaProfile::class);
+        return $this->belongsTo(Breed::class);
     }
 
-    public function frameReferenceStats(): HasMany
+    public function weightEstimations(): HasMany
     {
-        return $this->hasMany(FrameReferenceStat::class);
-    }
-
-    public function pricingAdjustmentRules(): HasMany
-    {
-        return $this->hasMany(PricingAdjustmentRule::class);
+        return $this->hasMany(WeightEstimation::class);
     }
 }

@@ -25,6 +25,7 @@ class PriceReferenceController extends BaseController
                 'species_id',
                 'breed_id',
                 'barangay_id',
+                'sale_purpose',
             ])
         );
 

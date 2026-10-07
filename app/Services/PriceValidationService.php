@@ -10,6 +10,71 @@ use Illuminate\Validation\ValidationException;
 
 class PriceValidationService
 {
+
+    private function ensureNoOfficialConflict(
+        PriceReference $priceReference
+    ): void {
+        $query = PriceReference::query()
+            ->where('id', '!=', $priceReference->id)
+            ->where('status', 'official')
+            ->where(
+                'municipality_id',
+                $priceReference->municipality_id
+            )
+            ->where(
+                'species_id',
+                $priceReference->species_id
+            )
+            ->where(
+                'sale_purpose',
+                $priceReference->sale_purpose
+            );
+
+        if ($priceReference->barangay_id === null) {
+            $query->whereNull('barangay_id');
+        } else {
+            $query->where(
+                'barangay_id',
+                $priceReference->barangay_id
+            );
+        }
+
+        if ($priceReference->breed_id === null) {
+            $query->whereNull('breed_id');
+        } else {
+            $query->where(
+                'breed_id',
+                $priceReference->breed_id
+            );
+        }
+
+        $query
+            ->where(function ($query) use ($priceReference) {
+                if ($priceReference->effective_to !== null) {
+                    $query->where(
+                        'effective_from',
+                        '<=',
+                        $priceReference->effective_to
+                    );
+                }
+            })
+            ->where(function ($query) use ($priceReference) {
+                $query
+                    ->whereNull('effective_to')
+                    ->orWhere(
+                        'effective_to',
+                        '>=',
+                        $priceReference->effective_from
+                    );
+            });
+
+        if ($query->exists()) {
+            throw ValidationException::withMessages([
+                'price_reference' =>
+                    'An official price reference already exists for the same locality, species, breed, sale purpose, and overlapping effective period.',
+            ]);
+        }
+    }
     public function getPendingPriceReferences(
         User $authority,
         array $filters = []
@@ -30,6 +95,12 @@ class PriceValidationService
                 $filters['breed_id'] ?? null,
                 fn($query, $breedId) =>
                     $query->where('breed_id', $breedId)
+            )
+
+            ->when(
+                $filters['sale_purpose'] ?? null,
+                fn($query, $salePurpose) =>
+                    $query->where('sale_purpose', $salePurpose)
             )
 
             ->when(
@@ -97,6 +168,10 @@ class PriceValidationService
                         'Only pending price references can be approved.',
                 ]);
             }
+
+            $this->ensureNoOfficialConflict(
+                $lockedPriceReference
+            );
 
             $now = now();
 

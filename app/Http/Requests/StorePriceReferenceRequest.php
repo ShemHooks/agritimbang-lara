@@ -28,6 +28,10 @@ class StorePriceReferenceRequest extends FormRequest
                 'uuid',
                 'exists:breeds,id',
             ],
+            'sale_purpose' => [
+                'required',
+                'in:slaughter,breeding,fattening,work',
+            ],
 
             'price_per_kg' => [
                 'required',

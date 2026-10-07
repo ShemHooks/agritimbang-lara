@@ -24,11 +24,24 @@ class Species extends Model
         ];
     }
 
-    /**
-     * Breeds that belong to this species.
-     */
+
     public function breeds(): HasMany
     {
         return $this->hasMany(Breed::class);
+    }
+
+    public function formulaProfiles(): HasMany
+    {
+        return $this->hasMany(FormulaProfile::class);
+    }
+
+    public function frameReferenceStats(): HasMany
+    {
+        return $this->hasMany(FrameReferenceStat::class);
+    }
+
+    public function pricingAdjustmentRules(): HasMany
+    {
+        return $this->hasMany(PricingAdjustmentRule::class);
     }
 }

@@ -16,9 +16,12 @@ class LivestockRecord extends Model
         'species_id',
         'breed_id',
         'sex',
-        'age',
-        'classification',
-        'condition',
+        'age_months',
+        'age_group',
+        'reproductive_status',
+        'parity',
+        'sale_purpose',
+        'condition_score',
         'actual_weight_kg',
         'municipality_id',
         'barangay_id',
@@ -29,7 +32,9 @@ class LivestockRecord extends Model
     protected function casts(): array
     {
         return [
-            'age' => 'decimal:2',
+            'age_months' => 'integer',
+            'parity' => 'integer',
+            'condition_score' => 'integer',
             'actual_weight_kg' => 'decimal:2',
         ];
     }

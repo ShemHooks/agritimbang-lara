@@ -32,29 +32,38 @@ class UpdateLivestockRequest extends FormRequest
 
             'sex' => [
                 'sometimes',
-                'nullable',
                 'in:male,female,unknown',
             ],
 
-            'age' => [
+            'age_months' => [
                 'sometimes',
                 'nullable',
-                'numeric',
+                'integer',
+                'min:0',
+                'max:600',
+            ],
+
+            'reproductive_status' => [
+                'sometimes',
+                'in:has_given_birth,never_given_birth,not_applicable,unknown',
+            ],
+
+            'parity' => [
+                'sometimes',
+                'nullable',
+                'integer',
                 'min:0',
             ],
 
-            'classification' => [
+            'sale_purpose' => [
                 'sometimes',
-                'nullable',
-                'string',
-                'max:100',
+                'in:slaughter,breeding,fattening,work',
             ],
 
-            'condition' => [
+            'condition_score' => [
                 'sometimes',
-                'required',
-                'string',
-                'max:100',
+                'integer',
+                'between:1,5',
             ],
 
             'actual_weight_kg' => [
@@ -97,28 +106,93 @@ class UpdateLivestockRequest extends FormRequest
                     );
                 }
 
-                if (!$breedId) {
-                    return;
+                if ($breedId) {
+                    $breed = Breed::query()
+                        ->whereKey($breedId)
+                        ->first();
+
+                    if (
+                        $breed &&
+                        $breed->species_id !== $speciesId
+                    ) {
+                        $validator->errors()->add(
+                            'breed_id',
+                            'The selected breed does not belong to the selected species.'
+                        );
+                    }
+
+                    if ($breed && !$breed->is_active) {
+                        $validator->errors()->add(
+                            'breed_id',
+                            'The selected breed is inactive.'
+                        );
+                    }
                 }
 
-                $breed = Breed::query()
-                    ->whereKey($breedId)
-                    ->first();
+                $sex = $this->input(
+                    'sex',
+                    $livestock->sex
+                );
+
+                $status = $this->input(
+                    'reproductive_status',
+                    $livestock->reproductive_status
+                );
+
+                $parity = $this->exists('parity')
+                    ? $this->input('parity')
+                    : $livestock->parity;
 
                 if (
-                    $breed &&
-                    $breed->species_id !== $speciesId
+                    $sex === 'male' &&
+                    $status !== 'not_applicable'
                 ) {
                     $validator->errors()->add(
-                        'breed_id',
-                        'The selected breed does not belong to the selected species.'
+                        'reproductive_status',
+                        'Reproductive status must be not_applicable for male livestock.'
                     );
                 }
 
-                if ($breed && !$breed->is_active) {
+                if (
+                    $sex === 'male' &&
+                    $parity !== null
+                ) {
                     $validator->errors()->add(
-                        'breed_id',
-                        'The selected breed is inactive.'
+                        'parity',
+                        'Parity is not applicable to male livestock.'
+                    );
+                }
+
+                if (
+                    $sex === 'female' &&
+                    $status === 'not_applicable'
+                ) {
+                    $validator->errors()->add(
+                        'reproductive_status',
+                        'Female livestock cannot use not_applicable as reproductive status.'
+                    );
+                }
+
+                if (
+                    $sex === 'female' &&
+                    $status === 'has_given_birth' &&
+                    ($parity === null || (int) $parity < 1)
+                ) {
+                    $validator->errors()->add(
+                        'parity',
+                        'Parity must be at least 1 when the livestock has given birth.'
+                    );
+                }
+
+                if (
+                    $sex === 'female' &&
+                    $status === 'never_given_birth' &&
+                    $parity !== null &&
+                    (int) $parity !== 0
+                ) {
+                    $validator->errors()->add(
+                        'parity',
+                        'Parity must be 0 when the livestock has never given birth.'
                     );
                 }
             },
@@ -127,22 +201,18 @@ class UpdateLivestockRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $data = [];
-
-        if ($this->exists('classification')) {
-            $data['classification'] =
-                $this->filled('classification')
-                ? trim((string) $this->classification)
-                : null;
+        /*
+         * If an update explicitly changes the animal to male,
+         * normalize reproductive fields automatically.
+         */
+        if (
+            $this->exists('sex') &&
+            $this->input('sex') === 'male'
+        ) {
+            $this->merge([
+                'reproductive_status' => 'not_applicable',
+                'parity' => null,
+            ]);
         }
-
-        if ($this->exists('condition')) {
-            $data['condition'] =
-                $this->filled('condition')
-                ? trim((string) $this->condition)
-                : $this->condition;
-        }
-
-        $this->merge($data);
     }
 }
