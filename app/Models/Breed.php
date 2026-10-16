@@ -15,6 +15,7 @@ class Breed extends Model
         'species_id',
         'name',
         'code',
+        'breed_group',
         'description',
         'is_active',
     ];

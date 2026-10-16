@@ -6,6 +6,11 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property \Illuminate\Support\Carbon $effective_from
+ * @property \Illuminate\Support\Carbon|null $effective_to
+ */
+
 class PricingAdjustmentRule extends Model
 {
     use HasUuids;

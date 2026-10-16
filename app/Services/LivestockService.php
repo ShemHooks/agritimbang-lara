@@ -461,6 +461,44 @@ class LivestockService
     }
 
 
+
+    /**
+     * Authorize farmer access to livestock for weight estimation.
+     */
+    public function authorizeFarmerWeightEstimation(
+        User $user,
+        LivestockRecord $livestock
+    ): LivestockRecord {
+        $this->ensureFarmerOwnsLivestock(
+            $user,
+            $livestock
+        );
+
+        $this->ensureFarmerIsVerified($user);
+
+        $this->ensureEditable($livestock);
+
+        return $livestock;
+    }
+
+    /**
+     * Authorize LGU access to livestock for weight estimation.
+     */
+    public function authorizeLguWeightEstimation(
+        User $user,
+        LivestockRecord $livestock
+    ): LivestockRecord {
+        $this->ensureSameMunicipality(
+            $user,
+            $livestock
+        );
+
+        $this->ensureEditable($livestock);
+
+        return $livestock;
+    }
+
+
     /*
     |--------------------------------------------------------------------------
     | Internal Rules
