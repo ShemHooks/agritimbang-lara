@@ -15,6 +15,11 @@ use App\Http\Controllers\PriceValidationController;
 use App\Http\Controllers\FarmerLivestockController;
 use App\Http\Controllers\LguLivestockController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\FarmerWeightEstimationController;
+use App\Http\Controllers\LguWeightEstimationController;
+use App\Http\Controllers\FarmerValuationController;
+use App\Http\Controllers\LguValuationController;
+use App\Http\Controllers\FarmerTransactionController;
 
 
 /*
@@ -447,6 +452,32 @@ Route::middleware([
             '/livestock/{livestock}',
             [LguLivestockController::class, 'update']
         );
+
+        Route::prefix('livestock/{livestock}/weight-estimations')
+            ->group(function () {
+                Route::get(
+                    '/',
+                    [LguWeightEstimationController::class, 'index']
+                );
+
+                Route::post(
+                    '/',
+                    [LguWeightEstimationController::class, 'store']
+                );
+            });
+
+        Route::prefix('livestock/{livestock}/valuations')
+            ->group(function () {
+                Route::get('/', [
+                    LguValuationController::class,
+                    'index'
+                ]);
+
+                Route::post('/', [
+                    LguValuationController::class,
+                    'store'
+                ]);
+            });
     });
 
 
@@ -535,5 +566,37 @@ Route::middleware([
         Route::patch(
             '/livestock/{livestock}/status',
             [FarmerLivestockController::class, 'updateStatus']
+        );
+
+        Route::prefix('livestock/{livestock}/weight-estimations')
+            ->group(function () {
+                Route::get(
+                    '/',
+                    [FarmerWeightEstimationController::class, 'index']
+                );
+
+                Route::post(
+                    '/',
+                    [FarmerWeightEstimationController::class, 'store']
+                );
+            });
+
+
+        Route::prefix('livestock/{livestock}/valuations')
+            ->group(function () {
+                Route::get('/', [
+                    FarmerValuationController::class,
+                    'index'
+                ]);
+
+                Route::post('/', [
+                    FarmerValuationController::class,
+                    'store'
+                ]);
+            });
+
+        Route::post(
+            'transactions',
+            [FarmerTransactionController::class, 'store']
         );
     });

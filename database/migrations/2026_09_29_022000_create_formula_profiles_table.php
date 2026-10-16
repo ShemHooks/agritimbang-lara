@@ -10,7 +10,7 @@ return new class extends Migration {
         Schema::create('formula_profiles', function (Blueprint $table) {
             $table->uuid('id')->primary();
 
-            $table->string('formula_code')->unique();
+            $table->string('formula_code');
             $table->string('name');
 
             $table->foreignUuid('species_id')
@@ -22,19 +22,10 @@ return new class extends Migration {
                 ->references('id')
                 ->on('breeds');
 
-            /*
-             * Example:
-             * ["heart_girth_cm", "body_length_cm"]
-             *
-             * Goat Barili:
-             * ["rump_height_cm", "body_length_cm", "heart_girth_cm"]
-             */
+
             $table->json('required_inputs');
 
-            /*
-             * Species/breed/age/stage applicability and documented
-             * source ranges can be stored here.
-             */
+
             $table->json('applicability')->nullable();
 
             $table->string('version');
@@ -46,7 +37,15 @@ return new class extends Migration {
 
             $table->timestamps();
 
-            $table->index(['species_id', 'breed_id', 'is_active']);
+            $table->unique(
+                ['formula_code', 'version'],
+                'formula_profiles_code_version_unique'
+            );
+
+            $table->index(
+                ['species_id', 'breed_id', 'is_active'],
+                'formula_profiles_lookup_idx'
+            );
         });
     }
 

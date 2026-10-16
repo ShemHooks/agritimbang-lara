@@ -7,6 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+
+/**
+ * @property \Illuminate\Support\Carbon $effective_from
+ * @property \Illuminate\Support\Carbon|null $effective_to
+ * @property \Illuminate\Support\Carbon|null $approved_at
+ */
+
 class PriceReference extends Model
 {
     use HasUuids;

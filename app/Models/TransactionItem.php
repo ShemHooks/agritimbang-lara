@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TransactionItem extends Model
@@ -49,10 +49,7 @@ class TransactionItem extends Model
 
     public function livestock(): BelongsTo
     {
-        return $this->belongsTo(
-            LivestockRecord::class,
-            'livestock_id'
-        );
+        return $this->belongsTo(LivestockRecord::class);
     }
 
     public function valuation(): BelongsTo
