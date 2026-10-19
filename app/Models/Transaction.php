@@ -25,6 +25,11 @@ class Transaction extends Model
         'verified_by',
         'verified_at',
         'remarks',
+        'source',
+        'auction_house_id',
+        'buyer_confirmation_method',
+        'acknowledgement_reference',
+        'acknowledgement_notes',
     ];
 
     protected function casts(): array
@@ -75,5 +80,10 @@ class Transaction extends Model
     public function statusLogs(): HasMany
     {
         return $this->hasMany(TransactionStatusLog::class);
+    }
+
+    public function auctionHouse(): BelongsTo
+    {
+        return $this->belongsTo(AuctionHouse::class);
     }
 }

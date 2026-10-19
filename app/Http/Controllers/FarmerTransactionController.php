@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreTransactionRequest;
 use App\Services\TransactionService;
 use Illuminate\Http\JsonResponse;
+use App\Services\BuyerConfirmationService;
 
 class FarmerTransactionController extends Controller
 {
@@ -28,4 +29,25 @@ class FarmerTransactionController extends Controller
             'data' => $transaction,
         ], 201);
     }
+
+
+    public function submit(
+        \Illuminate\Http\Request $request,
+        string $transaction,
+        BuyerConfirmationService $confirmationService
+    ): JsonResponse {
+        $sale = $this->transactionService->submit(
+            $request->user(),
+            $transaction,
+            $confirmationService
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' =>
+                'Transaction submitted for buyer confirmation.',
+            'data' => $sale,
+        ]);
+    }
+
 }

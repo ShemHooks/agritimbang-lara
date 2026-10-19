@@ -102,4 +102,9 @@ class LivestockRecord extends Model
     {
         return $this->hasMany(Valuation::class, 'livestock_id');
     }
+
+    public function transactionItems(): HasMany
+    {
+        return $this->hasMany(TransactionItem::class, 'livestock_id');
+    }
 }

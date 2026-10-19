@@ -20,7 +20,10 @@ use App\Http\Controllers\LguWeightEstimationController;
 use App\Http\Controllers\FarmerValuationController;
 use App\Http\Controllers\LguValuationController;
 use App\Http\Controllers\FarmerTransactionController;
-
+use App\Http\Controllers\BuyerConfirmationController;
+use App\Http\Controllers\LguTransactionVerificationController;
+use App\Http\Controllers\AuctionHouseTransactionController;
+use App\Http\Controllers\LguAuctionHouseController;
 
 /*
 |--------------------------------------------------------------------------
@@ -83,6 +86,26 @@ Route::get(
     '/reference/species/{species}/breeds',
     [BreedController::class, 'referenceBySpecies']
 );
+
+
+Route::prefix('buyer-confirmations')
+    ->middleware('throttle:10,1')
+    ->group(function () {
+        Route::get(
+            '{token}',
+            [BuyerConfirmationController::class, 'show']
+        );
+
+        Route::post(
+            '{token}/confirm',
+            [BuyerConfirmationController::class, 'confirm']
+        );
+
+        Route::post(
+            '{token}/dispute',
+            [BuyerConfirmationController::class, 'dispute']
+        );
+    });
 
 
 /*
@@ -599,4 +622,68 @@ Route::middleware([
             'transactions',
             [FarmerTransactionController::class, 'store']
         );
+
+        Route::post(
+            'transactions/{transaction}/submit',
+            [FarmerTransactionController::class, 'submit']
+        );
+    });
+
+
+Route::middleware('auth:sanctum')
+    ->prefix('lgu/transactions')
+    ->group(function () {
+        Route::post(
+            '{transaction}/approve',
+            [LguTransactionVerificationController::class, 'approve']
+        );
+
+        Route::post(
+            '{transaction}/reject',
+            [LguTransactionVerificationController::class, 'reject']
+        );
+    });
+
+Route::middleware('auth:sanctum')
+    ->prefix('auction-house')
+    ->group(function () {
+        Route::post(
+            'transactions',
+            [AuctionHouseTransactionController::class, 'store']
+        );
+    });
+
+
+Route::middleware('auth:sanctum')
+    ->prefix('lgu/auction-houses')
+    ->group(function () {
+        Route::get('/', [
+            LguAuctionHouseController::class,
+            'index'
+        ]);
+
+        Route::post('/', [
+            LguAuctionHouseController::class,
+            'store'
+        ]);
+
+        Route::patch('/{auctionHouse}', [
+            LguAuctionHouseController::class,
+            'update'
+        ]);
+
+        Route::patch('/{auctionHouse}/status', [
+            LguAuctionHouseController::class,
+            'status'
+        ]);
+
+        Route::post('/{auctionHouse}/encoders', [
+            LguAuctionHouseController::class,
+            'assignEncoder'
+        ]);
+
+        Route::delete('/{auctionHouse}/encoders/{user}', [
+            LguAuctionHouseController::class,
+            'removeEncoder'
+        ]);
     });

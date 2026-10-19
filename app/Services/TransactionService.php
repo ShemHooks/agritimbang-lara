@@ -8,28 +8,12 @@ use App\Models\User;
 use App\Models\Valuation;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use App\Services\BuyerConfirmationService;
+use App\Jobs\SendBuyerConfirmationSms;
 
 class TransactionService
 {
-    /**
-     * Create a draft livestock sale transaction.
-     *
-     * Expected payload:
-     *
-     * [
-     *     'buyer_name' => 'Juan Dela Cruz',
-     *     'buyer_phone' => '+639123456789',
-     *     'transaction_date' => '2026-10-16 10:00:00',
-     *     'remarks' => 'Optional remarks',
-     *     'items' => [
-     *         [
-     *             'livestock_id' => 'uuid',
-     *             'valuation_id' => 'uuid',
-     *             'actual_selling_price' => 50000,
-     *         ],
-     *     ],
-     * ]
-     */
+
     public function createDraft(
         User $user,
         array $data
@@ -275,4 +259,126 @@ class TransactionService
             ]);
         }, 3);
     }
+
+
+    /**
+     * Submit a draft sale for buyer confirmation.
+     *
+     * Reserves livestock and issues a confirmation token.
+     */
+    public function submit(
+        User $user,
+        string $transactionId,
+        BuyerConfirmationService $confirmationService
+    ): Transaction {
+        $farmer = $user->farmerProfile;
+
+        if (!$farmer || $user->verification_status !== 'verified') {
+            throw ValidationException::withMessages([
+                'farmer' => 'A verified farmer profile is required.',
+            ]);
+        }
+
+        return DB::transaction(function () use ($user, $farmer, $transactionId, $confirmationService) {
+            $transaction = Transaction::query()
+                ->whereKey($transactionId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($transaction->farmer_id !== $farmer->id) {
+                abort(403, 'You cannot submit this transaction.');
+            }
+
+            if ($transaction->status !== 'draft') {
+                throw ValidationException::withMessages([
+                    'status' => 'Only draft transactions can be submitted.',
+                ]);
+            }
+
+            if (!$transaction->buyer_phone) {
+                throw ValidationException::withMessages([
+                    'buyer_phone' =>
+                        'Buyer phone number is required for confirmation.',
+                ]);
+            }
+
+            $items = $transaction->items()
+                ->orderBy('livestock_id')
+                ->get();
+
+            if ($items->isEmpty()) {
+                throw ValidationException::withMessages([
+                    'items' => 'Transaction has no livestock items.',
+                ]);
+            }
+
+            foreach ($items as $index => $item) {
+                $livestock = LivestockRecord::query()
+                    ->whereKey($item->livestock_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$livestock) {
+                    throw ValidationException::withMessages([
+                        "items.$index.livestock_id" =>
+                            'Livestock no longer exists.',
+                    ]);
+                }
+
+                if (
+                    $livestock->farmer_id !== $farmer->id ||
+                    $livestock->municipality_id !== $transaction->municipality_id ||
+                    $livestock->barangay_id !== $transaction->barangay_id
+                ) {
+                    throw ValidationException::withMessages([
+                        "items.$index.livestock_id" =>
+                            'Livestock ownership or location has changed.',
+                    ]);
+                }
+
+                if ($livestock->status !== 'available') {
+                    throw ValidationException::withMessages([
+                        "items.$index.livestock_id" =>
+                            'Livestock is no longer available.',
+                    ]);
+                }
+
+                $livestock->update([
+                    'status' => 'in_transaction',
+                ]);
+            }
+
+            $transaction->update([
+                'status' => 'pending',
+            ]);
+
+            $transaction->statusLogs()->create([
+                'from_status' => 'draft',
+                'to_status' => 'pending',
+                'actor_type' => 'farmer',
+                'actor_user_id' => $user->id,
+                'remarks' => 'Submitted for buyer confirmation.',
+            ]);
+
+            $issued = $confirmationService->issue($transaction);
+
+            /*
+             * Dispatch only after the outer database transaction
+             * successfully commits.
+             *
+             * Never include the raw token in logs.
+             */
+            SendBuyerConfirmationSms::dispatch(
+                $transaction->id,
+                $issued['token']
+            )->afterCommit();
+
+            return $transaction->fresh([
+                'items',
+                'buyerConfirmations',
+                'statusLogs',
+            ]);
+        }, 3);
+    }
+
 }
