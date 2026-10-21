@@ -86,4 +86,9 @@ class Transaction extends Model
     {
         return $this->belongsTo(AuctionHouse::class);
     }
+
+    public function disputes(): HasMany
+    {
+        return $this->hasMany(TransactionDispute::class);
+    }
 }

@@ -4,22 +4,16 @@ namespace App\Services;
 
 use App\Models\BuyerConfirmation;
 use App\Models\Transaction;
+use App\Models\TransactionDispute;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+
 
 class BuyerConfirmationService
 {
     private const TOKEN_LIFETIME_HOURS = 24;
 
-    /**
-     * Generate a confirmation token for a submitted transaction.
-     *
-     * The returned raw token must only be used to build
-     * the SMS URL. Never store or log it.
-     *
-     * Caller should send the SMS after DB commit.
-     */
+
     public function issue(Transaction $transaction): array
     {
         return DB::transaction(function () use ($transaction) {
@@ -49,20 +43,63 @@ class BuyerConfirmationService
                 ]);
             }
 
-            $existing = $sale->buyerConfirmations()
-                ->whereIn('status', ['confirmed', 'disputed'])
-                ->exists();
 
-            if ($existing) {
+            if (
+                $sale->buyerConfirmations()
+                    ->where('status', 'confirmed')
+                    ->exists()
+            ) {
                 throw ValidationException::withMessages([
-                    'confirmation' =>
-                        'Transaction has already been confirmed.',
+                    'confirmation' => 'Transaction has already been confirmed.',
                 ]);
             }
 
+            if (
+                $sale->disputes()
+                    ->whereIn('status', ['open', 'under_review'])
+                    ->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'dispute' => 'An active dispute must be resolved before issuing a new confirmation.',
+                ]);
+            }
+
+            $disputedConfirmationIds = $sale->buyerConfirmations()
+                ->where('status', 'disputed')
+                ->pluck('id');
+
+            if ($disputedConfirmationIds->isNotEmpty()) {
+                $hasUnresolvedHistory = $sale->disputes()
+                    ->whereIn('buyer_confirmation_id', $disputedConfirmationIds)
+                    ->where(function ($query) {
+                        $query->where('status', '!=', 'dismissed')
+                            ->orWhereNull('resolution')
+                            ->orWhere('resolution', '!=', 'dismissed');
+                    })
+                    ->exists();
+
+                $linkedCount = $sale->disputes()
+                    ->whereIn('buyer_confirmation_id', $disputedConfirmationIds)
+                    ->where('status', 'dismissed')
+                    ->where('resolution', 'dismissed')
+                    ->distinct()
+                    ->count('buyer_confirmation_id');
+
+                if (
+                    $hasUnresolvedHistory ||
+                    $linkedCount !== $disputedConfirmationIds->count()
+                ) {
+                    throw ValidationException::withMessages([
+                        'confirmation' =>
+                            'Every disputed confirmation must have a dismissed LGU dispute before reissuance.',
+                    ]);
+                }
+            }
+
+
             $rawToken = bin2hex(random_bytes(32));
 
-            // Revoke any previous links, including disputed ones.
+            // Revoke only pending links; preserve disputed records for auditing.
             $sale->buyerConfirmations()
                 ->where('status', 'pending')
                 ->update(['status' => 'revoked']);
@@ -124,7 +161,9 @@ class BuyerConfirmationService
 
             $this->assertUsable($confirmation);
 
+
             $sale = $confirmation->transaction;
+
 
             $confirmation->update([
                 'status' => 'confirmed',
@@ -154,6 +193,7 @@ class BuyerConfirmationService
      * Keep the transaction pending but block verification.
      * A farmer/LGU must resolve the dispute separately.
      */
+
     public function dispute(
         string $token,
         string $reason
@@ -171,6 +211,7 @@ class BuyerConfirmationService
 
             $this->assertUsable($confirmation);
 
+            // Mark the buyer confirmation as disputed.
             $confirmation->update([
                 'status' => 'disputed',
                 'disputed_at' => now(),
@@ -178,6 +219,18 @@ class BuyerConfirmationService
                 'dispute_reason' => $reason,
             ]);
 
+            // Create a formal dispute for LGU investigation.
+            TransactionDispute::create([
+                'transaction_id' => $confirmation->transaction_id,
+                'buyer_confirmation_id' => $confirmation->id,
+                'reported_by' => null,
+                'reporter_type' => 'buyer',
+                'reason' => 'buyer_disputed_transaction',
+                'description' => $reason,
+                'status' => 'open',
+            ]);
+
+            // Record the event in the transaction audit trail.
             $confirmation->transaction->statusLogs()->create([
                 'from_status' => 'pending',
                 'to_status' => 'pending',
@@ -193,6 +246,7 @@ class BuyerConfirmationService
             return $confirmation->fresh();
         }, 3);
     }
+
 
     private function findValidConfirmation(
         string $token
@@ -273,6 +327,16 @@ class BuyerConfirmationService
         }
 
         $sale = $confirmation->transaction;
+
+        if (
+            $sale->disputes()
+                ->whereIn('status', ['open', 'under_review'])
+                ->exists()
+        ) {
+            throw ValidationException::withMessages([
+                'dispute' => 'An active dispute must be resolved first.',
+            ]);
+        }
 
         if ($sale->status !== 'pending') {
             throw ValidationException::withMessages([

@@ -277,4 +277,89 @@ class LguTransactionVerificationTest extends TestCase
             []
         )->assertUnprocessable();
     }
+
+
+
+    public function test_lgu_cannot_approve_transaction_with_active_dispute(): void
+    {
+        $data = $this->makeTransaction();
+
+        $transaction = $data['transaction'];
+        $livestock = $data['livestock'];
+
+        $officer = $this->makeOfficer($data['municipality']);
+
+        $transaction->disputes()->create([
+            'reported_by' => null,
+            'reporter_type' => 'buyer',
+            'reason' => 'incorrect_price',
+            'description' => 'The agreed selling price is incorrect.',
+            'status' => 'open',
+        ]);
+
+        Sanctum::actingAs($officer);
+
+        $this->postJson(
+            "/api/lgu/transactions/{$transaction->id}/approve"
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['dispute']);
+
+        $this->assertDatabaseHas('transactions', [
+            'id' => $transaction->id,
+            'status' => 'pending_lgu_verification',
+        ]);
+
+        $this->assertDatabaseHas('livestock_records', [
+            'id' => $livestock->id,
+            'status' => 'in_transaction',
+        ]);
+
+        $this->assertDatabaseMissing('transactions', [
+            'id' => $transaction->id,
+            'status' => 'verified',
+        ]);
+    }
+
+
+    public function test_lgu_cannot_reject_transaction_with_active_dispute(): void
+    {
+        $data = $this->makeTransaction();
+
+        $transaction = $data['transaction'];
+        $livestock = $data['livestock'];
+
+        $officer = $this->makeOfficer($data['municipality']);
+
+        $transaction->disputes()->create([
+            'reported_by' => null,
+            'reporter_type' => 'buyer',
+            'reason' => 'incorrect_livestock',
+            'description' => 'The livestock information is incorrect.',
+            'status' => 'under_review',
+        ]);
+
+        Sanctum::actingAs($officer);
+
+        $this->postJson(
+            "/api/lgu/transactions/{$transaction->id}/reject",
+            [
+                'reason' => 'Transaction details require correction.',
+            ]
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['dispute']);
+
+        $this->assertDatabaseHas('transactions', [
+            'id' => $transaction->id,
+            'status' => 'pending_lgu_verification',
+        ]);
+
+        $this->assertDatabaseHas('livestock_records', [
+            'id' => $livestock->id,
+            'status' => 'in_transaction',
+        ]);
+    }
+
+
 }

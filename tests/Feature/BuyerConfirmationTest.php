@@ -268,6 +268,7 @@ class BuyerConfirmationTest extends TestCase
         ]);
     }
 
+
     public function test_buyer_can_dispute_transaction(): void
     {
         [$transaction, $token] = $this->submitAndGetToken();
@@ -277,17 +278,43 @@ class BuyerConfirmationTest extends TestCase
             ['reason' => 'The agreed price is incorrect.']
         )->assertOk();
 
+        $confirmation = BuyerConfirmation::where(
+            'transaction_id',
+            $transaction->id
+        )->firstOrFail();
+
+        // Buyer confirmation must be disputed.
         $this->assertDatabaseHas('buyer_confirmations', [
+            'id' => $confirmation->id,
             'transaction_id' => $transaction->id,
             'status' => 'disputed',
             'dispute_reason' => 'The agreed price is incorrect.',
+        ]);
+
+        // A formal LGU dispute case must be created.
+        $this->assertDatabaseHas('transaction_disputes', [
+            'transaction_id' => $transaction->id,
+            'buyer_confirmation_id' => $confirmation->id,
+            'reported_by' => null,
+            'reporter_type' => 'buyer',
+            'reason' => 'buyer_disputed_transaction',
+            'description' => 'The agreed price is incorrect.',
+            'status' => 'open',
         ]);
 
         $this->assertDatabaseHas('transactions', [
             'id' => $transaction->id,
             'status' => 'pending',
         ]);
+
+        $this->assertDatabaseHas('transaction_status_logs', [
+            'transaction_id' => $transaction->id,
+            'from_status' => 'pending',
+            'to_status' => 'pending',
+            'actor_type' => 'buyer',
+        ]);
     }
+
 
     public function test_invalid_token_is_rejected(): void
     {
@@ -317,4 +344,59 @@ class BuyerConfirmationTest extends TestCase
             'status' => 'pending',
         ]);
     }
+
+    public function test_buyer_cannot_dispute_twice_using_same_token(): void
+    {
+        [$transaction, $token] = $this->submitAndGetToken();
+
+        $url = "/api/buyer-confirmations/{$token}/dispute";
+
+        $this->postJson($url, [
+            'reason' => 'Incorrect selling price.',
+        ])->assertOk();
+
+        $this->postJson($url, [
+            'reason' => 'Trying to submit another dispute.',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['token']);
+
+        $this->assertDatabaseCount('transaction_disputes', 1);
+
+        $this->assertDatabaseHas('transaction_disputes', [
+            'transaction_id' => $transaction->id,
+            'description' => 'Incorrect selling price.',
+            'status' => 'open',
+        ]);
+    }
+
+
+    public function test_disputed_transaction_cannot_be_confirmed_using_same_token(): void
+    {
+        [$transaction, $token] = $this->submitAndGetToken();
+
+        $this->postJson(
+            "/api/buyer-confirmations/{$token}/dispute",
+            ['reason' => 'Incorrect livestock details.']
+        )->assertOk();
+
+        $this->postJson(
+            "/api/buyer-confirmations/{$token}/confirm"
+        )
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['token']);
+
+        $this->assertDatabaseHas('transactions', [
+            'id' => $transaction->id,
+            'status' => 'pending',
+        ]);
+
+        $this->assertDatabaseHas('buyer_confirmations', [
+            'transaction_id' => $transaction->id,
+            'status' => 'disputed',
+        ]);
+
+        $this->assertDatabaseCount('transaction_disputes', 1);
+    }
+
 }

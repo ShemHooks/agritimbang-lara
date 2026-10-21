@@ -42,8 +42,21 @@ class LguTransactionVerificationService
                 ->lockForUpdate()
                 ->firstOrFail();
 
+
             $this->authorizeOfficer($officer, $transaction);
+
+            $hasActiveDispute = $transaction->disputes()
+                ->whereIn('status', ['open', 'under_review'])
+                ->exists();
+
+            if ($hasActiveDispute) {
+                throw ValidationException::withMessages([
+                    'dispute' => 'This transaction has an unresolved dispute. The LGU must resolve it before verification can proceed.',
+                ]);
+            }
+
             $this->validateTransaction($transaction);
+
 
             $items = $transaction->items()
                 ->orderBy('livestock_id')
@@ -180,15 +193,8 @@ class LguTransactionVerificationService
                 ]);
             }
 
-            if (
-                $transaction->buyerConfirmations()
-                    ->where('status', 'disputed')
-                    ->exists()
-            ) {
-                throw ValidationException::withMessages([
-                    'buyer_confirmation' => 'Buyer dispute must be resolved first.',
-                ]);
-            }
+
+
 
             return;
         }

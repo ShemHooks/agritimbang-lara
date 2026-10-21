@@ -24,7 +24,8 @@ use App\Http\Controllers\BuyerConfirmationController;
 use App\Http\Controllers\LguTransactionVerificationController;
 use App\Http\Controllers\AuctionHouseTransactionController;
 use App\Http\Controllers\LguAuctionHouseController;
-
+use App\Http\Controllers\TransactionDisputeController;
+use App\Http\Controllers\TransactionCancellationController;
 /*
 |--------------------------------------------------------------------------
 | Authentication
@@ -627,6 +628,11 @@ Route::middleware([
             'transactions/{transaction}/submit',
             [FarmerTransactionController::class, 'submit']
         );
+
+        Route::post(
+            'transactions/{transaction}/cancel',
+            [TransactionCancellationController::class, 'farmerCancel']
+        );
     });
 
 
@@ -641,6 +647,11 @@ Route::middleware('auth:sanctum')
         Route::post(
             '{transaction}/reject',
             [LguTransactionVerificationController::class, 'reject']
+        );
+
+        Route::post(
+            '{transaction}/cancel',
+            [TransactionCancellationController::class, 'lguCancel']
         );
     });
 
@@ -685,5 +696,30 @@ Route::middleware('auth:sanctum')
         Route::delete('/{auctionHouse}/encoders/{user}', [
             LguAuctionHouseController::class,
             'removeEncoder'
+        ]);
+    });
+
+
+Route::middleware('auth:sanctum')
+    ->prefix('lgu/transaction-disputes')
+    ->group(function () {
+        Route::get('/', [
+            TransactionDisputeController::class,
+            'index',
+        ]);
+
+        Route::get('/{dispute}', [
+            TransactionDisputeController::class,
+            'show',
+        ]);
+
+        Route::post('/{dispute}/review', [
+            TransactionDisputeController::class,
+            'review',
+        ]);
+
+        Route::post('/{dispute}/resolve', [
+            TransactionDisputeController::class,
+            'resolve',
         ]);
     });
