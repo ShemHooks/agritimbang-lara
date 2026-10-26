@@ -71,4 +71,37 @@ class MunicipalityController extends BaseController
             'Municipality deactivated successfully.'
         );
     }
+
+    public function activate(Municipality $municipality): JsonResponse
+    {
+        if ($municipality->is_active) {
+            return $this->success(
+                $municipality,
+                'Municipality is already active.'
+            );
+        }
+
+        $municipality->update([
+            'is_active' => true,
+        ]);
+
+        return $this->success(
+            $municipality->fresh(),
+            'Municipality activated successfully.'
+        );
+    }
+
+    public function active(): JsonResponse
+    {
+        $municipalities = Municipality::query()
+            ->where('is_active', true)
+            ->orderBy('province')
+            ->orderBy('name')
+            ->get();
+
+        return $this->success(
+            $municipalities,
+            'Active municipalities retrieved successfully.'
+        );
+    }
 }

@@ -225,6 +225,28 @@ class BarangayService
         Barangay $barangay,
         array $data
     ): BarangayGeometry {
+
+        if (
+            !in_array($data['geometry_type'] ?? null, [
+                'Polygon',
+                'MultiPolygon',
+            ], true)
+        ) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'geometry_type' => 'Only Polygon and MultiPolygon geometries are supported.',
+            ]);
+        }
+
+        if (
+            !isset($data['geometry']) ||
+            !is_array($data['geometry']) ||
+            empty($data['geometry']['coordinates']) ||
+            ($data['geometry']['type'] ?? null) !== $data['geometry_type']
+        ) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'geometry' => 'A valid GeoJSON geometry object is required.',
+            ]);
+        }
         return DB::transaction(
             function () use ($barangay, $data) {
 
