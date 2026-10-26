@@ -29,7 +29,8 @@ use App\Http\Controllers\{
     UserVerificationController,
     DashboardController,
     PriceAnalyticsController,
-    ForecastController
+    ForecastController,
+    ReportController
 };
 use Illuminate\Support\Facades\Route;
 
@@ -330,6 +331,6 @@ Route::prefix('analytics')
         Route::get('prices', [PriceAnalyticsController::class, 'index']);
         Route::get('transactions', [DashboardController::class, 'transactions']);
         Route::get('valuations', [DashboardController::class, 'valuations']);
-
         Route::get('forecast', ForecastController::class);
+        Route::get('reports/export', ReportController::class);
     });
