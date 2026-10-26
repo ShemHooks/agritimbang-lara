@@ -20,7 +20,6 @@ def main():
     if not np.all(np.isfinite(series)) or np.any(series <= 0):
         raise ValueError('prices must be finite and positive')
 
-    # Fixed, documented baseline order; no data-leaking model selection.
     order = (1, 1, 0)
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')

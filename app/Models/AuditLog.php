@@ -12,6 +12,7 @@ class AuditLog extends Model
 
     protected $fillable = [
         'user_id',
+        'municipality_id',
         'action',
         'entity_type',
         'entity_id',
@@ -23,17 +24,16 @@ class AuditLog extends Model
 
     protected function casts(): array
     {
-        return [
-            'old_values' => 'array',
-            'new_values' => 'array',
-        ];
+        return ['old_values' => 'array', 'new_values' => 'array'];
     }
 
-    /**
-     * User who performed the audited action.
-     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function municipality(): BelongsTo
+    {
+        return $this->belongsTo(Municipality::class);
     }
 }

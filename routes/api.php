@@ -30,9 +30,11 @@ use App\Http\Controllers\{
     DashboardController,
     PriceAnalyticsController,
     ForecastController,
-    ReportController
+    ReportController,
+    AuditLogController
 };
 use Illuminate\Support\Facades\Route;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -334,3 +336,6 @@ Route::prefix('analytics')
         Route::get('forecast', ForecastController::class);
         Route::get('reports/export', ReportController::class);
     });
+
+Route::get('audit-logs', [AuditLogController::class, 'index'])
+    ->middleware(['auth:sanctum', 'role:admin,lgu_authority']);
