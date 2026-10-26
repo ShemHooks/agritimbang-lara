@@ -31,9 +31,12 @@ use App\Http\Controllers\{
     PriceAnalyticsController,
     ForecastController,
     ReportController,
-    AuditLogController
+    AuditLogController,
+    OtpController,
+    NotificationController
 };
 use Illuminate\Support\Facades\Route;
+
 
 
 /*
@@ -339,3 +342,12 @@ Route::prefix('analytics')
 
 Route::get('audit-logs', [AuditLogController::class, 'index'])
     ->middleware(['auth:sanctum', 'role:admin,lgu_authority']);
+
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::post('/otp/send', [OtpController::class, 'send'])->middleware('throttle:5,1');
+    Route::post('/otp/verify', [OtpController::class, 'verify'])->middleware('throttle:10,1');
+    Route::get('/notifications', [NotificationController::class, 'index']);
+    Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+    Route::patch('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+    Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead']);
+});
