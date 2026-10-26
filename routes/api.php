@@ -27,6 +27,8 @@ use App\Http\Controllers\{
     TransactionCancellationController,
     TransactionDisputeController,
     UserVerificationController,
+    DashboardController,
+    PriceAnalyticsController
 };
 use Illuminate\Support\Facades\Route;
 
@@ -312,4 +314,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('{dispute}/review', [TransactionDisputeController::class, 'review']);
         Route::post('{dispute}/resolve', [TransactionDisputeController::class, 'resolve']);
     });
+});
+
+Route::prefix('analytics')->middleware(['auth:sanctum', 'role:admin,lgu_authority,lgu_encoder'])->group(function () {
+    Route::get('dashboard', [DashboardController::class, 'overview']);
+    Route::get('livestock', [DashboardController::class, 'livestock']);
+    Route::get('prices', [PriceAnalyticsController::class, 'index']);
+    Route::get('transactions', [DashboardController::class, 'transactions']);
+    Route::get('valuations', [DashboardController::class, 'valuations']);
 });
