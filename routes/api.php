@@ -28,7 +28,8 @@ use App\Http\Controllers\{
     TransactionDisputeController,
     UserVerificationController,
     DashboardController,
-    PriceAnalyticsController
+    PriceAnalyticsController,
+    ForecastController
 };
 use Illuminate\Support\Facades\Route;
 
@@ -200,6 +201,7 @@ Route::prefix('lgu')->middleware(['auth:sanctum', 'role:lgu_authority'])->group(
         Route::get('{encoder}', [LguEncoderController::class, 'show']);
         Route::patch('{encoder}', [LguEncoderController::class, 'update']);
         Route::patch('{encoder}/status', [LguEncoderController::class, 'updateStatus']);
+
     });
 
     // Farmer verification and private document review.
@@ -316,10 +318,18 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 });
 
-Route::prefix('analytics')->middleware(['auth:sanctum', 'role:admin,lgu_authority,lgu_encoder'])->group(function () {
-    Route::get('dashboard', [DashboardController::class, 'overview']);
-    Route::get('livestock', [DashboardController::class, 'livestock']);
-    Route::get('prices', [PriceAnalyticsController::class, 'index']);
-    Route::get('transactions', [DashboardController::class, 'transactions']);
-    Route::get('valuations', [DashboardController::class, 'valuations']);
-});
+Route::prefix('analytics')
+    ->middleware([
+        'auth:sanctum',
+        'role:admin,lgu_authority,lgu_encoder',
+    ])
+    ->group(function () {
+
+        Route::get('dashboard', [DashboardController::class, 'overview']);
+        Route::get('livestock', [DashboardController::class, 'livestock']);
+        Route::get('prices', [PriceAnalyticsController::class, 'index']);
+        Route::get('transactions', [DashboardController::class, 'transactions']);
+        Route::get('valuations', [DashboardController::class, 'valuations']);
+
+        Route::get('forecast', ForecastController::class);
+    });
