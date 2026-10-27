@@ -1,0 +1,726 @@
+/* ============================================================
+   AGRITIMBANG — PRICE ANALYTICS
+   Standalone dashboard module
+   ============================================================ */
+
+:root {
+    --pa-green: #16845b;
+    --pa-green-dark: #106747;
+    --pa-green-light: #eaf7f0;
+    --pa-text: #172b25;
+    --pa-muted: #77847d;
+    --pa-border: #e7ece8;
+    --pa-surface: #ffffff;
+    --pa-background: #f7f9f7;
+    --pa-radius: 16px;
+    --pa-shadow: 0 4px 22px rgba(20, 49, 35, 0.035);
+}
+
+/* ============================================================
+   PAGE HEADING
+   ============================================================ */
+
+.pa-overview-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 28px 0 22px;
+}
+
+.pa-overview-heading h2 {
+    margin: 0;
+    color: var(--pa-text);
+    font-size: 22px;
+    font-weight: 750;
+    letter-spacing: -0.6px;
+}
+
+.pa-overview-heading p {
+    margin: 6px 0 0;
+    color: var(--pa-muted);
+    font-size: 13px;
+}
+
+.pa-button,
+.pa-button-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    cursor: pointer;
+    transition:
+        background 0.2s,
+        border-color 0.2s,
+        transform 0.2s;
+}
+
+.pa-button {
+    color: #fff;
+    background: var(--pa-green);
+    border: 1px solid var(--pa-green);
+}
+
+.pa-button:hover:not(:disabled) {
+    background: var(--pa-green-dark);
+    transform: translateY(-1px);
+}
+
+.pa-button-secondary {
+    color: var(--pa-text);
+    background: #fff;
+    border: 1px solid var(--pa-border);
+}
+
+.pa-button-secondary:hover {
+    border-color: var(--pa-green);
+    color: var(--pa-green);
+}
+
+.pa-button:disabled,
+.pa-button-secondary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+/* ============================================================
+   LOADING AND ERROR MESSAGES
+   ============================================================ */
+
+.pa-notice {
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    border: 1px solid #d4e8dc;
+    border-radius: 12px;
+    background: #f0faf4;
+    color: #216544;
+    font-size: 13px;
+}
+
+.pa-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-color: #f4d4d4;
+    background: #fff5f5;
+    color: #b42318;
+}
+
+.pa-error button {
+    padding: 8px 14px;
+    border: 1px solid #efcaca;
+    border-radius: 8px;
+    background: #fff;
+    color: #b42318;
+    cursor: pointer;
+}
+
+/* Respect the HTML hidden attribute */
+#pa-loading[hidden],
+#pa-error[hidden],
+#pa-content[hidden] {
+    display: none !important;
+}
+
+/* ============================================================
+   PANELS
+   ============================================================ */
+
+.pa-panel {
+    min-width: 0;
+    padding: 26px;
+    margin-bottom: 22px;
+    background: var(--pa-surface);
+    border: 1px solid var(--pa-border);
+    border-radius: var(--pa-radius);
+    box-shadow: var(--pa-shadow);
+}
+
+.pa-panel-heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.pa-panel-heading h3 {
+    margin: 0;
+    color: var(--pa-text);
+    font-size: 17px;
+    font-weight: 750;
+    letter-spacing: -0.35px;
+}
+
+.pa-panel-heading p {
+    margin: 7px 0 0;
+    color: var(--pa-muted);
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.pa-filters {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    align-items: end;
+}
+
+.pa-filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.pa-filter-field label,
+.pa-chart-controls label {
+    color: #4d5e54;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.pa-filter-field select,
+.pa-filter-field input,
+.pa-chart-controls select,
+.pa-table-tools input {
+    width: 100%;
+    min-width: 0;
+    min-height: 43px;
+    padding: 10px 12px;
+    border: 1px solid #e1e8e2;
+    border-radius: 10px;
+    background: #fff;
+    color: var(--pa-text);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    transition:
+        border-color 0.2s,
+        box-shadow 0.2s;
+}
+
+.pa-filter-field select:focus,
+.pa-filter-field input:focus,
+.pa-chart-controls select:focus,
+.pa-table-tools input:focus {
+    border-color: var(--pa-green);
+    box-shadow: 0 0 0 3px rgba(22, 132, 91, 0.1);
+}
+
+.pa-filter-field select:disabled {
+    background: #f5f7f5;
+    color: #a0aaa3;
+    cursor: not-allowed;
+}
+
+.pa-filter-actions {
+    display: flex;
+    align-items: end;
+}
+
+.pa-filter-actions button {
+    width: 100%;
+}
+
+/* ============================================================
+   KPI CARDS
+   ============================================================ */
+
+.pa-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+.pa-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    min-height: 155px;
+    padding: 23px;
+    background: #fff;
+    border: 1px solid var(--pa-border);
+    border-radius: 14px;
+    box-shadow: var(--pa-shadow);
+    transition:
+        transform 0.2s,
+        box-shadow 0.2s;
+}
+
+.pa-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 26px rgba(20, 49, 35, 0.06);
+}
+
+.pa-stat > span {
+    color: var(--pa-muted);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.pa-stat > strong {
+    color: var(--pa-text);
+    font-size: clamp(23px, 2vw, 30px);
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.pa-stat > small {
+    margin-top: auto;
+    color: #8c9990;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.pa-stat strong.pa-positive {
+    color: var(--pa-green);
+}
+
+.pa-stat strong.pa-negative {
+    color: #d14343;
+}
+
+/* ============================================================
+   HISTORICAL PRICE CHART
+   ============================================================ */
+
+.pa-chart-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.pa-chart-controls select {
+    width: auto;
+    min-width: 145px;
+}
+
+.pa-chart-wrapper {
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: 12px;
+}
+
+.pa-chart {
+    width: 100%;
+    min-height: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pa-svg {
+    display: block;
+    width: 100%;
+    min-width: 620px;
+    height: auto;
+    overflow: visible;
+}
+
+.pa-grid-line {
+    stroke: #e8eee9;
+    stroke-width: 1;
+    stroke-dasharray: 4 5;
+}
+
+.pa-axis-label {
+    fill: #829087;
+    font-family: inherit;
+    font-size: 11px;
+}
+
+.pa-chart-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px 22px;
+    margin-top: 18px;
+}
+
+.pa-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #52635a;
+    font-size: 12px;
+}
+
+.pa-legend-dot {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.pa-chart-note {
+    margin: 18px 0 0;
+    color: #91a096;
+    font-size: 11px;
+    line-height: 1.7;
+}
+
+/* ============================================================
+   PRICE COMPARISON BARS
+   ============================================================ */
+
+.pa-comparison-chart {
+    display: flex;
+    flex-direction: column;
+    gap: 23px;
+    min-height: 80px;
+}
+
+.pa-comparison-row {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.pa-comparison-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.pa-comparison-meta span {
+    color: #53635a;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.pa-comparison-meta strong {
+    color: var(--pa-text);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.pa-comparison-track {
+    width: 100%;
+    height: 11px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #edf1ed;
+}
+
+.pa-comparison-fill {
+    height: 100%;
+    min-width: 0;
+    border-radius: inherit;
+    transition: width 0.4s ease;
+}
+
+/* ============================================================
+   PRICE HISTORY TABLE
+   ============================================================ */
+
+.pa-table-tools {
+    width: min(100%, 280px);
+}
+
+.pa-table-tools input {
+    width: 100%;
+}
+
+.pa-table-scroll {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid var(--pa-border);
+    border-radius: 12px;
+}
+
+.pa-table {
+    width: 100%;
+    min-width: 840px;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.pa-table thead {
+    background: #f7f9f7;
+}
+
+.pa-table th {
+    padding: 15px 17px;
+    color: #79867d;
+    font-size: 11px;
+    font-weight: 750;
+    letter-spacing: 0.25px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.pa-table td {
+    padding: 16px 17px;
+    border-top: 1px solid #edf1ed;
+    color: #4b5d52;
+    font-size: 12px;
+    line-height: 1.5;
+    vertical-align: middle;
+}
+
+.pa-table tbody tr:hover {
+    background: #fafcfb;
+}
+
+.pa-table .pa-price-cell {
+    color: var(--pa-text);
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.pa-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--pa-green-light);
+    color: var(--pa-green-dark);
+    font-size: 10px;
+    font-weight: 750;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.pa-empty-cell {
+    padding: 35px 20px !important;
+    text-align: center;
+    color: var(--pa-muted) !important;
+}
+
+.pa-empty {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    min-height: 100px;
+    padding: 30px;
+    border: 1px dashed #dfe8e0;
+    border-radius: 12px;
+    color: var(--pa-muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+/* ============================================================
+   PAGINATION
+   ============================================================ */
+
+.pa-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.pa-pagination > span {
+    color: var(--pa-muted);
+    font-size: 12px;
+}
+
+.pa-pagination-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pa-pagination-actions button {
+    min-height: 37px;
+    padding: 8px 15px;
+    border: 1px solid var(--pa-border);
+    border-radius: 9px;
+    background: #fff;
+    color: #4c5d53;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+    transition:
+        background 0.2s,
+        border-color 0.2s;
+}
+
+.pa-pagination-actions button:hover:not(:disabled) {
+    background: var(--pa-green-light);
+    border-color: #b9dcca;
+    color: var(--pa-green-dark);
+}
+
+.pa-pagination-actions button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ============================================================
+   TABLET
+   ============================================================ */
+
+@media (max-width: 1100px) {
+    .pa-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pa-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .pa-stat {
+        min-height: 140px;
+    }
+}
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 640px) {
+    .pa-overview-heading {
+        align-items: stretch;
+    }
+
+    .pa-overview-heading h2 {
+        font-size: 20px;
+    }
+
+    .pa-overview-heading .pa-button {
+        width: 100%;
+    }
+
+    .pa-panel {
+        padding: 18px;
+        margin-bottom: 16px;
+        border-radius: 13px;
+    }
+
+    .pa-panel-heading {
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .pa-panel-heading h3 {
+        font-size: 16px;
+    }
+
+    .pa-filters {
+        grid-template-columns: 1fr;
+        gap: 13px;
+    }
+
+    .pa-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .pa-stat {
+        min-height: 135px;
+        padding: 16px;
+        gap: 10px;
+    }
+
+    .pa-stat > strong {
+        font-size: clamp(19px, 5vw, 25px);
+    }
+
+    .pa-stat > small {
+        font-size: 10px;
+    }
+
+    .pa-chart-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .pa-chart-controls select {
+        min-width: 130px;
+    }
+
+    .pa-chart {
+        min-height: 250px;
+    }
+
+    .pa-svg {
+        min-width: 560px;
+    }
+
+    .pa-comparison-meta {
+        align-items: flex-start;
+    }
+
+    .pa-table-tools {
+        width: 100%;
+    }
+
+    .pa-pagination {
+        align-items: stretch;
+    }
+
+    .pa-pagination-actions {
+        width: 100%;
+    }
+
+    .pa-pagination-actions button {
+        flex: 1;
+    }
+
+    .pa-error {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* ============================================================
+   EXTRA SMALL SCREENS
+   ============================================================ */
+
+@media (max-width: 380px) {
+    .pa-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .pa-stat {
+        min-height: 115px;
+    }
+
+    .pa-stat > strong {
+        font-size: 27px;
+    }
+}
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    .pa-stat,
+    .pa-button,
+    .pa-button-secondary,
+    .pa-comparison-fill,
+    .pa-pagination-actions button {
+        transition: none;
+    }
+}

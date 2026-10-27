@@ -41,7 +41,7 @@ Route::get('/reset-password/{token}', function (string $token) {
 | Sensitive data must never be embedded in these views.
 */
 
-Route::view('/dashboard', 'dashboard.placeholder')
+Route::view('/dashboard', 'dashboard.index')
     ->name('dashboard');
 
 Route::view('/gis', 'gis.index')
@@ -50,3 +50,17 @@ Route::view('/gis', 'gis.index')
 
 Route::view('/account-verification', 'auth.account-verification')
     ->name('account.verification');
+
+Route::view('/livestock/monitoring', 'livestock.monitoring')
+    ->name('livestock.monitoring');
+
+Route::view('/analytics/prices', 'analytics.prices')
+    ->name('analytics.prices');
+
+
+Route::view('/analytics/transactions', 'analytics.transactions')
+    ->name('analytics.transactions');
+
+
+Route::view('/analytics/valuations', 'analytics.valuations')
+    ->name('analytics.valuations');

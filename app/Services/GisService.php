@@ -40,27 +40,30 @@ class GisService
             ->toArray();
     }
 
+
     public function geojson(
         ?string $municipalityId = null,
         ?string $speciesId = null,
         bool $includeLivestock = false
     ): array {
-        $counts = $includeLivestock
-            ? $this->countsByBarangay($municipalityId, $speciesId)
-            : [];
-
         $barangays = Barangay::query()
             ->where('is_active', true)
-            ->when(
-                !$includeLivestock,
-                fn($query) => $query->whereHas(
-                    'municipality',
-                    fn($municipalityQuery) =>
-                        $municipalityQuery->where('is_active', true)
-                )
-            )
+
+            // Always restrict to active municipalities,
+            // including livestock monitoring requests.
+            ->whereHas('municipality', function ($query) {
+                $query->where('is_active', true);
+            })
+
             ->whereHas('geometry')
-            ->with('geometry')
+
+            // Eager-load municipality information
+            // to prevent N+1 queries.
+            ->with([
+                'geometry',
+                'municipality:id,name,province,is_active',
+            ])
+
             ->when(
                 $municipalityId,
                 fn($query) => $query->where(
@@ -68,8 +71,16 @@ class GisService
                     $municipalityId
                 )
             )
+
             ->orderBy('name')
             ->get();
+
+        $counts = $includeLivestock
+            ? $this->countsByBarangay(
+                $municipalityId,
+                $speciesId
+            )
+            : [];
 
         $features = [];
 
@@ -83,10 +94,17 @@ class GisService
                 continue;
             }
 
+            $municipality = $barangay->municipality;
 
             $properties = [
                 'barangay_id' => $barangay->id,
                 'municipality_id' => $barangay->municipality_id,
+
+                // New municipality metadata.
+                'municipality_name' => $municipality?->name,
+                'municipality_is_active' => (bool) $municipality?->is_active,
+                'province_name' => $municipality?->province,
+
                 'name' => $barangay->name,
                 'psgc_code' => $barangay->psgc_code,
             ];
@@ -111,8 +129,12 @@ class GisService
             ];
         }
 
-        return ['type' => 'FeatureCollection', 'features' => $features];
+        return [
+            'type' => 'FeatureCollection',
+            'features' => $features,
+        ];
     }
+
 
     public function livestockSummary(?string $municipalityId = null, ?string $barangayId = null, ?string $speciesId = null): array
     {
