@@ -33,9 +33,14 @@ use App\Http\Controllers\{
     ReportController,
     AuditLogController,
     OtpController,
-    NotificationController
+    NotificationController,
+    PasswordResetController
 };
 use Illuminate\Support\Facades\Route;
+
+
+
+
 
 
 
@@ -54,6 +59,16 @@ Route::prefix('auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
     });
 });
+
+Route::post('/auth/forgot-password', [
+    PasswordResetController::class,
+    'forgot'
+])->middleware('throttle:3,1');
+
+Route::post('/auth/reset-password', [
+    PasswordResetController::class,
+    'reset'
+])->middleware('throttle:5,1');
 
 /*
 |--------------------------------------------------------------------------

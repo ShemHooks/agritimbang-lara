@@ -48,41 +48,33 @@ class AuthService
         });
     }
 
-    public function login(array $credentials): array
-    {
+    public function login(
+        array $credentials,
+        bool $issueToken = true
+    ): array {
         $user = User::where('email', $credentials['email'])->first();
 
-        if (
-            !$user ||
-            !Hash::check($credentials['password'], $user->password)
-        ) {
+        if (!$user || !Hash::check($credentials['password'], $user->password)) {
             throw ValidationException::withMessages([
-                'email' => [
-                    'The provided credentials are incorrect.'
-                ],
+                'email' => ['The provided credentials are incorrect.'],
             ]);
         }
 
         if ($user->status !== 'active') {
             throw ValidationException::withMessages([
-                'email' => [
-                    'This account is currently unavailable.'
-                ],
+                'email' => ['This account is currently unavailable.'],
             ]);
         }
 
-        $user->forceFill([
-            'last_login_at' => now(),
-        ])->save();
+        $user->forceFill(['last_login_at' => now()])->save();
 
-        $token = $user
-            ->createToken('auth_token')
-            ->plainTextToken;
+        $result = ['user' => $user->load('roles')];
 
-        return [
-            'user' => $user->load('roles'),
-            'token' => $token,
-        ];
+        if ($issueToken) {
+            $result['token'] = $user->createToken('auth_token')->plainTextToken;
+        }
+
+        return $result;
     }
 
     public function logout(User $user): void

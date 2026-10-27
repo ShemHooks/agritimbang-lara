@@ -9,6 +9,15 @@ use Illuminate\Http\JsonResponse;
 
 class MunicipalityController extends BaseController
 {
+
+    /**
+     * Public municipality lookup for registration
+     * and farmer profile forms.
+     */
+    public function referenceIndex(): JsonResponse
+    {
+        return $this->active();
+    }
     public function index(): JsonResponse
     {
         $municipalities = Municipality::query()

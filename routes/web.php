@@ -2,10 +2,51 @@
 
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return redirect()->route('gis.index');
-});
+/*
+|--------------------------------------------------------------------------
+| Public Pages
+|--------------------------------------------------------------------------
+| Authentication is handled by our REST API using Sanctum bearer tokens.
+| Blade routes only serve frontend pages.
+*/
 
-Route::get('/gis', function () {
-    return view('gis.index');
-})->name('gis.index');
+Route::redirect('/', '/login')->name('home');
+
+Route::view('/login', 'auth.login')
+    ->name('login');
+
+Route::view('/register', 'auth.register')
+    ->name('register');
+
+Route::view('/verify-email', 'auth.verify-email')
+    ->name('verification.notice');
+
+Route::view('/forgot-password', 'auth.forgot-password')
+    ->name('password.request');
+
+
+Route::get('/reset-password/{token}', function (string $token) {
+    return view('auth.reset-password', [
+        'token' => $token,
+        'email' => request()->query('email', ''),
+    ]);
+})->name('password.reset');
+
+/*
+|--------------------------------------------------------------------------
+| Application Pages
+|--------------------------------------------------------------------------
+| These routes serve Blade shells only.
+| Authentication is verified through /api/auth/me.
+| Sensitive data must never be embedded in these views.
+*/
+
+Route::view('/dashboard', 'dashboard.placeholder')
+    ->name('dashboard');
+
+Route::view('/gis', 'gis.index')
+    ->name('gis.index');
+
+
+Route::view('/account-verification', 'auth.account-verification')
+    ->name('account.verification');

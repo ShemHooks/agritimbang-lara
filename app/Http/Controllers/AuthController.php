@@ -7,6 +7,8 @@ use App\Http\Requests\RegisterFarmerRequest;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+
 
 class AuthController extends BaseController
 {
@@ -29,17 +31,22 @@ class AuthController extends BaseController
         );
     }
 
-    public function login(
-        LoginRequest $request
-    ): JsonResponse {
+
+    public function login(LoginRequest $request): JsonResponse
+    {
+        $stateful = $request->attributes->get('sanctum', false);
+
         $result = $this->authService->login(
-            $request->validated()
+            $request->validated(),
+            !$stateful
         );
 
-        return $this->success(
-            $result,
-            'Login successful.'
-        );
+        if ($stateful) {
+            Auth::guard('web')->login($result['user']);
+            $request->session()->regenerate();
+        }
+
+        return $this->success($result, 'Login successful.');
     }
 
     public function me(Request $request): JsonResponse
@@ -56,13 +63,17 @@ class AuthController extends BaseController
 
     public function logout(Request $request): JsonResponse
     {
-        $this->authService->logout(
-            $request->user()
-        );
+        $token = $request->user()?->currentAccessToken();
 
-        return $this->success(
-            null,
-            'Logout successful.'
-        );
+        if ($token instanceof PersonalAccessToken) {
+            $token->delete();
+        } else {
+            Auth::guard('web')->logout();
+
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
+        return $this->success(null, 'Logout successful.');
     }
 }

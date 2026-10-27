@@ -15,7 +15,7 @@ return new class extends Migration {
             $table->foreignUuid('municipality_id')->references('id')->on('municipalities');
             $table->string("name");
             $table->string("psgc_code")->nullable();
-            $table->boolean("is_active")->default(false);
+            $table->boolean("is_active")->default(true);
             $table->unique(['municipality_id', 'name']);
             $table->timestamps();
         });

@@ -146,7 +146,7 @@ class ImportCebuBarangays extends Command
                             'municipality_id' => $munId,
                             'name' => $data['name'],
                             'psgc_code' => $code,
-                            'is_active' => false,
+                            'is_active' => true,
                             'created_at' => now(),
                             'updated_at' => now(),
                         ]);
