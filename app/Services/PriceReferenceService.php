@@ -96,6 +96,9 @@ class PriceReferenceService
                 'remarks' => $data['remarks'] ?? null,
 
                 'status' => 'draft',
+
+                // Record the authenticated LGU Encoder.
+                'submitted_by' => $user->id,
             ]);
 
             return $priceReference->load([
@@ -103,6 +106,7 @@ class PriceReferenceService
                 'barangay',
                 'species',
                 'breed',
+                'submitter',
             ]);
         });
     }

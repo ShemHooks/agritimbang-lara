@@ -38,7 +38,8 @@ use App\Http\Controllers\{
     TransactionCancellationController,
     TransactionDisputeController,
     UserVerificationController,
-    AdminUserController
+    AdminUserController,
+    OfficialPriceController
 };
 
 /*
@@ -592,4 +593,14 @@ Route::middleware([
     'role:admin,lgu_authority,lgu_encoder',
 ])->group(function () {
     Route::get('lgu/livestock', [LguLivestockController::class, 'index']);
+});
+
+Route::middleware([
+    'auth:sanctum',
+    'role:farmer,lgu_encoder,lgu_authority',
+])->group(function () {
+    Route::get(
+        'official-prices',
+        [OfficialPriceController::class, 'index']
+    );
 });

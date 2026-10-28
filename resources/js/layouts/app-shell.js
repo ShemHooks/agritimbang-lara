@@ -87,7 +87,7 @@ const NAV = {
         {
             label: "Price Management",
             icon: "₱",
-            href: "/prices/manage",
+            href: "/prices",
         },
         {
             label: "Market Monitoring",
@@ -135,7 +135,7 @@ const NAV = {
         {
             label: "Draft Weekly Price",
             icon: "₱",
-            href: "/prices/drafts",
+            href: "/prices",
         },
         {
             label: "Calculators",
@@ -311,6 +311,7 @@ async function init() {
             "/users",
             "/lgu/encoders",
             "/calculator",
+            "/prices",
         ]);
 
         $("app-nav").innerHTML = NAV[role]

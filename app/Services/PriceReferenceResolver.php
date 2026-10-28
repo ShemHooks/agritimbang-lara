@@ -37,11 +37,7 @@ class PriceReferenceResolver
                     ->orWhereDate('effective_to', '>=', $date);
             });
 
-        /*
-         * Build candidate scopes in priority order.
-         * An exact breed reference is preferred within
-         * the same geographic scope.
-         */
+
         $candidates = [];
 
         if ($livestock->barangay_id) {

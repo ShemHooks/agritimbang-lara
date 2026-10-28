@@ -1,0 +1,243 @@
+.price-form-page {
+    max-width: 1120px;
+    margin: 0 auto;
+}
+
+.price-form-page [hidden] {
+    display: none !important;
+}
+
+.price-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.price-form-eyebrow {
+    color: #648b62;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    margin: 0 0 12px;
+}
+
+.price-form-header h1 {
+    font-size: clamp(26px, 3vw, 36px);
+    color: #183b2b;
+    letter-spacing: -0.035em;
+    margin: 0 0 8px;
+}
+
+.price-form-header p:not(.price-form-eyebrow) {
+    color: #78867a;
+    font-size: 14px;
+    margin: 0;
+}
+
+.price-form-back,
+.price-form-cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 11px 16px;
+    border: 1px solid #d9e3d8;
+    border-radius: 10px;
+    background: #fff;
+    color: #31523d;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.price-form-back:hover,
+.price-form-cancel:hover {
+    background: #f3f7f1;
+}
+
+.price-form-alert {
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.price-form-alert-error {
+    color: #b42318;
+    background: #fff0ef;
+    border: 1px solid #f7c8c3;
+}
+
+.price-form-alert-success {
+    color: #166534;
+    background: #edf8ed;
+    border: 1px solid #b7dfbd;
+}
+
+.price-form-card {
+    background: #fff;
+    border: 1px solid #e0e8dd;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.price-form-card-header {
+    padding: 24px 28px;
+    border-bottom: 1px solid #edf0eb;
+}
+
+.price-form-card-header h2 {
+    font-size: 18px;
+    color: #1d3e2c;
+    margin: 0 0 7px;
+}
+
+.price-form-card-header p {
+    font-size: 13px;
+    color: #7c897e;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.price-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+    padding: 28px;
+}
+
+.price-form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    min-width: 0;
+}
+
+.price-form-field > span {
+    font-size: 12px;
+    font-weight: 700;
+    color: #375342;
+}
+
+.price-form-field em {
+    color: #d64c42;
+    font-style: normal;
+}
+
+.price-form-field input,
+.price-form-field select,
+.price-form-field textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 11px 13px;
+    border: 1px solid #dbe5d9;
+    border-radius: 9px;
+    background: #fff;
+    color: #23412e;
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.price-form-field textarea {
+    min-height: 110px;
+    resize: vertical;
+}
+
+.price-form-field input:focus,
+.price-form-field select:focus,
+.price-form-field textarea:focus {
+    border-color: #5d9568;
+    box-shadow: 0 0 0 3px rgba(75, 132, 86, 0.12);
+}
+
+.price-form-field input:disabled,
+.price-form-field select:disabled,
+.price-form-field textarea:disabled {
+    background: #f5f7f3;
+    color: #98a49a;
+    cursor: not-allowed;
+}
+
+.price-form-field small {
+    color: #b42318;
+    font-size: 11px;
+    min-height: 0;
+}
+
+.price-form-invalid {
+    border-color: #e08a83 !important;
+    background: #fffafa !important;
+}
+
+.price-form-full {
+    grid-column: 1 / -1;
+}
+
+.price-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px 28px;
+    border-top: 1px solid #edf0eb;
+    background: #fcfdfb;
+}
+
+.price-form-primary {
+    border: 0;
+    border-radius: 10px;
+    background: #2f6645;
+    color: #fff;
+    padding: 12px 22px;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.price-form-primary:hover {
+    background: #245437;
+}
+
+.price-form-primary:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+    .price-form-header {
+        flex-direction: column;
+    }
+
+    .price-form-grid {
+        grid-template-columns: 1fr;
+        padding: 20px;
+        gap: 18px;
+    }
+
+    .price-form-card-header {
+        padding: 20px;
+    }
+
+    .price-form-actions {
+        padding: 18px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .price-form-actions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .price-form-primary,
+    .price-form-cancel {
+        width: 100%;
+    }
+}

@@ -1,0 +1,302 @@
+.price-review-page {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.price-review-page [hidden] {
+    display: none !important;
+}
+
+.price-review-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.price-review-eyebrow {
+    color: #648b62;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    margin: 0 0 12px;
+}
+
+.price-review-header h1 {
+    font-size: clamp(26px, 3vw, 36px);
+    color: #183b2b;
+    letter-spacing: -0.035em;
+    margin: 0 0 8px;
+}
+
+.price-review-header p:not(.price-review-eyebrow) {
+    color: #78867a;
+    font-size: 14px;
+    margin: 0;
+}
+
+.price-review-card {
+    background: #fff;
+    border: 1px solid #e0e8dd;
+    border-radius: 15px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.price-review-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 24px;
+    border-bottom: 1px solid #edf0eb;
+}
+
+.price-review-card-header h2 {
+    font-size: 18px;
+    color: #1d3e2c;
+    margin: 0 0 6px;
+}
+
+.price-review-card-header p {
+    font-size: 13px;
+    color: #7c897e;
+    margin: 0;
+}
+
+.price-review-secondary,
+.price-review-primary,
+.price-review-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 11px 17px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.price-review-secondary {
+    background: #fff;
+    color: #31523d;
+    border: 1px solid #d9e3d8;
+}
+
+.price-review-primary {
+    background: #2f6645;
+    color: #fff;
+    border: 1px solid #2f6645;
+}
+
+.price-review-danger {
+    background: #fff;
+    color: #b42318;
+    border: 1px solid #e6b9b4;
+}
+
+.price-review-primary:hover {
+    background: #245437;
+}
+
+.price-review-danger:hover {
+    background: #fff0ef;
+}
+
+.price-review-secondary:hover {
+    background: #f3f7f1;
+}
+
+.price-review-primary:disabled,
+.price-review-danger:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.price-review-alert {
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 20px;
+}
+
+.price-review-alert-error {
+    background: #fff0ef;
+    border: 1px solid #f7c8c3;
+    color: #b42318;
+}
+
+.price-review-alert-success {
+    background: #edf8ed;
+    border: 1px solid #b7dfbd;
+    color: #166534;
+}
+
+.price-review-loading,
+.price-review-empty {
+    padding: 32px;
+    text-align: center;
+    color: #8a988c;
+    font-size: 13px;
+}
+
+.price-review-status {
+    display: inline-flex;
+    padding: 7px 12px;
+    border-radius: 999px;
+    background: #f1f3f1;
+    color: #5e6d60;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.price-review-status-pending_review {
+    background: #fff5db;
+    color: #a56a0a;
+}
+
+.price-review-status-official {
+    background: #e7f6e9;
+    color: #24743b;
+}
+
+.price-review-status-rejected {
+    background: #fff0ee;
+    color: #b42318;
+}
+
+.price-review-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+    padding: 24px;
+}
+
+.price-review-detail-field {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+}
+
+.price-review-detail-field span {
+    font-size: 11px;
+    color: #829085;
+}
+
+.price-review-detail-field strong {
+    font-size: 13px;
+    color: #274432;
+    overflow-wrap: anywhere;
+}
+
+.price-review-validation-list {
+    padding: 24px;
+}
+
+.price-review-log {
+    border-left: 3px solid #8dbb91;
+    padding: 9px 0 9px 16px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.price-review-log strong {
+    color: #294d34;
+    font-size: 12px;
+}
+
+.price-review-log span {
+    color: #8a988c;
+    font-size: 11px;
+}
+
+.price-review-log p {
+    color: #536958;
+    font-size: 12px;
+    margin: 0;
+    line-height: 1.6;
+}
+
+.price-review-decision {
+    padding: 24px;
+}
+
+.price-review-field {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.price-review-field > span {
+    font-size: 12px;
+    font-weight: 700;
+    color: #375342;
+}
+
+.price-review-field textarea {
+    width: 100%;
+    min-height: 110px;
+    padding: 12px 14px;
+    border: 1px solid #dbe5d9;
+    border-radius: 9px;
+    background: #fff;
+    color: #23412e;
+    font: inherit;
+    font-size: 13px;
+    resize: vertical;
+    outline: none;
+}
+
+.price-review-field textarea:focus {
+    border-color: #5d9568;
+    box-shadow: 0 0 0 3px rgba(75, 132, 86, 0.12);
+}
+
+.price-review-field small {
+    color: #b42318;
+    font-size: 11px;
+}
+
+.price-review-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 22px;
+}
+
+@media (max-width: 768px) {
+    .price-review-header {
+        flex-direction: column;
+    }
+
+    .price-review-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 520px) {
+    .price-review-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .price-review-actions {
+        flex-direction: column-reverse;
+    }
+
+    .price-review-actions button {
+        width: 100%;
+    }
+
+    .price-review-card-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

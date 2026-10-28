@@ -80,9 +80,6 @@ Route::view('/livestock', 'livestock.index')
 Route::view('/admin/lgu-authorities', 'users.authorities')
     ->name('admin.lgu-authorities.index');
 
-Route::view('/lgu/encoders', 'users.encoders')
-    ->name('lgu.encoders.index');
-
 Route::view('/users', 'users.index')
     ->name('admin.users.index');
 
@@ -102,3 +99,23 @@ Route::get('/livestock/{livestock}', function (string $livestock) {
 
 Route::view('/calculator', 'calculator.index')
     ->name('calculator.index');
+
+
+Route::view('/prices', 'prices.index')
+    ->name('prices.index');
+
+Route::view('/prices/create', 'prices.form')
+    ->name('prices.create');
+
+Route::view('/prices/{priceReference}/edit', 'prices.form')
+    ->name('prices.edit');
+
+Route::view('/prices/submissions', 'prices.submissions')
+    ->name('prices.submissions');
+
+Route::view('/prices/approvals', 'prices.approvals')
+    ->name('prices.approvals');
+
+Route::view('/prices/approvals/{priceReference}', 'prices.review')
+    ->name('prices.review');
+
