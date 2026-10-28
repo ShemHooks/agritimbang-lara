@@ -1,0 +1,264 @@
+.lr-page {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding-bottom: 40px;
+}
+
+.lr-hero {
+    padding: 30px 32px;
+    border-radius: 16px;
+    background: linear-gradient(120deg, #203d28, #426a39);
+    color: #fff;
+}
+
+.lr-eyebrow {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    opacity: 0.8;
+}
+
+.lr-hero h1 {
+    margin: 0 0 8px;
+    font-size: clamp(25px, 3vw, 34px);
+}
+
+.lr-hero h1 span {
+    color: #a9d48a;
+}
+
+.lr-hero p {
+    margin: 0;
+    color: #e0eadc;
+    font-size: 13px;
+}
+
+.lr-heading,
+.lr-section-header,
+.lr-footer,
+.lr-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.lr-heading,
+.lr-footer {
+    justify-content: space-between;
+}
+
+.lr-heading h2 {
+    margin: 0 0 5px;
+    color: #243c2b;
+    font-size: 20px;
+}
+
+.lr-heading p,
+.lr-section-header p,
+.lr-footer p {
+    margin: 0;
+    color: #7c897e;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.lr-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.lr-card {
+    padding: 26px;
+    border: 1px solid #e4eae3;
+    border-radius: 14px;
+    background: #fff;
+}
+
+.lr-section-header {
+    margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #edf0eb;
+}
+
+.lr-step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 43px;
+    height: 43px;
+    border-radius: 11px;
+    background: #edf3e8;
+    color: #3c6339;
+    font-weight: 750;
+    font-size: 14px;
+}
+
+.lr-section-header h3 {
+    margin: 0 0 5px;
+    color: #263c2d;
+    font-size: 17px;
+}
+
+.lr-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.lr-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: #405346;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.lr-field b {
+    color: #c24c42;
+}
+
+.lr-field input,
+.lr-field select {
+    width: 100%;
+    min-height: 43px;
+    padding: 10px 13px;
+    border: 1px solid #dce5dc;
+    border-radius: 9px;
+    background: #fff;
+    color: #2d4133;
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+}
+
+.lr-field input:focus,
+.lr-field select:focus {
+    border-color: #638b59;
+    box-shadow: 0 0 0 3px rgba(99, 139, 89, 0.12);
+}
+
+.lr-field input:disabled,
+.lr-field select:disabled {
+    background: #f4f6f3;
+    color: #8b968c;
+    cursor: not-allowed;
+}
+
+.lr-field small {
+    color: #88958a;
+    font-size: 11px;
+    font-weight: 400;
+    line-height: 1.5;
+}
+
+.lr-field .lr-field-error {
+    color: #b63f37;
+    font-weight: 500;
+}
+
+.lr-field-error:empty {
+    display: none;
+}
+
+.lr-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 10px 17px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 650;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        background 0.2s,
+        border-color 0.2s;
+}
+
+.lr-btn-primary {
+    border: 1px solid #345d35;
+    background: #345d35;
+    color: #fff;
+}
+
+.lr-btn-primary:hover {
+    background: #274b29;
+}
+
+.lr-btn-outline {
+    border: 1px solid #dce5dc;
+    background: #fff;
+    color: #38543c;
+}
+
+.lr-btn-outline:hover {
+    background: #f4f8f3;
+}
+
+.lr-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.lr-footer {
+    padding: 8px 0;
+}
+
+.lr-footer p {
+    max-width: 460px;
+}
+
+.lr-alert {
+    padding: 14px 16px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.lr-alert[hidden] {
+    display: none !important;
+}
+
+.lr-alert-error {
+    border: 1px solid #efc6c1;
+    background: #fff0ee;
+    color: #a83d34;
+}
+
+.lr-alert-success {
+    border: 1px solid #c9e3c8;
+    background: #eff8ec;
+    color: #2e7136;
+}
+
+@media (max-width: 720px) {
+    .lr-hero {
+        padding: 23px;
+    }
+
+    .lr-heading,
+    .lr-footer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .lr-card {
+        padding: 19px;
+    }
+
+    .lr-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .lr-actions {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+}

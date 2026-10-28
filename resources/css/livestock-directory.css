@@ -1,0 +1,648 @@
+/* ============================================================
+   AGRITIMBANG — LIVESTOCK DIRECTORY
+   Phase 5.3
+   ============================================================ */
+
+.ld-toolbar,
+.ld-toolbar-actions,
+.ld-summary-heading,
+.ld-panel-header,
+.ld-pagination,
+.ld-pagination-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.ld-toolbar {
+    margin: 26px 0 20px;
+    flex-wrap: wrap;
+}
+
+.ld-toolbar-label,
+.ld-section-eyebrow {
+    display: block;
+    color: #16845b;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.4px;
+}
+
+.ld-toolbar-info p {
+    margin: 7px 0 0;
+    color: #8a9a8e;
+    font-size: 12px;
+}
+
+.ld-toolbar-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.ld-btn,
+.ld-reset-button,
+.ld-page-button,
+.ld-view-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.ld-btn-primary {
+    background: #16845b;
+    border-color: #16845b;
+    color: #fff;
+}
+
+.ld-btn-primary:hover:not(:disabled) {
+    background: #116b49;
+    border-color: #116b49;
+    transform: translateY(-1px);
+}
+
+.ld-btn-secondary,
+.ld-page-button {
+    background: #fff;
+    border-color: #dce8df;
+    color: #365743;
+}
+
+.ld-btn-secondary:hover:not(:disabled),
+.ld-page-button:hover:not(:disabled) {
+    background: #f2f8f4;
+    border-color: #bad9c3;
+}
+
+.ld-btn:disabled,
+.ld-page-button:disabled,
+.ld-view-button:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.ld-reset-button {
+    min-height: 34px;
+    padding: 7px 12px;
+    background: #f2f8f4;
+    border-color: #e0ece3;
+    color: #16845b;
+}
+
+.ld-reset-button:hover {
+    background: #e6f3e9;
+}
+
+/* ============================================================
+   SUMMARY CARDS
+   ============================================================ */
+
+.ld-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.ld-summary-card {
+    min-width: 0;
+    min-height: 148px;
+    padding: 22px;
+    border: 1px solid #e3ebe5;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 3px 16px rgba(20, 60, 35, 0.025);
+    transition:
+        border-color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.ld-summary-card:hover {
+    border-color: #b9d9c3;
+    transform: translateY(-2px);
+}
+
+.ld-summary-heading {
+    align-items: flex-start;
+    margin-bottom: 19px;
+}
+
+.ld-summary-heading > span:first-child {
+    color: #829386;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.ld-summary-symbol {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 9px;
+    background: #eaf6ed;
+    color: #16845b;
+    font-size: 17px;
+}
+
+.ld-summary-card strong {
+    display: block;
+    color: #214832;
+    font-size: 29px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    font-variant-numeric: tabular-nums;
+}
+
+.ld-summary-card p {
+    margin: 8px 0 0;
+    color: #9aa99e;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* ============================================================
+   PANELS
+   ============================================================ */
+
+.ld-panel {
+    min-width: 0;
+    padding: 25px;
+    border: 1px solid #e3ebe5;
+    border-radius: 17px;
+    background: #fff;
+    box-shadow: 0 3px 16px rgba(23, 43, 34, 0.025);
+}
+
+.ld-filter-panel {
+    margin-bottom: 20px;
+}
+
+.ld-panel-header {
+    align-items: flex-start;
+    margin-bottom: 23px;
+}
+
+.ld-panel-header h2 {
+    margin: 8px 0 7px;
+    color: #213b2b;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+}
+
+.ld-panel-header p {
+    margin: 0;
+    color: #8b9a8e;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
+
+.ld-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 17px;
+    align-items: end;
+}
+
+.ld-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 8px;
+}
+
+.ld-field label {
+    color: #496b53;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+.ld-field input,
+.ld-field select {
+    width: 100%;
+    min-width: 0;
+    height: 43px;
+    padding: 0 13px;
+    border: 1px solid #dce7df;
+    border-radius: 10px;
+    outline: none;
+    background: #fff;
+    color: #304b38;
+    font: inherit;
+    font-size: 12px;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.ld-field input::placeholder {
+    color: #a6b2a8;
+}
+
+.ld-field input:focus,
+.ld-field select:focus {
+    border-color: #16845b;
+    box-shadow: 0 0 0 3px rgba(22, 132, 91, 0.1);
+}
+
+.ld-field select:disabled {
+    background: #f5f7f5;
+    color: #a4b0a7;
+    cursor: not-allowed;
+}
+
+.ld-filter-actions {
+    display: flex;
+    align-items: end;
+}
+
+.ld-filter-actions .ld-btn {
+    min-height: 43px;
+    width: 100%;
+}
+
+/* ============================================================
+   TABLE
+   ============================================================ */
+
+.ld-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 7px 12px;
+    border: 1px solid #d7e8db;
+    border-radius: 999px;
+    background: #f1f8f2;
+    color: #16845b;
+    font-size: 11px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.ld-table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.ld-table-container[hidden],
+.ld-notice[hidden],
+.ld-empty-state[hidden],
+.ld-pagination[hidden] {
+    display: none !important;
+}
+
+.ld-table {
+    width: 100%;
+    min-width: 1040px;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.ld-table thead {
+    background: #f7faf8;
+}
+
+.ld-table th {
+    padding: 15px 13px;
+    border-bottom: 1px solid #e5ede7;
+    color: #7a8c7e;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.ld-table td {
+    padding: 17px 13px;
+    border-bottom: 1px solid #edf1ed;
+    color: #405847;
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.ld-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.ld-table tbody tr:hover {
+    background: #f9fcfa;
+}
+
+.ld-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.ld-primary-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ld-primary-cell strong {
+    color: #2c4935;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.ld-primary-cell small {
+    color: #9aa99e;
+    font-size: 11px;
+}
+
+.ld-weight {
+    color: #365743;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ld-actions-column,
+.ld-actions-cell {
+    text-align: right;
+}
+
+.ld-view-button {
+    min-height: 33px;
+    padding: 7px 12px;
+    border-color: #d9e9de;
+    background: #f2f8f4;
+    color: #16845b;
+    font-size: 11px;
+}
+
+/* ============================================================
+   STATUS BADGES
+   ============================================================ */
+
+.ld-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    min-height: 26px;
+    padding: 5px 10px;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.ld-badge-neutral {
+    background: #f0f3f1;
+    border-color: #e3e9e5;
+    color: #69786e;
+}
+
+.ld-badge-success {
+    background: #e6f6eb;
+    border-color: #c9e9d2;
+    color: #16845b;
+}
+
+.ld-badge-warning {
+    background: #fff5df;
+    border-color: #f3e3b8;
+    color: #a97716;
+}
+
+.ld-badge-danger {
+    background: #fff0f0;
+    border-color: #f3cece;
+    color: #c04444;
+}
+
+/* ============================================================
+   LOADING / ERROR / EMPTY
+   ============================================================ */
+
+.ld-notice {
+    padding: 24px;
+    border: 1px solid #dce9df;
+    border-radius: 12px;
+    background: #f5faf6;
+    color: #496c55;
+    font-size: 12px;
+}
+
+.ld-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    border-color: #efcccc;
+    background: #fff7f7;
+    color: #a83c3c;
+}
+
+.ld-error strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 13px;
+}
+
+.ld-error p {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.ld-error button {
+    flex-shrink: 0;
+    padding: 9px 14px;
+    border: 1px solid #e8bcbc;
+    border-radius: 9px;
+    background: #fff;
+    color: #a83c3c;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.ld-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 250px;
+    padding: 30px;
+    text-align: center;
+}
+
+.ld-empty-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 62px;
+    height: 62px;
+    margin-bottom: 17px;
+    border-radius: 18px;
+    background: #eaf6ed;
+    color: #16845b;
+    font-size: 29px;
+}
+
+.ld-empty-state h3 {
+    margin: 0 0 9px;
+    color: #355641;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.ld-empty-state p {
+    max-width: 400px;
+    margin: 0;
+    color: #92a095;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+/* ============================================================
+   PAGINATION
+   ============================================================ */
+
+.ld-pagination {
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid #edf1ed;
+}
+
+.ld-pagination > p {
+    margin: 0;
+    color: #87978b;
+    font-size: 12px;
+}
+
+.ld-pagination-controls {
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.ld-page-button {
+    min-height: 35px;
+    padding: 8px 13px;
+    font-size: 11px;
+}
+
+#ld-page-indicator {
+    color: #496b53;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+
+@media (max-width: 1100px) {
+    .ld-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ld-filter-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .ld-toolbar,
+    .ld-toolbar-actions,
+    .ld-panel-header,
+    .ld-pagination {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ld-toolbar-actions .ld-btn {
+        width: 100%;
+    }
+
+    .ld-summary-grid {
+        gap: 12px;
+    }
+
+    .ld-summary-card {
+        min-height: 130px;
+        padding: 17px;
+    }
+
+    .ld-summary-card strong {
+        font-size: 25px;
+    }
+
+    .ld-summary-heading {
+        gap: 7px;
+    }
+
+    .ld-summary-heading > span:first-child {
+        font-size: 11px;
+    }
+
+    .ld-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ld-panel {
+        padding: 18px;
+    }
+
+    .ld-pagination-controls {
+        justify-content: space-between;
+    }
+
+    .ld-error {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .ld-error button {
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ld-btn,
+    .ld-summary-card,
+    .ld-table tbody tr,
+    .ld-field input,
+    .ld-field select {
+        transition: none;
+    }
+}
+
+.ld-view-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}

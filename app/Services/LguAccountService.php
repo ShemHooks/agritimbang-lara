@@ -9,6 +9,8 @@ use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use App\Notifications\TemporaryAccountCredentials;
 use RuntimeException;
 
 class LguAccountService
@@ -77,21 +79,22 @@ class LguAccountService
     }
 
 
+
     public function createAuthority(
         array $data,
         Municipality $municipality
     ): User {
-        return DB::transaction(function () use ($data, $municipality) {
-            if (!$municipality->is_active) {
-                throw new RuntimeException(
-                    'Cannot create an LGU Authority for an inactive municipality.'
-                );
-            }
+        if (!$municipality->is_active) {
+            throw new RuntimeException(
+                'Cannot create an LGU Authority for an inactive municipality.'
+            );
+        }
 
-            $role = Role::where(
-                'slug',
-                'lgu_authority'
-            )->firstOrFail();
+        $temporaryPassword = Str::password(10);
+
+        $user = DB::transaction(function () use ($data, $municipality, $temporaryPassword): User {
+            $role = Role::where('slug', 'lgu_authority')
+                ->firstOrFail();
 
             $user = User::create([
                 'first_name' => $data['first_name'],
@@ -99,7 +102,7 @@ class LguAccountService
                 'last_name' => $data['last_name'],
                 'email' => $data['email'],
                 'phone_number' => $data['phone_number'] ?? null,
-                'password' => Hash::make($data['password']),
+                'password' => Hash::make($temporaryPassword),
                 'status' => 'active',
                 'verification_status' => 'verified',
             ]);
@@ -113,10 +116,24 @@ class LguAccountService
                 'designation' => $data['designation'] ?? null,
             ]);
 
-            return $this->getAuthority($user->id);
+            return $user;
         });
-    }
 
+        try {
+            $user->notify(
+                new TemporaryAccountCredentials($temporaryPassword)
+            );
+        } catch (\Throwable $exception) {
+            Log::error('Failed to send LGU Authority credentials.', [
+                'user_id' => $user->id,
+                'exception' => $exception->getMessage(),
+            ]);
+
+
+        }
+
+        return $this->getAuthority($user->id);
+    }
 
     public function updateAuthority(
         User $authority,
@@ -262,28 +279,26 @@ class LguAccountService
     }
 
 
+
     public function createEncoder(
         array $data,
         User $authority
     ): User {
-        return DB::transaction(function () use ($data, $authority) {
-            $municipalityId = $this
-                ->getAuthorityMunicipalityId($authority);
+        $municipalityId = $this->getAuthorityMunicipalityId($authority);
 
-            $municipality = Municipality::findOrFail(
-                $municipalityId
+        $municipality = Municipality::findOrFail($municipalityId);
+
+        if (!$municipality->is_active) {
+            throw new RuntimeException(
+                'Cannot create an Encoder for an inactive municipality.'
             );
+        }
 
-            if (!$municipality->is_active) {
-                throw new RuntimeException(
-                    'Cannot create an Encoder for an inactive municipality.'
-                );
-            }
+        $temporaryPassword = Str::password(16);
 
-            $role = Role::where(
-                'slug',
-                'lgu_encoder'
-            )->firstOrFail();
+        $user = DB::transaction(function () use ($data, $municipalityId, $temporaryPassword): User {
+            $role = Role::where('slug', 'lgu_encoder')
+                ->firstOrFail();
 
             $user = User::create([
                 'first_name' => $data['first_name'],
@@ -291,7 +306,7 @@ class LguAccountService
                 'last_name' => $data['last_name'],
                 'email' => $data['email'],
                 'phone_number' => $data['phone_number'] ?? null,
-                'password' => Hash::make($data['password']),
+                'password' => Hash::make($temporaryPassword),
                 'status' => 'active',
                 'verification_status' => 'verified',
             ]);
@@ -305,12 +320,23 @@ class LguAccountService
                 'designation' => $data['designation'] ?? null,
             ]);
 
-            return $this->getEncoder(
-                $authority,
-                $user->id
-            );
+            return $user;
         });
+
+        try {
+            $user->notify(
+                new TemporaryAccountCredentials($temporaryPassword)
+            );
+        } catch (\Throwable $exception) {
+            Log::error('Failed to send LGU Encoder credentials.', [
+                'user_id' => $user->id,
+                'exception' => $exception->getMessage(),
+            ]);
+        }
+
+        return $this->getEncoder($authority, $user->id);
     }
+
 
 
     public function updateEncoder(

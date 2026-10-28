@@ -1,0 +1,459 @@
+/* ============================================================
+   AGRITIMBANG — LIVESTOCK MANAGEMENT
+   Unified Records + Monitoring & Analytics
+   ============================================================ */
+
+/* ============================================================
+   1. GLOBAL VISIBILITY
+   ============================================================ */
+
+#ld-register[hidden],
+#livestock-monitoring-tab[hidden],
+#livestock-records-view[hidden],
+#livestock-monitoring-view[hidden],
+#livestock-content[hidden],
+#livestock-loading[hidden],
+#livestock-error[hidden],
+#lm-map-panel[hidden],
+#lm-barangay-panel[hidden] {
+    display: none !important;
+}
+
+/* ============================================================
+   2. LIVESTOCK TOOLBAR
+   ============================================================ */
+
+.ld-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin: 26px 0 24px;
+}
+
+.ld-toolbar-info {
+    min-width: 0;
+}
+
+.ld-toolbar-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.ld-toolbar-actions .ld-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 11px 18px;
+    white-space: nowrap;
+    text-decoration: none;
+}
+
+#ld-register span {
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+/* ============================================================
+   3. SHARED STATISTICS
+   ============================================================ */
+
+.ld-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.ld-summary-card {
+    min-width: 0;
+}
+
+.ld-summary-card strong {
+    display: block;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   4. VIEW NAVIGATION
+   ============================================================ */
+
+.lm-view-tabs {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    width: fit-content;
+    max-width: 100%;
+
+    margin: 4px 0 22px;
+    padding: 6px;
+
+    background: #f5f8f5;
+    border: 1px solid #e0e9e2;
+    border-radius: 13px;
+}
+
+.lm-view-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 42px;
+    padding: 11px 20px;
+
+    border: 1px solid transparent;
+    border-radius: 9px;
+
+    background: transparent;
+    color: #738678;
+
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.4;
+
+    white-space: nowrap;
+    cursor: pointer;
+
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.lm-view-tab:hover:not(.is-active) {
+    color: #315c3d;
+    background: #eaf2eb;
+}
+
+.lm-view-tab.is-active {
+    background: #16845b;
+    color: #ffffff;
+    border-color: #16845b;
+    box-shadow: 0 3px 10px rgba(22, 132, 91, 0.16);
+}
+
+.lm-view-tab:focus-visible {
+    outline: 3px solid #a2d6b5;
+    outline-offset: 2px;
+}
+
+.lm-view-tab:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ============================================================
+   5. TAB CONTENT
+   ============================================================ */
+
+#livestock-records-view,
+#livestock-monitoring-view {
+    min-width: 0;
+    width: 100%;
+}
+
+#livestock-records-view {
+    animation: livestockFadeIn 0.25s ease;
+}
+
+#livestock-monitoring-view {
+    animation: livestockFadeIn 0.25s ease;
+}
+
+@keyframes livestockFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================================
+   6. RECORDS VIEW
+   ============================================================ */
+
+#livestock-records-view .ld-panel {
+    min-width: 0;
+}
+
+#livestock-records-view .ld-filter-panel {
+    margin-bottom: 22px;
+}
+
+#livestock-records-view .ld-table-panel {
+    margin-bottom: 24px;
+}
+
+#livestock-records-view .ld-table-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+#livestock-records-view .ld-table {
+    width: 100%;
+}
+
+#livestock-records-view .ld-filter-grid {
+    min-width: 0;
+}
+
+#livestock-records-view .ld-field {
+    min-width: 0;
+}
+
+/* ============================================================
+   7. MONITORING VIEW
+   ============================================================ */
+
+#livestock-monitoring-view .overview-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 22px;
+}
+
+#livestock-monitoring-view .overview-heading h2 {
+    margin: 0 0 6px;
+}
+
+#livestock-monitoring-view .overview-heading p {
+    margin: 0;
+}
+
+#livestock-monitoring-view .lm-panels {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin-bottom: 22px;
+}
+
+#livestock-monitoring-view .lm-panel {
+    min-width: 0;
+}
+
+#livestock-monitoring-view .lm-chart {
+    min-width: 0;
+    width: 100%;
+}
+
+#livestock-monitoring-view #lm-barangay-panel {
+    margin-bottom: 22px;
+}
+
+/* ============================================================
+   8. GEOGRAPHIC LIVESTOCK MONITORING
+   ============================================================ */
+
+#livestock-monitoring-view #lm-map-panel {
+    width: 100%;
+    min-width: 0;
+    margin-top: 22px;
+    margin-bottom: 24px;
+}
+
+#livestock-monitoring-view .lm-map-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+#livestock-monitoring-view .lm-map-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+#livestock-monitoring-view .lm-map-container {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    height: 460px;
+    min-height: 360px;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+#livestock-monitoring-view #lm-map {
+    display: block;
+    position: relative;
+
+    width: 100%;
+    height: 100%;
+    min-height: 360px;
+
+    z-index: 0;
+}
+
+#livestock-monitoring-view .leaflet-container {
+    width: 100%;
+    height: 100%;
+    background: #eef3ed;
+    font-family: inherit;
+}
+
+#livestock-monitoring-view .leaflet-control-container {
+    position: relative;
+    z-index: 400;
+}
+
+#livestock-monitoring-view .lm-map-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 16px;
+}
+
+#livestock-monitoring-view .lm-map-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* ============================================================
+   9. LOADING AND ERROR STATES
+   ============================================================ */
+
+#livestock-monitoring-view .lm-notice {
+    margin-bottom: 20px;
+}
+
+#livestock-monitoring-view .lm-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* ============================================================
+   10. RESPONSIVE — TABLET
+   ============================================================ */
+
+@media (max-width: 1024px) {
+    .ld-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #livestock-monitoring-view .lm-panels {
+        grid-template-columns: 1fr;
+    }
+
+    #livestock-monitoring-view .lm-map-container {
+        height: 400px;
+    }
+}
+
+/* ============================================================
+   11. RESPONSIVE — MOBILE
+   ============================================================ */
+
+@media (max-width: 640px) {
+    .ld-toolbar {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .ld-toolbar-actions {
+        width: 100%;
+    }
+
+    .ld-toolbar-actions .ld-btn {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .ld-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .lm-view-tabs {
+        width: 100%;
+        gap: 6px;
+        margin-bottom: 18px;
+    }
+
+    .lm-view-tab {
+        flex: 1;
+        min-width: 0;
+        padding: 11px 12px;
+        white-space: normal;
+        text-align: center;
+    }
+
+    #livestock-monitoring-view .overview-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    #livestock-monitoring-view .overview-heading button {
+        width: 100%;
+    }
+
+    #livestock-monitoring-view .lm-map-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #livestock-monitoring-view .lm-map-actions {
+        width: 100%;
+    }
+
+    #livestock-monitoring-view .lm-map-actions select {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    #livestock-monitoring-view .lm-map-container {
+        height: 350px;
+        min-height: 300px;
+    }
+
+    #livestock-monitoring-view #lm-map {
+        min-height: 300px;
+    }
+
+    #livestock-monitoring-view .lm-map-footer {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* ============================================================
+   12. ACCESSIBILITY
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+    #livestock-records-view,
+    #livestock-monitoring-view {
+        animation: none;
+    }
+
+    .lm-view-tab {
+        transition: none;
+    }
+}

@@ -263,7 +263,7 @@
                     <div class="timeline-item current">
                         <span class="timeline-dot">2</span>
                         <div>
-                            <strong>LGU verification</strong>
+                            <strong>System verification</strong>
                             <span>Waiting for an authorized reviewer.</span>
                         </div>
                     </div>
@@ -342,7 +342,7 @@
                 <h2>You're officially verified!</h2>
 
                 <p class="status-description">
-                    Your LGU has approved your farmer account.
+                    System Admin has approved your farmer account.
                     You're ready to continue using AgriTimbang.
                 </p>
 

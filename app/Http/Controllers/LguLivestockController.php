@@ -17,38 +17,70 @@ class LguLivestockController extends BaseController
     ) {
     }
 
+
+
     public function index(Request $request): JsonResponse
     {
-        $livestock =
-            $this->service->getMunicipalityLivestock(
-                $request->user(),
-                $request->only([
-                    'status',
-                    'species_id',
-                    'breed_id',
-                    'farmer_id',
-                ])
-            );
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:150'],
+
+            'status' => [
+                'nullable',
+                'in:available,in_transaction,sold,archived',
+            ],
+
+            'municipality_id' => [
+                'nullable',
+                'uuid',
+                'exists:municipalities,id',
+            ],
+
+            'barangay_id' => [
+                'nullable',
+                'uuid',
+                'exists:barangays,id',
+            ],
+
+            'species_id' => [
+                'nullable',
+                'uuid',
+                'exists:species,id',
+            ],
+
+            'breed_id' => [
+                'nullable',
+                'uuid',
+                'exists:breeds,id',
+            ],
+
+            'farmer_id' => [
+                'nullable',
+                'uuid',
+                'exists:farmer_profiles,id',
+            ],
+
+            'per_page' => [
+                'nullable',
+                'integer',
+                'min:1',
+                'max:100',
+            ],
+
+            'page' => [
+                'nullable',
+                'integer',
+                'min:1',
+            ],
+        ]);
+
+        $livestock = $this->service->getMunicipalityLivestock(
+            $request->user(),
+            $filters
+        );
 
         return $this->success($livestock);
     }
 
-    public function store(
-        StoreLivestockRequest $request,
-        FarmerProfile $farmer
-    ): JsonResponse {
-        $livestock = $this->service->createForLgu(
-            $request->user(),
-            $farmer,
-            $request->validated()
-        );
-
-        return $this->success(
-            $livestock,
-            'Livestock registered successfully.',
-            201
-        );
-    }
 
     public function show(
         Request $request,

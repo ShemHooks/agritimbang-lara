@@ -11,96 +11,154 @@ const menuButton = $("user-menu-button");
 
 const NAV = {
     farmer: [
-        { label: "Overview", icon: "▦", href: "/dashboard" },
+        {
+            label: "Overview",
+            icon: "▦",
+            href: "/dashboard",
+        },
         {
             label: "My Livestock",
             icon: "♧",
-            href: "/livestock/monitoring",
+            href: "/livestock",
         },
-        { label: "Official Prices", icon: "₱", href: "/prices" },
-        { label: "Calculators", icon: "▤", href: "/valuation" },
-        { label: "Transactions", icon: "⇄", href: "/transactions" },
-        { label: "Livestock Drafts", icon: "▧", href: "/livestock" },
-        { label: "Profile Settings", icon: "⚙", href: "/profile" },
+        {
+            label: "Official Prices",
+            icon: "₱",
+            href: "/prices",
+        },
+        {
+            label: "Calculators",
+            icon: "▤",
+            href: "/valuation",
+        },
+        {
+            label: "Transactions",
+            icon: "⇄",
+            href: "/transactions",
+        },
+        {
+            label: "Profile Settings",
+            icon: "⚙",
+            href: "/profile",
+        },
     ],
 
     lgu_authority: [
-        { label: "Overview", icon: "▦", href: "/dashboard" },
         {
-            label: "Livestock Monitoring",
+            label: "Overview",
+            icon: "▦",
+            href: "/dashboard",
+        },
+        {
+            label: "Livestock Management",
             icon: "♧",
-            href: "/livestock/monitoring",
+            href: "/livestock",
+        },
+        {
+            label: "Farmer Directory",
+            icon: "♧",
+            href: "/farmers",
         },
         {
             label: "Price Analytics",
             icon: "↗",
             href: "/analytics/prices",
         },
-
         {
             label: "Transaction Analytics",
             icon: "⇄",
             href: "/analytics/transactions",
         },
-
         {
             label: "Valuation Analytics",
             icon: "▤",
             href: "/analytics/valuations",
         },
-
         {
             label: "Validate Transactions",
             icon: "✓",
             href: "/transactions/review",
         },
-        { label: "Price Management", icon: "₱", href: "/prices/manage" },
-        { label: "Market Monitoring", icon: "⌁", href: "/monitoring" },
-        { label: "Calculators", icon: "▤", href: "/valuation" },
-        { label: "Farmer Approvals", icon: "♙", href: "/verifications" },
+        {
+            label: "Encoder Management",
+            icon: "♙",
+            href: "/lgu/encoders",
+        },
+        {
+            label: "Price Management",
+            icon: "₱",
+            href: "/prices/manage",
+        },
+        {
+            label: "Market Monitoring",
+            icon: "⌁",
+            href: "/monitoring",
+        },
+        {
+            label: "Calculators",
+            icon: "▤",
+            href: "/valuation",
+        },
     ],
 
     lgu_encoder: [
-        { label: "Overview", icon: "▦", href: "/dashboard" },
+        {
+            label: "Overview",
+            icon: "▦",
+            href: "/dashboard",
+        },
+        {
+            label: "Livestock Management",
+            icon: "♧",
+            href: "/livestock",
+        },
         {
             label: "Price Analytics",
             icon: "↗",
             href: "/analytics/prices",
         },
-
         {
             label: "Transaction Analytics",
             icon: "⇄",
             href: "/analytics/transactions",
         },
-
         {
             label: "Valuation Analytics",
             icon: "▤",
             href: "/analytics/valuations",
-        },
-
-        {
-            label: "Livestock Monitoring",
-            icon: "♧",
-            href: "/livestock/monitoring",
         },
         {
             label: "Assist Transaction",
             icon: "⇄",
             href: "/transactions/assist",
         },
-        { label: "Draft Weekly Price", icon: "₱", href: "/prices/drafts" },
-        { label: "Calculators", icon: "▤", href: "/valuation" },
+        {
+            label: "Draft Weekly Price",
+            icon: "₱",
+            href: "/prices/drafts",
+        },
+        {
+            label: "Calculators",
+            icon: "▤",
+            href: "/valuation",
+        },
     ],
 
     admin: [
-        { label: "Overview", icon: "▦", href: "/dashboard" },
-
         {
-            label: "Livestock Monitoring",
+            label: "Overview",
+            icon: "▦",
+            href: "/dashboard",
+        },
+        {
+            label: "Livestock Management",
             icon: "♧",
-            href: "/livestock/monitoring",
+            href: "/livestock",
+        },
+        {
+            label: "Farmer Directory",
+            icon: "♧",
+            href: "/farmers",
         },
         {
             label: "Price Analytics",
@@ -112,15 +170,21 @@ const NAV = {
             icon: "⇄",
             href: "/analytics/transactions",
         },
-
         {
             label: "Valuation Analytics",
             icon: "▤",
             href: "/analytics/valuations",
         },
-
-        { label: "User Management", icon: "♙", href: "/users" },
-        { label: "System Settings", icon: "⚙", href: "/settings" },
+        {
+            label: "User Management",
+            icon: "♙",
+            href: "/users",
+        },
+        {
+            label: "System Settings",
+            icon: "⚙",
+            href: "/settings",
+        },
     ],
 };
 
@@ -239,10 +303,13 @@ async function init() {
 
         const IMPLEMENTED_ROUTES = new Set([
             "/dashboard",
-            "/livestock/monitoring",
             "/analytics/prices",
             "/analytics/transactions",
             "/analytics/valuations",
+            "/farmers",
+            "/livestock",
+            "/users",
+            "/lgu/encoders",
         ]);
 
         $("app-nav").innerHTML = NAV[role]

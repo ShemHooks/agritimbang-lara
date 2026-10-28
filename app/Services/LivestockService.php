@@ -273,54 +273,85 @@ class LivestockService
     |--------------------------------------------------------------------------
     */
 
+
+
     public function getMunicipalityLivestock(
-        User $encoder,
+        User $user,
         array $filters = []
     ): LengthAwarePaginator {
-        $municipalityId =
-            $this->municipalityId($encoder);
 
-        return LivestockRecord::query()
-            ->where(
-                'municipality_id',
-                $municipalityId
-            )
+        $isAdmin = $user->roles()
+            ->where('slug', 'admin')
+            ->exists();
 
-            ->when(
-                $filters['status'] ?? null,
-                fn($query, $status) =>
-                    $query->where('status', $status)
-            )
-
-            ->when(
-                $filters['species_id'] ?? null,
-                fn($query, $speciesId) =>
-                    $query->where('species_id', $speciesId)
-            )
-
-            ->when(
-                $filters['breed_id'] ?? null,
-                fn($query, $breedId) =>
-                    $query->where('breed_id', $breedId)
-            )
-
-            ->when(
-                $filters['farmer_id'] ?? null,
-                fn($query, $farmerId) =>
-                    $query->where('farmer_id', $farmerId)
-            )
-
+        $query = LivestockRecord::query()
             ->with([
                 'farmer.user',
                 'species',
                 'breed',
                 'municipality',
                 'barangay',
-            ])
+            ]);
 
-            ->latest()
-            ->paginate(20);
+        // LGU users are always restricted to their municipality.
+        if (!$isAdmin) {
+            $municipalityId = $this->municipalityId($user);
+
+            $query->where('municipality_id', $municipalityId);
+        }
+
+        // Admin can optionally filter by municipality.
+        if ($isAdmin && !empty($filters['municipality_id'])) {
+            $query->where(
+                'municipality_id',
+                $filters['municipality_id']
+            );
+        }
+
+        if (!empty($filters['search'])) {
+            $search = trim($filters['search']);
+
+            $query->where(function ($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                    ->orWhereHas('farmer', function ($farmerQuery) use ($search) {
+                        $farmerQuery
+                            ->where('farmer_code', 'like', "%{$search}%")
+                            ->orWhereHas('user', function ($userQuery) use ($search) {
+                                $userQuery
+                                    ->where('first_name', 'like', "%{$search}%")
+                                    ->orWhere('middle_name', 'like', "%{$search}%")
+                                    ->orWhere('last_name', 'like', "%{$search}%");
+                            });
+                    });
+            });
+        }
+
+        $filterColumns = [
+            'status',
+            'species_id',
+            'breed_id',
+            'farmer_id',
+            'barangay_id',
+        ];
+
+        foreach ($filterColumns as $column) {
+            if (isset($filters[$column]) && $filters[$column] !== '') {
+                $query->where($column, $filters[$column]);
+            }
+        }
+
+        $perPage = min(
+            max((int) ($filters['per_page'] ?? 20), 1),
+            100
+        );
+
+        return $query
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate($perPage);
     }
+
+
 
     public function getMunicipalityLivestockRecord(
         User $encoder,

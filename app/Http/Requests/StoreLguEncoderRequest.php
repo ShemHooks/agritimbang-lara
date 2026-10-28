@@ -46,12 +46,6 @@ class StoreLguEncoderRequest extends FormRequest
                 'max:20',
             ],
 
-            'password' => [
-                'required',
-                'confirmed',
-                Password::min(8),
-            ],
-
             'station' => [
                 'nullable',
                 'string',

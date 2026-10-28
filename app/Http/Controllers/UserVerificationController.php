@@ -19,13 +19,11 @@ class UserVerificationController extends BaseController
 
     /*
     |--------------------------------------------------------------------------
-    | Farmer
+    | Farmer Verification Documents
     |--------------------------------------------------------------------------
+    | Farmers can submit and view only their own documents.
     */
 
-    /**
-     * Get the authenticated farmer's verification documents.
-     */
     public function myDocuments(Request $request): JsonResponse
     {
         $documents = $this->verificationService
@@ -37,9 +35,6 @@ class UserVerificationController extends BaseController
         );
     }
 
-    /**
-     * Upload a new verification document.
-     */
     public function upload(
         UploadVerificationDocumentRequest $request
     ): JsonResponse {
@@ -57,10 +52,6 @@ class UserVerificationController extends BaseController
         );
     }
 
-    /**
-     * Get one verification document belonging to
-     * the authenticated farmer.
-     */
     public function showMyDocument(
         Request $request,
         string $document
@@ -77,12 +68,6 @@ class UserVerificationController extends BaseController
         );
     }
 
-    /**
-     * Securely return the farmer's verification file.
-     *
-     * The file is stored privately and is never exposed
-     * through Laravel's public storage symlink.
-     */
     public function myDocumentFile(
         Request $request,
         string $document
@@ -93,35 +78,23 @@ class UserVerificationController extends BaseController
                 $document
             );
 
-        abort_unless(
-            Storage::disk('private')->exists(
-                $document->file_path
-            ),
-            404,
-            'Verification document file not found.'
-        );
-
-        return Storage::disk('private')->response(
+        return $this->streamPrivateDocument(
             $document->file_path
         );
     }
 
     /*
     |--------------------------------------------------------------------------
-    | LGU Authority
+    | System Admin — Farmer Verification
     |--------------------------------------------------------------------------
+    | Only System Admin can review, approve, or reject
+    | farmer identity verification documents.
     */
 
-    /**
-     * Get pending farmer verification applications
-     * belonging to the authority's municipality.
-     */
     public function pending(Request $request): JsonResponse
     {
         $farmers = $this->verificationService
-            ->getPendingFarmers(
-                $request->user()
-            );
+            ->getPendingFarmers($request->user());
 
         return $this->success(
             $farmers,
@@ -129,11 +102,6 @@ class UserVerificationController extends BaseController
         );
     }
 
-    /**
-     * Get a farmer's verification details for review.
-     *
-     * Municipality ownership is enforced by the service.
-     */
     public function review(
         Request $request,
         string $farmer
@@ -150,10 +118,6 @@ class UserVerificationController extends BaseController
         );
     }
 
-    /**
-     * Securely return a verification file to the
-     * appropriate LGU Authority.
-     */
     public function reviewDocumentFile(
         Request $request,
         string $document
@@ -164,22 +128,11 @@ class UserVerificationController extends BaseController
                 $document
             );
 
-        abort_unless(
-            Storage::disk('private')->exists(
-                $document->file_path
-            ),
-            404,
-            'Verification document file not found.'
-        );
-
-        return Storage::disk('private')->response(
+        return $this->streamPrivateDocument(
             $document->file_path
         );
     }
 
-    /**
-     * Approve a pending farmer verification document.
-     */
     public function approve(
         Request $request,
         string $document
@@ -196,9 +149,6 @@ class UserVerificationController extends BaseController
         );
     }
 
-    /**
-     * Reject a pending farmer verification document.
-     */
     public function reject(
         RejectVerificationRequest $request,
         string $document
@@ -214,5 +164,25 @@ class UserVerificationController extends BaseController
             $document,
             'Farmer verification rejected successfully.'
         );
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Private File Streaming
+    |--------------------------------------------------------------------------
+    */
+
+    private function streamPrivateDocument(
+        string $filePath
+    ): StreamedResponse {
+        $disk = Storage::disk('private');
+
+        abort_unless(
+            $disk->exists($filePath),
+            404,
+            'Verification document file not found.'
+        );
+
+        return $disk->response($filePath);
     }
 }

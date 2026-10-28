@@ -64,3 +64,38 @@ Route::view('/analytics/transactions', 'analytics.transactions')
 
 Route::view('/analytics/valuations', 'analytics.valuations')
     ->name('analytics.valuations');
+
+Route::view('/farmers', 'farmers.index')
+    ->name('farmers.index');
+
+
+Route::get('/farmers/{farmer}', function (string $farmer) {
+    return view('farmers.show', compact('farmer'));
+})->name('farmers.show');
+
+
+Route::view('/livestock', 'livestock.index')
+    ->name('livestock.index');
+
+Route::view('/admin/lgu-authorities', 'users.authorities')
+    ->name('admin.lgu-authorities.index');
+
+Route::view('/lgu/encoders', 'users.encoders')
+    ->name('lgu.encoders.index');
+
+Route::view('/users', 'users.index')
+    ->name('admin.users.index');
+
+Route::view('/lgu/encoders', 'lgu.encoders.index')
+    ->name('lgu.encoders.index');
+
+Route::view('/livestock/register', 'livestock.create')
+    ->name('farmer.livestock.create');
+
+Route::get('/livestock/{livestock}/edit', function (string $livestock) {
+    return view('livestock.edit', ['livestockId' => $livestock]);
+})->name('livestock.edit');
+
+Route::get('/livestock/{livestock}', function (string $livestock) {
+    return view('livestock.show', ['livestockId' => $livestock]);
+})->name('livestock.show');

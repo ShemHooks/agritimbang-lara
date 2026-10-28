@@ -623,6 +623,8 @@ function initializeMap() {
 
     mapState.map.fitBounds(INITIAL_BOUNDS);
 
+    mapState.map.on("zoomend", updateBarangayLabels);
+
     requestAnimationFrame(() => {
         mapState.map.invalidateSize();
     });
@@ -679,6 +681,26 @@ function renderMunicipalityLegend(municipalities) {
     container.append(heading, items);
 }
 
+const MIN_LABEL_ZOOM = 11;
+
+function updateBarangayLabels() {
+    if (!mapState.map || !mapState.layer) return;
+
+    const show = mapState.map.getZoom() >= MIN_LABEL_ZOOM;
+
+    mapState.layer.eachLayer((layer) => {
+        const tooltip = layer.getTooltip();
+
+        if (!tooltip) return;
+
+        if (show) {
+            layer.openTooltip();
+        } else {
+            layer.closeTooltip();
+        }
+    });
+}
+
 function renderGeojson(collection) {
     initializeMap();
 
@@ -723,12 +745,29 @@ function renderGeojson(collection) {
             },
 
             onEachFeature(feature, layer) {
-                const label =
-                    `${barangayName(feature)} — ` + municipalityName(feature);
+                const name = barangayName(feature);
+                const municipality = municipalityName(feature);
+                const count = livestockCount(feature);
+
+                const label = document.createElement("div");
+                label.className = "lm-barangay-count-label";
+
+                const nameElement = document.createElement("strong");
+                nameElement.textContent = name;
+
+                const countElement = document.createElement("span");
+                countElement.textContent =
+                    count === null
+                        ? "Count unavailable"
+                        : `${formatNumber(count)} livestock`;
+
+                label.append(nameElement, countElement);
 
                 layer.bindTooltip(label, {
-                    sticky: true,
-                    direction: "top",
+                    permanent: false,
+                    direction: "center",
+                    className: "lm-count-tooltip",
+                    opacity: 1,
                 });
 
                 layer.bindPopup(createPopup(feature));
@@ -741,11 +780,19 @@ function renderGeojson(collection) {
                     });
 
                     layer.bringToFront?.();
+
+                    if (mapState.map.getZoom() < MIN_LABEL_ZOOM) {
+                        layer.openTooltip();
+                    }
                 });
 
                 layer.on("mouseout", () => {
                     if (mapState.layer === group) {
                         group.resetStyle(layer);
+                    }
+
+                    if (mapState.map.getZoom() < MIN_LABEL_ZOOM) {
+                        layer.closeTooltip();
                     }
                 });
             },
@@ -755,6 +802,8 @@ function renderGeojson(collection) {
     mapState.layer = group;
 
     group.addTo(map);
+
+    updateBarangayLabels();
 
     if (group.getLayers().length > 0) {
         const bounds = group.getBounds();
@@ -949,41 +998,15 @@ function configureRole(role) {
     state.role = role;
 
     const management = MANAGEMENT_ROLES.includes(role);
-
-    const records = role === "farmer" || role === "lgu_encoder";
-
-    $("lm-records-panel").hidden = !records;
-
-    $("lm-map-panel").hidden = !management;
+    const mapPanel = $("lm-map-panel");
+    if (mapPanel) mapPanel.hidden = !management;
 
     const scopes = {
         admin: "System-wide livestock monitoring",
-
         lgu_authority: "Livestock monitoring for your assigned municipality",
-
-        lgu_encoder: "Municipal livestock monitoring and records",
-
-        farmer: "Your personal livestock inventory",
+        lgu_encoder: "Municipal livestock monitoring and analytics",
     };
-
     setText("livestock-scope", scopes[role] ?? "Livestock monitoring");
-
-    setText(
-        "lm-records-description",
-        role === "farmer"
-            ? "Browse your registered livestock"
-            : "Browse livestock in your municipality",
-    );
-
-    if (role === "farmer") {
-        const heading = $("lm-species-chart")
-            ?.closest(".lm-panel")
-            ?.querySelector("h3");
-
-        if (heading) {
-            heading.textContent = "Species on this page";
-        }
-    }
 }
 
 // =====================================================
@@ -1000,10 +1023,6 @@ async function loadManagement() {
 
     renderManagementAnalytics(analytics.data?.data ?? {});
 
-    if (state.role === "lgu_encoder") {
-        await loadRecords();
-    }
-
     await initializeMapModule();
 }
 
@@ -1012,63 +1031,31 @@ async function loadManagement() {
 // =====================================================
 
 async function initialize() {
-    if (!sessionStorage.getItem("agritimbang_token")) {
-        return;
-    }
+    if (!sessionStorage.getItem("agritimbang_token")) return;
 
-    if ($("livestock-loading")) {
-        $("livestock-loading").hidden = false;
-    }
-
+    if ($("livestock-loading")) $("livestock-loading").hidden = false;
     hideError();
 
     try {
         const response = await api.get("/auth/me");
-
         const user = response.data?.data;
-
-        if (!user) {
-            throw new Error("Unable to load account.");
-        }
+        if (!user) throw new Error("Unable to load account.");
 
         const roles = (user.roles ?? []).map((role) =>
             normalizeRole(typeof role === "string" ? role : role.slug),
         );
-
-        const role =
-            MANAGEMENT_ROLES.find((item) => roles.includes(item)) ??
-            (roles.includes("farmer") ? "farmer" : null);
-
-        if (!role) {
-            throw new Error("Unsupported account role.");
-        }
+        const role = MANAGEMENT_ROLES.find((item) => roles.includes(item));
+        if (!role)
+            throw new Error("Your account cannot access livestock monitoring.");
 
         configureRole(role);
-
-        $("livestock-content").hidden = false;
-
-        if (role === "farmer") {
-            await loadFarmerStats();
-            await loadRecords();
-        } else {
-            await loadManagement();
-        }
-
-        if (role === "farmer" || role === "lgu_encoder") {
-            try {
-                await loadSpeciesOptions();
-            } catch (error) {
-                console.warn("Record species filters:", error);
-            }
-        }
+        if ($("livestock-content")) $("livestock-content").hidden = false;
+        await loadManagement();
     } catch (error) {
-        if (error.response?.status !== 401) {
-            showError(getError(error));
-        }
+        console.error("Livestock Monitoring Error:", error);
+        showError(getError(error));
     } finally {
-        if ($("livestock-loading")) {
-            $("livestock-loading").hidden = true;
-        }
+        if ($("livestock-loading")) $("livestock-loading").hidden = true;
     }
 }
 
@@ -1162,6 +1149,71 @@ $("lm-map-municipality")?.addEventListener("change", loadMap);
 $("lm-map-species")?.addEventListener("change", loadMap);
 
 $("lm-map-reset")?.addEventListener("click", resetMapView);
+
+window.addEventListener("resize", () => {
+    if (mapState.map && $("lm-map")?.offsetWidth > 0) {
+        mapState.map.invalidateSize();
+    }
+});
+
+async function toggleMapFullscreen() {
+    const wrapper = $("lm-map-wrapper");
+
+    if (!wrapper) return;
+
+    try {
+        if (document.fullscreenElement === wrapper) {
+            await document.exitFullscreen();
+        } else if (!document.fullscreenElement) {
+            await wrapper.requestFullscreen();
+        }
+    } catch (error) {
+        console.error("Map fullscreen error:", error);
+    }
+}
+
+function syncMapFullscreen() {
+    const isFullscreen = document.fullscreenElement === $("lm-map-wrapper");
+
+    const button = $("lm-map-fullscreen");
+
+    if (button) {
+        button.title = isFullscreen ? "Exit fullscreen" : "Enter fullscreen";
+
+        button.setAttribute(
+            "aria-label",
+            isFullscreen ? "Exit fullscreen map" : "Enter fullscreen map",
+        );
+
+        button.setAttribute("aria-pressed", String(isFullscreen));
+    }
+
+    const icon = $("lm-fullscreen-icon");
+
+    if (icon) {
+        icon.innerHTML = isFullscreen
+            ? `
+                <path d="M8 3v5H3"/>
+                <path d="M16 3v5h5"/>
+                <path d="M3 16h5v5"/>
+                <path d="M21 16h-5v5"/>
+              `
+            : `
+                <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+                <path d="M16 3h3a2 2 0 0 1 2 2v3"/>
+                <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+                <path d="M21 16v3a2 2 0 0 1-2 2h-3"/>
+              `;
+    }
+
+    requestAnimationFrame(() => {
+        mapState.map?.invalidateSize();
+    });
+}
+
+$("lm-map-fullscreen")?.addEventListener("click", toggleMapFullscreen);
+
+document.addEventListener("fullscreenchange", syncMapFullscreen);
 
 // =====================================================
 // START APPLICATION

@@ -46,12 +46,6 @@ class StoreLguAuthorityRequest extends FormRequest
                 'max:20',
             ],
 
-            'password' => [
-                'required',
-                'confirmed',
-                Password::min(8),
-            ],
-
             'municipality_id' => [
                 'required',
                 'uuid',
