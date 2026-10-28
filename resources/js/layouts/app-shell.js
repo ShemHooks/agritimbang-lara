@@ -29,7 +29,7 @@ const NAV = {
         {
             label: "Calculators",
             icon: "▤",
-            href: "/valuation",
+            href: "/calculator",
         },
         {
             label: "Transactions",
@@ -97,7 +97,7 @@ const NAV = {
         {
             label: "Calculators",
             icon: "▤",
-            href: "/valuation",
+            href: "/calculator",
         },
     ],
 
@@ -140,7 +140,7 @@ const NAV = {
         {
             label: "Calculators",
             icon: "▤",
-            href: "/valuation",
+            href: "/calculator",
         },
     ],
 
@@ -310,6 +310,7 @@ async function init() {
             "/livestock",
             "/users",
             "/lgu/encoders",
+            "/calculator",
         ]);
 
         $("app-nav").innerHTML = NAV[role]

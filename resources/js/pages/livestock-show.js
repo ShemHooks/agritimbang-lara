@@ -14,7 +14,8 @@ async function init() {
     if (!root) return;
 
     try {
-        const { endpoint } = await context();
+        // Get both endpoint and authenticated user role
+        const { endpoint, role } = await context();
 
         const record = unwrap(
             await api.get(`${endpoint}/${encodeURIComponent(root.dataset.id)}`),
@@ -27,6 +28,7 @@ async function init() {
         $("l55-subtitle").textContent = `Record ID: ${record.id}`;
         $("l55-status").textContent = label(record.status);
 
+        // Animal information
         const animal = $("l55-animal");
 
         [
@@ -46,6 +48,7 @@ async function init() {
             ],
         ].forEach(([name, value]) => detail(animal, name, value));
 
+        // Ownership and location
         const location = $("l55-location");
         const user = record.farmer?.user;
 
@@ -62,6 +65,7 @@ async function init() {
             ["Barangay", record.barangay?.name],
         ].forEach(([name, value]) => detail(location, name, value));
 
+        // Record information
         [
             ["Record ID", record.id],
             ["Status", label(record.status)],
@@ -79,14 +83,27 @@ async function init() {
             ],
         ].forEach(([name, value]) => detail($("l55-record"), name, value));
 
+        // Edit button
         if (!readonly(record)) {
-            const link = $("l55-edit-link");
+            const editLink = $("l55-edit-link");
 
-            link.href = `/livestock/${encodeURIComponent(record.id)}/edit`;
+            if (editLink) {
+                editLink.href = `/livestock/${encodeURIComponent(record.id)}/edit`;
 
-            link.hidden = false;
+                editLink.hidden = false;
+            }
         }
 
+        // Phase 5.6: Weight Estimation shortcut
+        const estimateLink = $("l55-estimate-link");
+
+        if (estimateLink && ["farmer", "lgu_encoder"].includes(role)) {
+            estimateLink.href = `/calculator?livestock_id=${encodeURIComponent(record.id)}`;
+
+            estimateLink.hidden = false;
+        }
+
+        // Show details
         $("l55-details").hidden = false;
     } catch (error) {
         showError(error);

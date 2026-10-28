@@ -14,9 +14,16 @@
                 <p id="l55-subtitle">Loading record…</p>
             </div>
 
-            <a id="l55-edit-link" class="l55-primary" href="#" hidden>
-                Edit livestock
-            </a>
+
+            <div>
+                <a id="l55-edit-link" class="l55-primary" href="#" hidden>
+                    Edit livestock
+                </a>
+
+                <a id="l55-estimate-link" class="l55-primary" href="#" hidden>
+                    Estimate Weight
+                </a>
+            </div>
         </header>
 
         <div id="l55-error" class="l55-error" role="alert" hidden></div>

@@ -99,3 +99,6 @@ Route::get('/livestock/{livestock}/edit', function (string $livestock) {
 Route::get('/livestock/{livestock}', function (string $livestock) {
     return view('livestock.show', ['livestockId' => $livestock]);
 })->name('livestock.show');
+
+Route::view('/calculator', 'calculator.index')
+    ->name('calculator.index');
