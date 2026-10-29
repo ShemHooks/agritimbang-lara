@@ -119,3 +119,14 @@ Route::view('/prices/approvals', 'prices.approvals')
 Route::view('/prices/approvals/{priceReference}', 'prices.review')
     ->name('prices.review');
 
+Route::view('/analytics/forecast', 'analytics.forecast')
+    ->name('analytics.forecast');
+
+Route::get('/buyer/confirm/{token}', function (string $token) {
+    return view('buyer.confirmation', [
+        'token' => $token,
+    ]);
+})
+    ->where('token', '[a-fA-F0-9]{64}')
+    ->middleware('throttle:30,1')
+    ->name('buyer.confirmation.show');

@@ -29,7 +29,9 @@
     <div class="main-shell">
       <header class="topbar">
         <div class="topbar-start"><button type="button" id="menu-toggle" class="icon-button menu-toggle"
-            aria-label="Open navigation" aria-expanded="false">☰</button>
+            aria-label="Open navigation" aria-expanded="false">
+            <i data-lucide="menu"></i>
+          </button>
           <div class="breadcrumbs"><span>Workspace</span><span class="crumb-divider">/</span><strong
               id="current-page">Overview</strong></div>
         </div>
@@ -79,6 +81,7 @@
     </div>
   </div>
   <div id="app-error" class="app-error" role="alert" hidden></div>
+  @stack('script')
 </body>
 
 </html>

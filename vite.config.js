@@ -51,6 +51,8 @@ export default defineConfig({
                 "resources/css/prices.css",
                 "resources/js/pages/price-form.js",
                 "resources/css/price-form.css",
+                "resources/css/forecast.css",
+                "resources/js/pages/forecast.js",
             ],
             refresh: true,
         }),

@@ -15,12 +15,14 @@ class OtpService
     public const PURPOSE_EMAIL = 'email_verification';
     public const PURPOSE_ACCOUNT = 'account_confirmation';
 
-    public function __construct(private readonly EmailOtpTransport $emailTransport) {}
+    public function __construct(private readonly EmailOtpTransport $emailTransport)
+    {
+    }
 
     public function request(User $user, string $purpose = self::PURPOSE_EMAIL): void
     {
         $this->validatePurpose($purpose);
-        $key = 'otp:send:'.$user->getKey().':'.$purpose;
+        $key = 'otp:send:' . $user->getKey() . ':' . $purpose;
         if (RateLimiter::tooManyAttempts($key, 1)) {
             throw ValidationException::withMessages(['otp' => 'Please wait 60 seconds before requesting another code.']);
         }
@@ -37,8 +39,11 @@ class OtpService
             OtpChallenge::where('user_id', $user->getKey())->where('purpose', $purpose)
                 ->whereNull('consumed_at')->update(['consumed_at' => now()]);
             return OtpChallenge::create([
-                'user_id' => $user->getKey(), 'purpose' => $purpose, 'channel' => 'email',
-                'destination' => $user->email, 'code_hash' => Hash::make($code),
+                'user_id' => $user->getKey(),
+                'purpose' => $purpose,
+                'channel' => 'email',
+                'destination' => $user->email,
+                'code_hash' => Hash::make($code),
                 'expires_at' => now()->addMinutes(5),
             ]);
         });
@@ -55,7 +60,7 @@ class OtpService
     public function verify(User $user, string $code, string $purpose = self::PURPOSE_EMAIL): void
     {
         $this->validatePurpose($purpose);
-         $verified = DB::transaction(function () use ($user, $code, $purpose) {
+        $verified = DB::transaction(function () use ($user, $code, $purpose) {
             $challenge = OtpChallenge::where('user_id', $user->getKey())
                 ->where('purpose', $purpose)->whereNull('consumed_at')
                 ->latest('created_at')->lockForUpdate()->first();

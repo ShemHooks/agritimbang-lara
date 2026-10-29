@@ -8,7 +8,9 @@ use Illuminate\Validation\ValidationException;
 
 class ForecastService
 {
-    public function __construct(private readonly ArimaEngine $engine) {}
+    public function __construct(private readonly ArimaEngine $engine)
+    {
+    }
 
     public function forecast(string $municipalityId, string $speciesId, int $weeks, ?string $salePurpose = null): array
     {
@@ -46,9 +48,40 @@ class ForecastService
         }
         $history = array_slice($history, -$maximum);
 
+        // DEVELOPMENT ONLY: Preview the forecast UI with limited history.
+        if (app()->environment('local') && count($history) >= 1 && count($history) < $minimum) {
+            $last = end($history);
+            $lastWeek = CarbonImmutable::parse($last['week']);
+            $price = (float) $last['price'];
+
+            $forecast = [];
+
+            for ($i = 1; $i <= $weeks; $i++) {
+                $forecast[] = [
+                    'week' => $lastWeek->addWeeks($i)->toDateString(),
+                    'predicted_price' => $price,
+                    'lower_95' => $price,
+                    'upper_95' => $price,
+                ];
+            }
+
+            return [
+                'municipality_id' => $municipalityId,
+                'species_id' => $speciesId,
+                'sale_purpose' => $salePurpose,
+                'unit' => 'PHP/kg',
+                'model' => 'PREVIEW_ONLY',
+                'order' => null,
+                'historical' => $history,
+                'forecast' => $forecast,
+                'disclaimer' => 'DEVELOPMENT PREVIEW ONLY — values repeat the latest official price. No ARIMA model was fitted.',
+            ];
+        }
+        // end dev here
+
         if (count($history) < $minimum) {
             throw ValidationException::withMessages([
-                'history' => "At least {$minimum} weeks of official price observations are required; found ".count($history).'.',
+                'history' => "At least {$minimum} weeks of official price observations are required; found " . count($history) . '.',
             ]);
         }
 
