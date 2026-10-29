@@ -40,7 +40,7 @@ const NAV = {
         {
             label: "Transactions",
             icon: "arrow-left-right",
-            href: "/transactions",
+            href: "/transactions/create",
         },
         { label: "Profile Settings", icon: "settings", href: "/profile" },
     ],
@@ -81,11 +81,10 @@ const NAV = {
         },
         {
             label: "Price Management",
-            icon: "badge-philippine-peso",
+            icon: "philippine-peso",
             href: "/prices",
         },
         { label: "Market Monitoring", icon: "map-pinned", href: "/monitoring" },
-        { label: "Calculators", icon: "calculator", href: "/calculator" },
     ],
 
     lgu_encoder: [
@@ -166,6 +165,7 @@ const IMPLEMENTED_ROUTES = new Set([
     "/lgu/encoders",
     "/calculator",
     "/prices",
+    "/transactions/create",
 ]);
 
 /* ============================================================

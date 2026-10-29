@@ -11,7 +11,7 @@ class SendBuyerConfirmationSms implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 3;
+    public int $tries = 1;
 
     public function __construct(
         public string $transactionId,

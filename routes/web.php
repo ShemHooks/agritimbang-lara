@@ -130,3 +130,6 @@ Route::get('/buyer/confirm/{token}', function (string $token) {
     ->where('token', '[a-fA-F0-9]{64}')
     ->middleware('throttle:30,1')
     ->name('buyer.confirmation.show');
+
+Route::view('/transactions/create', 'transactions.create')
+    ->name('transactions.create');

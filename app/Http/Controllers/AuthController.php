@@ -38,7 +38,7 @@ class AuthController extends BaseController
 
         $result = $this->authService->login(
             $request->validated(),
-            !$stateful
+            true
         );
 
         if ($stateful) {

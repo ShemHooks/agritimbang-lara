@@ -118,8 +118,14 @@ class FormulaProfileResolver
         string $breedGroup
     ): ?string {
         if (
-            $breedCode === 'MURRAH_CROSS' ||
-            $breedGroup === 'murrah_cross'
+            in_array($breedCode, [
+                'MURRAH',
+                'MURRAH_CROSS',
+            ], true) ||
+            in_array($breedGroup, [
+                'murrah',
+                'murrah_cross',
+            ], true)
         ) {
             return 'CARABAO_MURRAH_REGRESSION';
         }

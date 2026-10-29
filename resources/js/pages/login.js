@@ -21,6 +21,13 @@ if (form) {
                 password: form.elements.password.value,
             });
 
+            console.log("Login response:", {
+                success: response.data?.success,
+                dataKeys: Object.keys(response.data?.data ?? {}),
+                hasToken: Boolean(response.data?.data?.token),
+                hasUser: Boolean(response.data?.data?.user),
+            });
+
             const token = response.data?.data?.token;
             const user = response.data?.data?.user;
 
