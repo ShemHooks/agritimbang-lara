@@ -223,3 +223,5 @@ Farmer
 
 The initial System Administrator is created only through the server-side
 Artisan command. Public registration is reserved for Farmer accounts.
+
+Thank YOU GUYS
