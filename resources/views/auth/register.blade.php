@@ -80,18 +80,43 @@
                         <small data-error="phone_number"></small>
                     </label>
 
+
+                    <!-- Password -->
                     <label class="field">
                         <span>Password</span>
-                        <input name="password" type="password" minlength="8" required autocomplete="new-password">
+
+                        <div class="password-wrap">
+                            <input id="register-password" name="password" type="password" minlength="8" required
+                                autocomplete="new-password" placeholder="Enter your password">
+
+                            <button type="button" class="show-password" data-password-toggle="register-password"
+                                aria-controls="register-password" aria-label="Show password" aria-pressed="false">
+                                Show
+                            </button>
+                        </div>
 
                         <small data-error="password"></small>
                     </label>
 
+                    <!-- Confirm Password -->
                     <label class="field">
                         <span>Confirm password</span>
-                        <input name="password_confirmation" type="password" minlength="8" required
-                            autocomplete="new-password">
+
+                        <div class="password-wrap">
+                            <input id="register-password-confirmation" name="password_confirmation" type="password"
+                                minlength="8" required autocomplete="new-password" placeholder="Confirm your password">
+
+                            <button type="button" class="show-password"
+                                data-password-toggle="register-password-confirmation"
+                                aria-controls="register-password-confirmation" aria-label="Show confirm password"
+                                aria-pressed="false">
+                                Show
+                            </button>
+                        </div>
+
+                        <small data-error="password_confirmation"></small>
                     </label>
+
 
                     <button type="submit" class="primary-button">
                         Create account

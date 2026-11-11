@@ -106,6 +106,8 @@ const NAV = {
     lgu_encoder: [
         { label: "Overview", icon: "layout-dashboard", href: "/dashboard" },
         { label: "Livestock Management", icon: "beef", href: "/livestock" },
+        { label: "Draft Weekly Price", icon: "file-pen-line", href: "/prices" },
+        { label: "Calculators", icon: "calculator", href: "/calculator" },
 
         {
             label: "Analytics",
@@ -128,9 +130,7 @@ const NAV = {
                 { label: "Assist Transaction", href: "/transactions/assist" },
             ],
         },
-
-        { label: "Draft Weekly Price", icon: "file-pen-line", href: "/prices" },
-        { label: "Calculators", icon: "calculator", href: "/calculator" },
+        { label: "Profile Settings", icon: "settings", href: "/profile" },
     ],
 
     admin: [

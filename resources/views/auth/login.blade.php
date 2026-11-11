@@ -102,7 +102,6 @@
             <p class="copyright"> Agritimbang Research and Development Team</p>
         </section>
     </main>
-    <script>document.getElementById('password-toggle').addEventListener('click', function () { const field = document.getElementById('login-password'); const visible = field.type === 'password'; field.type = visible ? 'text' : 'password'; this.textContent = visible ? 'Hide' : 'Show'; this.setAttribute('aria-pressed', String(visible)); });</script>
 </body>
 
 </html>
