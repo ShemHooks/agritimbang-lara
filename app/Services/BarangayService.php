@@ -8,9 +8,16 @@ use App\Models\Municipality;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use App\Models\User;
+use Illuminate\Validation\ValidationException;
 
 class BarangayService
 {
+
+    public function __construct(
+        private readonly AuditLogService $auditLogs
+    ) {
+    }
     public function getBarangays(
         ?string $search = null,
         ?string $municipalityId = null,
@@ -179,31 +186,70 @@ class BarangayService
     }
 
 
+
     public function updateStatus(
         Barangay $barangay,
-        bool $isActive
+        bool $isActive,
+        User $actor
     ): Barangay {
-        /*
-         * Prevent activating a Barangay when
-         * its parent Municipality is inactive.
-         */
-        if (
-            $isActive &&
-            !$barangay->municipality->is_active
-        ) {
-            throw new RuntimeException(
-                'Cannot activate a Barangay under an inactive municipality.'
+        return DB::transaction(function () use ($barangay, $isActive, $actor) {
+            // Lock the parent municipality first.
+            $municipality = Municipality::query()
+                ->lockForUpdate()
+                ->findOrFail($barangay->municipality_id);
+
+            // Lock and reload the barangay to prevent stale updates.
+            $barangay = Barangay::query()
+                ->lockForUpdate()
+                ->findOrFail($barangay->getKey());
+
+            // If the municipality assignment changed, retry safely.
+            if (
+                (string) $barangay->municipality_id !==
+                (string) $municipality->id
+            ) {
+                throw ValidationException::withMessages([
+                    'barangay' => 'Barangay municipality changed. Please retry.',
+                ]);
+            }
+
+            if ($isActive && !$municipality->is_active) {
+                throw ValidationException::withMessages([
+                    'is_active' =>
+                        'Cannot activate a Barangay under an inactive municipality.',
+                ]);
+            }
+
+            // No change means no audit event.
+            if ((bool) $barangay->is_active === $isActive) {
+                return $this->getBarangay($barangay->id);
+            }
+
+            $oldStatus = (bool) $barangay->is_active;
+
+            $barangay->update([
+                'is_active' => $isActive,
+            ]);
+
+            $this->auditLogs->record(
+                actor: $actor,
+                action: $isActive
+                ? 'barangay.activated'
+                : 'barangay.deactivated',
+                entity: $barangay,
+                municipalityId: $municipality->id,
+                oldValues: [
+                    'is_active' => $oldStatus,
+                ],
+                newValues: [
+                    'is_active' => $isActive,
+                ],
             );
-        }
 
-        $barangay->update([
-            'is_active' => $isActive,
-        ]);
-
-        return $this->getBarangay(
-            $barangay->id
-        );
+            return $this->getBarangay($barangay->id);
+        });
     }
+
 
 
     /*

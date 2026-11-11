@@ -4,7 +4,7 @@
 
 @push('styles')
     @vite([
-        'resources/css/dashboard-overview.css',
+        'resources/css/dashboard.css',
         'resources/js/pages/dashboard.js'
     ])
 @endpush

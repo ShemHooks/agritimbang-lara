@@ -30,7 +30,7 @@ class NotificationService
                 }
             } elseif (
                 $recipient->roles()
-                    ->whereIn('name', ['lgu_authority', 'lgu_encoder'])
+                    ->whereIn('slug', ['lgu_authority', 'lgu_encoder'])
                     ->exists()
             ) {
                 throw ValidationException::withMessages([

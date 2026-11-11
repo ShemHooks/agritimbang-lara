@@ -133,3 +133,24 @@ Route::get('/buyer/confirm/{token}', function (string $token) {
 
 Route::view('/transactions/create', 'transactions.create')
     ->name('transactions.create');
+
+
+Route::view(
+    '/transactions/review',
+    'transactions.lgu-verification'
+);
+
+Route::view(
+    '/transactions/disputes',
+    'transactions.dispute-resolution'
+);
+
+Route::view('/audit-logs', 'audit-logs.index')->name('audit-logs.index');
+
+Route::view('/admin/locations', 'admin.locations')
+    ->name('admin.locations');
+
+Route::view(
+    '/admin/species-breeds',
+    'admin.species-breeds'
+);

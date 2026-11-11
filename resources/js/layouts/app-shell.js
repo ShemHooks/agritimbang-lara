@@ -31,17 +31,13 @@ const NAV = {
     farmer: [
         { label: "Overview", icon: "layout-dashboard", href: "/dashboard" },
         { label: "My Livestock", icon: "beef", href: "/livestock" },
-        {
-            label: "Official Prices",
-            icon: "badge-philippine-peso",
-            href: "/prices",
-        },
-        { label: "Calculators", icon: "calculator", href: "/calculator" },
+        { label: "Official Prices", icon: "philippine-peso", href: "/prices" },
         {
             label: "Transactions",
             icon: "arrow-left-right",
             href: "/transactions/create",
         },
+        { label: "Calculators", icon: "calculator", href: "/calculator" },
         { label: "Profile Settings", icon: "settings", href: "/profile" },
     ],
 
@@ -49,72 +45,72 @@ const NAV = {
         { label: "Overview", icon: "layout-dashboard", href: "/dashboard" },
         { label: "Livestock Management", icon: "beef", href: "/livestock" },
         { label: "Farmer Directory", icon: "users-round", href: "/farmers" },
+
         {
-            label: "Price Analytics",
-            icon: "chart-no-axes-column-increasing",
-            href: "/analytics/prices",
-        },
-        {
-            label: "Price Forecast",
+            label: "Analytics",
             icon: "chart-no-axes-combined",
-            href: "/analytics/forecast",
+            children: [
+                { label: "Price Analytics", href: "/analytics/prices" },
+                { label: "Price Forecast", href: "/analytics/forecast" },
+                {
+                    label: "Transaction Analytics",
+                    href: "/analytics/transactions",
+                },
+                { label: "Valuation Analytics", href: "/analytics/valuations" },
+            ],
         },
+
         {
-            label: "Transaction Analytics",
+            label: "Transactions",
             icon: "arrow-left-right",
-            href: "/analytics/transactions",
+            children: [
+                {
+                    label: "Transaction Verification",
+                    href: "/transactions/review",
+                },
+                { label: "Dispute Resolution", href: "/transactions/disputes" },
+            ],
         },
-        {
-            label: "Valuation Analytics",
-            icon: "chart-pie",
-            href: "/analytics/valuations",
-        },
-        {
-            label: "Validate Transactions",
-            icon: "clipboard-check",
-            href: "/transactions/review",
-        },
-        {
-            label: "Encoder Management",
-            icon: "user-cog",
-            href: "/lgu/encoders",
-        },
-        {
-            label: "Price Management",
-            icon: "philippine-peso",
-            href: "/prices",
-        },
+
+        { label: "Price Management", icon: "philippine-peso", href: "/prices" },
         { label: "Market Monitoring", icon: "map-pinned", href: "/monitoring" },
+
+        {
+            label: "Administration",
+            icon: "settings",
+            children: [
+                { label: "Encoder Management", href: "/lgu/encoders" },
+                { label: "Audit Logs", href: "/audit-logs" },
+            ],
+        },
     ],
 
     lgu_encoder: [
         { label: "Overview", icon: "layout-dashboard", href: "/dashboard" },
         { label: "Livestock Management", icon: "beef", href: "/livestock" },
+
         {
-            label: "Price Analytics",
-            icon: "chart-no-axes-column-increasing",
-            href: "/analytics/prices",
-        },
-        {
-            label: "Price Forecast",
+            label: "Analytics",
             icon: "chart-no-axes-combined",
-            href: "/analytics/forecast",
+            children: [
+                { label: "Price Analytics", href: "/analytics/prices" },
+                { label: "Price Forecast", href: "/analytics/forecast" },
+                {
+                    label: "Transaction Analytics",
+                    href: "/analytics/transactions",
+                },
+                { label: "Valuation Analytics", href: "/analytics/valuations" },
+            ],
         },
+
         {
-            label: "Transaction Analytics",
+            label: "Transactions",
             icon: "arrow-left-right",
-            href: "/analytics/transactions",
+            children: [
+                { label: "Assist Transaction", href: "/transactions/assist" },
+            ],
         },
-        {
-            label: "Valuation Analytics",
-            icon: "chart-pie",
-            href: "/analytics/valuations",
-        },
-        {
-            label: "Assist Transaction",
-            icon: "handshake",
-            href: "/transactions/assist",
-        },
+
         { label: "Draft Weekly Price", icon: "file-pen-line", href: "/prices" },
         { label: "Calculators", icon: "calculator", href: "/calculator" },
     ],
@@ -124,27 +120,35 @@ const NAV = {
         { label: "Livestock Management", icon: "beef", href: "/livestock" },
         { label: "Farmer Directory", icon: "users-round", href: "/farmers" },
         {
-            label: "Price Analytics",
-            icon: "chart-no-axes-column-increasing",
-            href: "/analytics/prices",
+            label: "Species & Breeds",
+            icon: "beef",
+            href: "/admin/species-breeds",
         },
+
         {
-            label: "Price Forecast",
+            label: "Analytics",
             icon: "chart-no-axes-combined",
-            href: "/analytics/forecast",
+            children: [
+                { label: "Price Analytics", href: "/analytics/prices" },
+                { label: "Price Forecast", href: "/analytics/forecast" },
+                {
+                    label: "Transaction Analytics",
+                    href: "/analytics/transactions",
+                },
+                { label: "Valuation Analytics", href: "/analytics/valuations" },
+            ],
         },
+
         {
-            label: "Transaction Analytics",
-            icon: "arrow-left-right",
-            href: "/analytics/transactions",
+            label: "Administration",
+            icon: "shield",
+            children: [
+                { label: "User Management", href: "/users" },
+                { label: "Location Management", href: "/admin/locations" },
+                { label: "Audit Logs", href: "/audit-logs" },
+                { label: "System Settings", href: "/settings" },
+            ],
         },
-        {
-            label: "Valuation Analytics",
-            icon: "chart-pie",
-            href: "/analytics/valuations",
-        },
-        { label: "User Management", icon: "users-round", href: "/users" },
-        { label: "System Settings", icon: "settings", href: "/settings" },
     ],
 };
 
@@ -166,6 +170,11 @@ const IMPLEMENTED_ROUTES = new Set([
     "/calculator",
     "/prices",
     "/transactions/create",
+    "/transactions/review",
+    "/transactions/disputes",
+    "/audit-logs",
+    "/admin/locations",
+    "/admin/species-breeds",
 ]);
 
 /* ============================================================
@@ -315,46 +324,115 @@ function registerEventListeners() {
 ============================================================ */
 
 function renderNavigation(role) {
-    if (!elements.navigation) return;
+    const nav = elements.navigation;
+    if (!nav) return;
 
+    const items = NAV[role] || NAV.farmer;
     const currentPath = getCurrentPath();
 
-    const navigation = NAV[role] ?? [];
+    const isActive = (href) =>
+        currentPath === href ||
+        (href !== "/dashboard" && currentPath.startsWith(href + "/"));
 
-    elements.navigation.innerHTML = navigation
-        .map((item) => {
-            const active = currentPath === item.href;
-            const implemented = IMPLEMENTED_ROUTES.has(item.href);
+    const renderLink = (item, nested = false) => {
+        const active = isActive(item.href);
+        const implemented = IMPLEMENTED_ROUTES.has(item.href);
+
+        const classes = [
+            "nav-item",
+            nested ? "sidebar-sublink" : "",
+            active ? "nav-active" : "",
+            !implemented ? "nav-planned" : "",
+        ]
+            .filter(Boolean)
+            .join(" ");
+
+        const icon =
+            !nested && item.icon
+                ? `<span class="nav-icon"><i data-lucide="${item.icon}"></i></span>`
+                : "";
+
+        if (!implemented) {
+            return `
+                <span class="${classes}" aria-disabled="true">
+                    ${icon}
+                    <span>${escapeHtml(item.label)}</span>
+                    <small>Soon</small>
+                </span>
+            `;
+        }
+
+        return `
+            <a
+                href="${item.href}"
+                class="${classes}"
+                ${active ? 'aria-current="page"' : ""}
+            >
+                ${icon}
+                <span>${escapeHtml(item.label)}</span>
+            </a>
+        `;
+    };
+
+    nav.innerHTML = items
+        .map((item, index) => {
+            if (!item.children) {
+                return renderLink(item);
+            }
+
+            const hasActiveChild = item.children.some((child) =>
+                isActive(child.href),
+            );
 
             return `
-                <a
-                    class="nav-item ${active ? "nav-active" : ""} ${!implemented ? "nav-planned" : ""}"
-                    href="${implemented ? item.href : "#"}"
-                    ${active ? 'aria-current="page"' : ""}
-                    ${!implemented ? 'data-planned="true" title="Coming in a later phase"' : ""}
+            <div class="sidebar-group ${hasActiveChild ? "is-open" : ""}">
+                <button
+                    type="button"
+                    class="sidebar-group-toggle"
+                    aria-expanded="${hasActiveChild}"
+                    aria-controls="sidebar-group-${index}"
                 >
                     <span class="nav-icon">
-                        <i data-lucide="${escapeHtml(item.icon)}"></i>
+                        <i data-lucide="${item.icon}"></i>
                     </span>
 
                     <span>${escapeHtml(item.label)}</span>
 
-                    ${!implemented ? "<small>Soon</small>" : ""}
-                </a>
-            `;
+                    <i
+                        data-lucide="chevron-down"
+                        class="sidebar-chevron"
+                    ></i>
+                </button>
+
+                <div
+                    id="sidebar-group-${index}"
+                    class="sidebar-submenu"
+                    ${hasActiveChild ? "" : "hidden"}
+                >
+                    ${item.children
+                        .map((child) => renderLink(child, true))
+                        .join("")}
+                </div>
+            </div>
+        `;
         })
         .join("");
 
-    elements.navigation.querySelectorAll("[data-planned]").forEach((link) => {
-        link.addEventListener("click", (event) => {
-            event.preventDefault();
+    nav.querySelectorAll(".sidebar-group-toggle").forEach((button) => {
+        button.addEventListener("click", () => {
+            const group = button.closest(".sidebar-group");
+            const submenu = group.querySelector(".sidebar-submenu");
+
+            const shouldOpen = submenu.hidden;
+
+            submenu.hidden = !shouldOpen;
+            group.classList.toggle("is-open", shouldOpen);
+
+            button.setAttribute("aria-expanded", String(shouldOpen));
         });
     });
 
-    // IMPORTANT: Initialize after navigation HTML exists.
     initializeIcons();
-
-    updateBreadcrumb(currentPath, navigation);
 }
 
 /* ============================================================
@@ -362,18 +440,26 @@ function renderNavigation(role) {
 ============================================================ */
 
 function updateBreadcrumb(currentPath, navigation) {
-    const allNavigationItems = Object.values(NAV).flat();
+    const allItems = Object.values(NAV).flatMap((items) =>
+        items.flatMap((item) => (item.children ? item.children : [item])),
+    );
 
-    const currentItem =
-        navigation.find((item) => item.href === currentPath) ??
-        allNavigationItems.find((item) => item.href === currentPath);
+    const currentItem = allItems
+        .filter(
+            (item) =>
+                currentPath === item.href ||
+                (item.href !== "/dashboard" &&
+                    currentPath.startsWith(item.href + "/")),
+        )
+        .sort((a, b) => b.href.length - a.href.length)[0];
 
-    const pageName = currentItem?.label ?? "Overview";
+    const pageName = currentPath.startsWith("/prices/approvals/")
+        ? "Price Review Details"
+        : (currentItem?.label ??
+          document.title.split("|")[0].trim() ??
+          "Overview");
 
     setText("current-page", pageName);
-
-    // Keep the existing Blade title for pages that define one.
-    // The breadcrumb is updated independently.
 }
 
 /* ============================================================
@@ -486,6 +572,8 @@ async function initializeApp() {
         populateUserInformation(user, role);
 
         renderNavigation(role);
+
+        updateBreadcrumb(getCurrentPath(), NAV[role] || []);
 
         elements.loading.hidden = true;
         elements.shell.hidden = false;

@@ -148,7 +148,7 @@ class LguTransactionVerificationService
             $officer->status === 'active' &&
             $officer->verification_status === 'verified' &&
             $officer->roles()
-                ->where('slug', 'lgu_officer')
+                ->where('slug', 'lgu_authority')
                 ->exists(),
             403,
             'An active, verified LGU officer is required.'

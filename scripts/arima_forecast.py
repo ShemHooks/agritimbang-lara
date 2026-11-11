@@ -34,7 +34,6 @@ def main():
         mean = float(mean)
         if not all(math.isfinite(x) for x in (mean, lower, upper)):
             raise ValueError('model returned non-finite values')
-        # Prices cannot be negative; clamp forecast and interval to zero.
         points.append({
             'predicted_price': max(0.0, mean),
             'lower_95': max(0.0, lower),

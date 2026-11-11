@@ -111,6 +111,7 @@ class BarangayController extends BaseController
     }
 
 
+
     public function updateStatus(
         UpdateBarangayStatusRequest $request,
         string $barangay
@@ -121,7 +122,8 @@ class BarangayController extends BaseController
         $barangay = $this->barangayService
             ->updateStatus(
                 $barangay,
-                $request->validated()['is_active']
+                $request->validated()['is_active'],
+                $request->user()
             );
 
         return $this->success(
@@ -129,6 +131,7 @@ class BarangayController extends BaseController
             'Barangay status updated successfully.'
         );
     }
+
 
 
     public function referenceByMunicipality(

@@ -10,6 +10,8 @@ use App\Models\Species;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
+use App\Services\AuditLogService;
+use Illuminate\Support\Facades\DB;
 
 class BreedController extends BaseController
 {
@@ -116,29 +118,72 @@ class BreedController extends BaseController
 
     public function updateStatus(
         UpdateReferenceStatusRequest $request,
-        Breed $breed
+        Breed $breed,
+        AuditLogService $auditLogService
     ): JsonResponse {
-        $isActive =
-            $request->validated()['is_active'];
+        $isActive = (bool) $request->validated()['is_active'];
 
-        if ($isActive) {
-            $breed->loadMissing('species');
+        $breed = DB::transaction(function () use ($breed, $isActive, $request, $auditLogService) {
+            // Lock the parent species before the breed.
+            // This helps coordinate concurrent status changes.
+            $speciesId = $breed->species_id;
 
-            if (!$breed->species->is_active) {
+            $species = Species::query()
+                ->whereKey($speciesId)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $lockedBreed = Breed::query()
+                ->whereKey($breed->getKey())
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ((string) $lockedBreed->species_id !== (string) $species->getKey()) {
+                throw ValidationException::withMessages([
+                    'species_id' => [
+                        'The breed species changed. Please retry.',
+                    ],
+                ]);
+            }
+
+            if ($isActive && !$species->is_active) {
                 throw ValidationException::withMessages([
                     'is_active' => [
                         'A breed cannot be activated while its species is inactive.',
                     ],
                 ]);
             }
-        }
 
-        $breed->update([
-            'is_active' => $isActive,
-        ]);
+            $previousStatus = (bool) $lockedBreed->is_active;
+
+            if ($previousStatus === $isActive) {
+                return $lockedBreed;
+            }
+
+            $lockedBreed->update([
+                'is_active' => $isActive,
+            ]);
+
+            $auditLogService->record(
+                $request->user(),
+                $isActive
+                ? 'breed.activated'
+                : 'breed.deactivated',
+                $lockedBreed,
+                null,
+                [
+                    'is_active' => $previousStatus,
+                ],
+                [
+                    'is_active' => $isActive,
+                ]
+            );
+
+            return $lockedBreed;
+        });
 
         return $this->success(
-            $breed->fresh(),
+            $breed->fresh()->load('species:id,name,code'),
             'Breed status updated successfully.'
         );
     }

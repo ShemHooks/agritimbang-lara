@@ -6,60 +6,124 @@ export default defineConfig({
     plugins: [
         laravel({
             input: [
+                // ==========================================
+                // CSS STYLESHEETS
+                // ==========================================
+
+                // Global & Layout
                 "resources/css/app.css",
+                "resources/css/app-shell.css",
                 "resources/css/agritimbang-auth.css",
+                "resources/css/dashboard.css",
+
+                // Authentication & Accounts
+                "resources/css/account-verification.css",
+                "resources/css/admin-users.css",
+                "resources/css/farmer-profile.css",
+                "resources/css/lgu-encoders.css",
+
+                // Livestock
+                "resources/css/livestock-directory.css",
+                "resources/css/livestock-management.css",
+                "resources/css/livestock-register.css",
+                "resources/css/livestock-details.css",
+                "resources/css/livestock-monitoring.css",
+                "resources/css/farmer-directory.css",
+
+                // Pricing
+                "resources/css/prices.css",
+                "resources/css/price-form.css",
+                "resources/css/price-history.css",
+                "resources/css/price-approvals.css",
+                "resources/css/price-review.css",
+
+                // Analytics
+                "resources/css/price-analytics.css",
+                "resources/css/transaction-analytics.css",
+                "resources/css/valuation-analytics.css",
+                "resources/css/forecast.css",
+
+                // Transactions
+                "resources/css/transaction-create.css",
+                "resources/css/buyer-confirmation.css",
+                "resources/css/lgu-transaction-verification.css",
+                "resources/css/dispute-resolution.css",
+
+                // Tools & Administration
+                "resources/css/calculator.css",
+                "resources/css/audit-logs.css",
+
+                // location management
+                "resources/css/location-management.css",
+
+                // species and breed
+                "resources/css/species-breeds.css",
+
+                // ==========================================
+                // JAVASCRIPT ENTRY POINTS
+                // ==========================================
+
+                // Core & Layout
                 "resources/js/app.js",
+                "resources/js/layouts/app-shell.js",
+
+                // Authentication
                 "resources/js/pages/login.js",
-                "resources/js/pages/dashboard.js",
                 "resources/js/pages/register.js",
                 "resources/js/pages/verify-email.js",
                 "resources/js/pages/forgot-password.js",
                 "resources/js/pages/reset-password.js",
-                "resources/css/account-verification.css",
                 "resources/js/pages/account-verification.js",
-                "resources/css/app-shell.css",
-                "resources/js/layouts/app-shell.js",
-                "resources/css/dashboard-overview.css",
-                "resources/css/price-analytics.css",
-                "resources/js/pages/price-analytics.js",
-                "resources/css/transaction-analytics.css",
-                "resources/js/pages/transaction-analytics.js",
-                "resources/css/valuation-analytics.css",
-                "resources/js/pages/valuation-analytics.js",
-                "resources/css/farmer-directory.css",
-                "resources/js/pages/farmer-directory.js",
-                "resources/css/farmer-profile.css",
-                "resources/js/pages/farmer-profile.js",
-                "resources/css/livestock-directory.css",
-                "resources/js/pages/livestock-directory.js",
-                "resources/css/admin-users.css",
+
+                // Dashboard & Accounts
+                "resources/js/pages/dashboard.js",
                 "resources/js/pages/admin-users.js",
-                "resources/css/lgu-encoders.css",
+                "resources/js/pages/farmer-profile.js",
                 "resources/js/pages/lgu-encoders.js",
-                "resources/css/livestock-register.css",
-                "resources/js/pages/livestock-register.js",
+
+                // Livestock
+                "resources/js/pages/farmer-directory.js",
+                "resources/js/pages/livestock-directory.js",
                 "resources/js/pages/livestock-management.js",
-                "resources/css/livestock-management.css",
-                "resources/js/pages/livestock-monitoring.js",
+                "resources/js/pages/livestock-register.js",
                 "resources/js/pages/livestock-common.js",
                 "resources/js/pages/livestock-show.js",
                 "resources/js/pages/livestock-edit.js",
-                "resources/css/livestock-details.css",
-                "resources/js/pages/calculator.js",
-                "resources/css/calculator.css",
+                "resources/js/pages/livestock-monitoring.js",
+
+                // Pricing
                 "resources/js/pages/prices.js",
-                "resources/css/prices.css",
                 "resources/js/pages/price-form.js",
-                "resources/css/price-form.css",
-                "resources/css/forecast.css",
+                "resources/js/pages/price-history.js",
+                "resources/js/pages/price-approvals.js",
+                "resources/js/pages/price-review.js",
+
+                // Analytics
+                "resources/js/pages/price-analytics.js",
+                "resources/js/pages/transaction-analytics.js",
+                "resources/js/pages/valuation-analytics.js",
                 "resources/js/pages/forecast.js",
-                "resources/css/transaction-create.css",
+
+                // Transactions
                 "resources/js/pages/transaction-create.js",
-                "resources/css/buyer-confirmation.css",
-                "resources/js/pages/confirmation.js",
+                "resources/js/pages/buyer-confirmation.js",
+                "resources/js/pages/lgu-transaction-verification.js",
+                "resources/js/pages/dispute-resolution.js",
+
+                // Tools & Administration
+                "resources/js/pages/calculator.js",
+                "resources/js/pages/audit-logs.js",
+
+                // location management
+                "resources/js/pages/location-management.js",
+
+                // species and breed
+                "resources/js/pages/species-breeds.js",
             ],
+
             refresh: true,
         }),
+
         tailwindcss(),
     ],
 });
