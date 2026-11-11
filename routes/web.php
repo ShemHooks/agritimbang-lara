@@ -164,3 +164,11 @@ Route::view(
     '/lgu/gis-monitoring',
     'lgu.gis-monitoring'
 )->name('lgu.gis-monitoring');
+
+Route::view(
+    '/lgu/farmer-verifications',
+    'lgu.farmer-verifications'
+)->name('lgu.farmer-verifications');
+
+Route::view('/profile', 'profile.index')
+    ->name('profile.index');

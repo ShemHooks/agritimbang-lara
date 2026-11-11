@@ -1,0 +1,376 @@
+.fv-page {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+}
+
+.fv-heading,
+.fv-panel-header,
+.fv-dialog-header,
+.fv-dialog-footer,
+.fv-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.fv-heading {
+    flex-wrap: wrap;
+}
+
+.fv-eyebrow {
+    margin: 0 0 7px;
+    color: #15803d;
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: 0.1em;
+}
+
+.fv-heading h1 {
+    margin: 0;
+    color: #183c2b;
+    font-size: 28px;
+}
+
+.fv-heading > div > p:last-child,
+.fv-panel-header p {
+    color: #64748b;
+    font-size: 13px;
+}
+
+.fv-panel {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.fv-panel-header {
+    padding: 20px 22px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.fv-panel-header h2 {
+    margin: 0;
+    font-size: 16px;
+    color: #1e293b;
+}
+
+.fv-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.fv-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 13px;
+}
+
+.fv-table th {
+    padding: 14px 18px;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.fv-table td {
+    padding: 16px 18px;
+    border-top: 1px solid #f1f5f9;
+    color: #334155;
+}
+
+.fv-table tbody tr:hover {
+    background: #fafcfb;
+}
+
+.fv-person,
+.fv-document > div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.fv-person strong {
+    color: #1e293b;
+}
+
+.fv-person small,
+.fv-document small {
+    color: #94a3b8;
+    font-size: 11px;
+}
+
+.fv-status {
+    display: inline-flex;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: #fff7ed;
+    color: #c2410c;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.fv-btn {
+    padding: 10px 15px;
+    border-radius: 9px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.fv-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.fv-btn-outline {
+    border: 1px solid #dce5df;
+    background: #fff;
+    color: #334155;
+}
+
+.fv-btn-outline:hover:not(:disabled) {
+    background: #f1f5f9;
+}
+
+.fv-btn-primary {
+    border: 1px solid #166534;
+    background: #166534;
+    color: white;
+}
+
+.fv-btn-primary:hover:not(:disabled) {
+    background: #14532d;
+}
+
+.fv-btn-danger {
+    border: 1px solid #dc2626;
+    background: #dc2626;
+    color: #fff;
+}
+
+.fv-btn-danger:hover:not(:disabled) {
+    background: #b91c1c;
+}
+
+.fv-pagination {
+    padding: 16px 20px;
+    border-top: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 12px;
+}
+
+.fv-empty {
+    padding: 35px !important;
+    text-align: center;
+    color: #94a3b8 !important;
+}
+
+.fv-alert {
+    padding: 13px 16px;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    background: #f0fdf4;
+    color: #166534;
+    font-size: 13px;
+}
+
+.fv-alert[data-type="error"] {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.fv-alert[hidden],
+.fv-modal[hidden],
+.fv-preview[hidden],
+.fv-rejection-box[hidden] {
+    display: none !important;
+}
+
+.fv-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+}
+
+.fv-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.fv-dialog {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    width: min(100%, 760px);
+    max-height: min(90dvh, 900px);
+    background: #fff;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.22);
+}
+
+.fv-dialog-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.fv-dialog-header h2 {
+    margin: 0;
+    font-size: 20px;
+    color: #1e293b;
+}
+
+.fv-icon-btn {
+    border: 0;
+    background: #f1f5f9;
+    border-radius: 9px;
+    width: 36px;
+    height: 36px;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.fv-dialog-body {
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.fv-dialog-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #e2e8f0;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.fv-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 15px;
+}
+
+.fv-detail-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 14px;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+.fv-detail-grid span {
+    color: #64748b;
+    font-size: 11px;
+}
+
+.fv-detail-grid strong {
+    color: #1e293b;
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.fv-subheading {
+    margin: 24px 0 12px;
+    font-size: 15px;
+    color: #183c2b;
+}
+
+.fv-document {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.fv-document strong {
+    font-size: 13px;
+}
+
+.fv-preview {
+    margin-top: 16px;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.fv-preview img {
+    display: block;
+    max-width: 100%;
+    max-height: 500px;
+    margin: auto;
+    object-fit: contain;
+}
+
+.fv-preview iframe {
+    width: 100%;
+    height: 480px;
+    border: 0;
+}
+
+.fv-rejection-box {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 16px;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    background: #fff7f7;
+}
+
+.fv-rejection-box label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #991b1b;
+}
+
+.fv-rejection-box textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #fca5a5;
+    border-radius: 9px;
+    resize: vertical;
+    font: inherit;
+    font-size: 13px;
+}
+
+@media (max-width: 640px) {
+    .fv-heading h1 {
+        font-size: 23px;
+    }
+
+    .fv-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .fv-dialog-header,
+    .fv-dialog-body,
+    .fv-dialog-footer {
+        padding: 16px;
+    }
+
+    .fv-document {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

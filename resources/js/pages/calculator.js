@@ -1314,3 +1314,119 @@ async function init() {
 }
 
 init();
+
+// ==========================================================
+// CALCULATOR HELP & USER GUIDE
+// ==========================================================
+
+function initializeCalculatorHelp() {
+    const modal = document.getElementById("calc-help-modal");
+    const openButton = document.getElementById("calc-help-open");
+    const closeButton = document.getElementById("calc-help-close");
+    const dialog = modal?.querySelector(".calc-help-dialog");
+
+    if (!modal || !openButton || !dialog) return;
+
+    const tabs = [...modal.querySelectorAll("[data-help-tab]")];
+
+    const panels = [...modal.querySelectorAll("[data-help-panel]")];
+
+    let previousFocus = null;
+
+    function selectTopic(topic) {
+        tabs.forEach((button) => {
+            const selected = button.dataset.helpTab === topic;
+
+            button.classList.toggle("active", selected);
+            button.setAttribute("aria-selected", String(selected));
+        });
+
+        panels.forEach((panel) => {
+            panel.hidden = panel.dataset.helpPanel !== topic;
+        });
+
+        const content = modal.querySelector(".calc-help-content");
+        if (content) content.scrollTop = 0;
+    }
+
+    function openHelp(topic = "overview") {
+        previousFocus = document.activeElement;
+
+        selectTopic(topic);
+
+        modal.hidden = false;
+        document.body.classList.add("calc-help-open");
+
+        closeButton?.focus();
+    }
+
+    function closeHelp() {
+        modal.hidden = true;
+        document.body.classList.remove("calc-help-open");
+
+        if (previousFocus instanceof HTMLElement) {
+            previousFocus.focus();
+        }
+    }
+
+    openButton.addEventListener("click", () => {
+        openHelp();
+    });
+
+    modal.querySelectorAll("[data-help-close]").forEach((button) => {
+        button.addEventListener("click", closeHelp);
+    });
+
+    tabs.forEach((button) => {
+        button.addEventListener("click", () => {
+            selectTopic(button.dataset.helpTab);
+        });
+    });
+
+    document.addEventListener("keydown", (event) => {
+        if (modal.hidden) return;
+
+        if (event.key === "Escape") {
+            closeHelp();
+            return;
+        }
+
+        if (event.key === "Tab") {
+            const focusable = [
+                ...modal.querySelectorAll(
+                    "button:not([disabled]):not([hidden]), " +
+                        "a[href], input:not([disabled]), " +
+                        "select:not([disabled]), textarea:not([disabled])",
+                ),
+            ].filter((element) => element.getClientRects().length > 0);
+
+            if (!focusable.length) {
+                event.preventDefault();
+                dialog.focus();
+                return;
+            }
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+    });
+
+    // Optional: Open a specific help topic from other controls.
+    window.openCalculatorHelp = openHelp;
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeCalculatorHelp, {
+        once: true,
+    });
+} else {
+    initializeCalculatorHelp();
+}

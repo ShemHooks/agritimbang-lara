@@ -1,52 +1,46 @@
-
 @extends('layouts.app')
 
 @section('content')
     <main class="calc-page" id="weight-calculator">
 
         {{-- =====================================================
-             PAGE HEADER
+        PAGE HEADER
         ====================================================== --}}
+
         <header class="calc-heading">
             <div>
                 <p class="calc-eyebrow">AGRITIMBANG / LIVESTOCK CALCULATOR</p>
                 <h1>Livestock Calculator</h1>
-                <p>Estimate livestock weight, calculate fair market value, and review FPC breakdowns.</p>
+                <p>
+                    Estimate livestock weight, calculate fair market value,
+                    and review FPC breakdowns.
+                </p>
             </div>
+
+            <button type="button" id="calc-help-open" class="calc-help-trigger" aria-haspopup="dialog"
+                aria-controls="calc-help-modal">
+                <span class="calc-help-icon" aria-hidden="true">?</span>
+                <span>How to use calculator</span>
+            </button>
         </header>
 
+
         {{-- =====================================================
-             CALCULATOR TABS
+        CALCULATOR TABS
         ====================================================== --}}
         <nav class="calc-tabs" aria-label="Calculator features">
-            <button
-                id="calc-tab-weight"
-                class="active"
-                type="button"
-                data-calc-tab="weight"
-                aria-selected="true"
-                aria-controls="calc-weight-panel"
-            >
+            <button id="calc-tab-weight" class="active" type="button" data-calc-tab="weight" aria-selected="true"
+                aria-controls="calc-weight-panel">
                 Weight Estimation
             </button>
 
-            <button
-                id="calc-tab-valuation"
-                type="button"
-                data-calc-tab="valuation"
-                aria-selected="false"
-                aria-controls="calc-valuation-panel"
-            >
+            <button id="calc-tab-valuation" type="button" data-calc-tab="valuation" aria-selected="false"
+                aria-controls="calc-valuation-panel">
                 Livestock Valuation
             </button>
 
-            <button
-                id="calc-tab-fpc"
-                type="button"
-                data-calc-tab="fpc"
-                aria-selected="false"
-                aria-controls="calc-fpc-panel"
-            >
+            <button id="calc-tab-fpc" type="button" data-calc-tab="fpc" aria-selected="false"
+                aria-controls="calc-fpc-panel">
                 FPC Breakdown
             </button>
         </nav>
@@ -55,7 +49,7 @@
         <div id="calc-error" class="calc-error" role="alert" hidden></div>
 
         {{-- =====================================================
-             TAB 1: WEIGHT ESTIMATION
+        TAB 1: WEIGHT ESTIMATION
         ====================================================== --}}
         <div id="calc-weight-panel">
             <div class="calc-layout">
@@ -80,38 +74,20 @@
                         <div class="calc-field-grid">
                             <label class="calc-field">
                                 <span>Heart girth (cm)</span>
-                                <input
-                                    id="calc-girth"
-                                    type="number"
-                                    min="0.01"
-                                    max="500"
-                                    step="any"
-                                    placeholder="Enter heart girth"
-                                >
+                                <input id="calc-girth" type="number" min="0.01" max="500" step="any"
+                                    placeholder="Enter heart girth">
                             </label>
 
                             <label class="calc-field">
                                 <span>Body length (cm)</span>
-                                <input
-                                    id="calc-length"
-                                    type="number"
-                                    min="0.01"
-                                    max="500"
-                                    step="any"
-                                    placeholder="Enter body length"
-                                >
+                                <input id="calc-length" type="number" min="0.01" max="500" step="any"
+                                    placeholder="Enter body length">
                             </label>
 
                             <label class="calc-field">
                                 <span>Rump height (cm)</span>
-                                <input
-                                    id="calc-height"
-                                    type="number"
-                                    min="0.01"
-                                    max="300"
-                                    step="any"
-                                    placeholder="Enter rump height"
-                                >
+                                <input id="calc-height" type="number" min="0.01" max="300" step="any"
+                                    placeholder="Enter rump height">
                             </label>
                         </div>
 
@@ -120,11 +96,7 @@
                             by the backend. Unused measurements may be left blank.
                         </p>
 
-                        <button
-                            id="calc-submit"
-                            class="calc-primary"
-                            type="submit"
-                        >
+                        <button id="calc-submit" class="calc-primary" type="submit">
                             Calculate &amp; Save Estimation
                         </button>
                     </form>
@@ -221,7 +193,7 @@
         </div>
 
         {{-- =====================================================
-             TAB 2: LIVESTOCK VALUATION
+        TAB 2: LIVESTOCK VALUATION
         ====================================================== --}}
         <section id="calc-valuation-panel" hidden>
             <div class="calc-layout">
@@ -244,11 +216,7 @@
                             </select>
                         </label>
 
-                        <div
-                            id="calc-valuation-animal"
-                            class="calc-animal-info"
-                            hidden
-                        ></div>
+                        <div id="calc-valuation-animal" class="calc-animal-info" hidden></div>
 
                         <label class="calc-field calc-valuation-estimation-field">
                             <span>Weight estimation</span>
@@ -266,11 +234,7 @@
                             weight estimation.
                         </p>
 
-                        <button
-                            id="calc-valuation-submit"
-                            type="submit"
-                            class="calc-primary"
-                        >
+                        <button id="calc-valuation-submit" type="submit" class="calc-primary">
                             Calculate &amp; Save Valuation
                         </button>
                     </form>
@@ -382,7 +346,7 @@
         </section>
 
         {{-- =====================================================
-             TAB 3: FPC BREAKDOWN
+        TAB 3: FPC BREAKDOWN
         ====================================================== --}}
         <section id="calc-fpc-panel" hidden>
 
@@ -549,6 +513,382 @@
         </section>
 
     </main>
+
+
+<div
+    id="calc-help-modal"
+    class="calc-help-modal"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="calc-help-title"
+    aria-describedby="calc-help-description"
+    hidden
+>
+    <div class="calc-help-backdrop" data-help-close></div>
+
+    <div class="calc-help-dialog" tabindex="-1">
+        <header class="calc-help-header">
+            <div>
+                <p class="calc-help-eyebrow">AGRITIMBANG USER GUIDE</p>
+                <h2 id="calc-help-title">Livestock Calculator Guide</h2>
+                <p id="calc-help-description">
+                    Learn how to estimate livestock weight,
+                    calculate fair market value, and understand FPC.
+                </p>
+            </div>
+
+            <button
+                type="button"
+                id="calc-help-close"
+                class="calc-help-close"
+                aria-label="Close calculator guide"
+            >&times;</button>
+        </header>
+
+        <div class="calc-help-body">
+
+            <nav class="calc-help-nav" aria-label="Help topics">
+                <button type="button" class="active"
+                    data-help-tab="overview">Overview</button>
+                <button type="button"
+                    data-help-tab="weight">Weight Estimation</button>
+                <button type="button"
+                    data-help-tab="valuation">Livestock Valuation</button>
+                <button type="button"
+                    data-help-tab="fpc">FPC Breakdown</button>
+            </nav>
+
+            <div class="calc-help-content">
+
+                <!-- OVERVIEW -->
+                <section data-help-panel="overview">
+                    <span class="calc-help-kicker">GETTING STARTED</span>
+                    <h3>What does the calculator do?</h3>
+                    <p>
+                        AgriTimbang helps users estimate an animal's
+                        live weight, calculate its estimated fair
+                        market value, and inspect the pricing factors
+                        used in the calculation.
+                    </p>
+
+                    <div class="calc-help-steps">
+                        <div class="calc-help-step">
+                            <span>01</span>
+                            <div>
+                                <strong>Estimate Weight</strong>
+                                <p>
+                                    Select a livestock record and enter
+                                    the measurements required by its
+                                    weight estimation formula.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="calc-help-step">
+                            <span>02</span>
+                            <div>
+                                <strong>Calculate Valuation</strong>
+                                <p>
+                                    Use available weight evidence and
+                                    official price references to
+                                    estimate market value.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="calc-help-step">
+                            <span>03</span>
+                            <div>
+                                <strong>Review FPC Breakdown</strong>
+                                <p>
+                                    Inspect the weight, official price,
+                                    adjustment factors, and saved
+                                    calculation details.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="calc-help-note">
+                        Calculated values are estimates, not a
+                        guarantee of the final livestock selling price.
+                    </div>
+                </section>
+
+                <!-- WEIGHT -->
+                <section data-help-panel="weight" hidden>
+                    <span class="calc-help-kicker">FEATURE 01</span>
+                    <h3>Weight Estimation</h3>
+                    <p>
+                        Estimate an animal's live weight using
+                        body measurements without requiring a
+                        physical weighing scale.
+                    </p>
+
+                    <h4>How to use</h4>
+                    <ol>
+                        <li>Select the livestock record.</li>
+                        <li>Measure the animal using a measuring tape.</li>
+                        <li>Enter the required measurements in centimeters.</li>
+                        <li>Click <strong>Calculate &amp; Save Estimation</strong>.</li>
+                        <li>Review the result and estimation history.</li>
+                    </ol>
+
+                    <h4>Understanding the measurements</h4>
+
+                    <div class="calc-help-definitions">
+                        <div>
+                            <strong>Heart girth</strong>
+                            <p>
+                                The circumference around the animal's
+                                chest, immediately behind the front legs.
+                            </p>
+                        </div>
+                        <div>
+                            <strong>Body length</strong>
+                            <p>
+                                The body measurement from the shoulder
+                                region toward the rear of the animal.
+                                Follow the measurement landmarks required
+                                by your livestock measurement protocol.
+                            </p>
+                        </div>
+                        <div>
+                            <strong>Rump height</strong>
+                            <p>
+                                The vertical height from level ground
+                                to the animal's rump or hip region.
+                            </p>
+                        </div>
+                    </div>
+
+                    <h4>Understanding the result</h4>
+                    <div class="calc-help-definitions">
+                        <div>
+                            <strong>Estimated live weight</strong>
+                            <p>The calculated weight in kilograms.</p>
+                        </div>
+                        <div>
+                            <strong>Confidence</strong>
+                            <p>
+                                The confidence indicator returned by
+                                the estimation engine.
+                            </p>
+                        </div>
+                        <div>
+                            <strong>Frame category</strong>
+                            <p>
+                                The animal's frame classification
+                                returned by the calculation.
+                            </p>
+                        </div>
+                        <div>
+                            <strong>Formula and version</strong>
+                            <p>
+                                Identify the calculation method and
+                                version used for the saved result.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="calc-help-note">
+                        Measurement requirements depend on the formula
+                        selected by the backend. Fields not required
+                        by that formula may be left blank. For better
+                        estimates, measure the animal carefully and
+                        keep the measuring tape correctly positioned.
+                    </div>
+                </section>
+
+                <!-- VALUATION -->
+                <section data-help-panel="valuation" hidden>
+                    <span class="calc-help-kicker">FEATURE 02</span>
+                    <h3>Livestock Valuation</h3>
+                    <p>
+                        Calculate an estimated fair market value using
+                        livestock weight, official price references,
+                        and approved pricing adjustment factors.
+                    </p>
+
+                    <h4>How to use</h4>
+                    <ol>
+                        <li>Select a livestock record.</li>
+                        <li>
+                            Choose a saved weight estimation, or leave
+                            the selection on
+                            <strong>Automatic — use latest estimation</strong>.
+                        </li>
+                        <li>
+                            Click <strong>Calculate &amp; Save Valuation</strong>.
+                        </li>
+                        <li>
+                            Review the estimated fair market value
+                            and pricing adjustments.
+                        </li>
+                    </ol>
+
+                    <h4>How is the weight selected?</h4>
+                    <p>
+                        When an actual scale weight is available, it
+                        takes priority. Otherwise, the calculator uses
+                        the selected weight estimation or the latest
+                        available estimation.
+                    </p>
+
+                    <h4>Understanding the result</h4>
+                    <div class="calc-help-definitions">
+                        <div>
+                            <strong>Weight source</strong>
+                            <p>
+                                Shows whether the valuation used
+                                actual scale weight or an estimation.
+                            </p>
+                        </div>
+                        <div>
+                            <strong>Base price per kilogram</strong>
+                            <p>
+                                The official price reference used
+                                before pricing adjustments.
+                            </p>
+                        </div>
+                        <div>
+                            <strong>Adjusted price per kilogram</strong>
+                            <p>
+                                The price after applying the approved
+                                adjustment factors.
+                            </p>
+                        </div>
+                        <div>
+                            <strong>Fair market value</strong>
+                            <p>
+                                The estimated total value of the
+                                animal, expressed in Philippine pesos.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="calc-help-equation">
+                        <span>GENERAL VALUATION FORMULA</span>
+                        <strong>
+                            Fair Market Value =
+                            Weight Used × Adjusted Price/kg
+                        </strong>
+                    </div>
+
+                    <div class="calc-help-note">
+                        A valuation depends on available weight
+                        evidence, applicable official prices, and
+                        the adjustment factors returned by the
+                        backend. Missing required data may prevent
+                        a valuation from being calculated.
+                    </div>
+                </section>
+
+                <!-- FPC -->
+                <section data-help-panel="fpc" hidden>
+                    <span class="calc-help-kicker">FEATURE 03</span>
+                    <h3>Fair Price Calculation (FPC-1.1)</h3>
+                    <p>
+                        FPC Breakdown explains how a saved livestock
+                        valuation was calculated.
+                    </p>
+
+                    <h4>How to use</h4>
+                    <ol>
+                        <li>Open the <strong>FPC Breakdown</strong> tab.</li>
+                        <li>Select a livestock record.</li>
+                        <li>Select one of its saved valuations.</li>
+                        <li>Review the value, weight, and pricing factors.</li>
+                        <li>
+                            Expand the calculation snapshot when
+                            detailed calculation data is needed.
+                        </li>
+                    </ol>
+
+                    <h4>Pricing adjustment factors</h4>
+                    <div class="calc-help-definitions">
+                        <div>
+                            <strong>Breed</strong>
+                            <p>
+                                The adjustment associated with
+                                the animal's breed.
+                            </p>
+                        </div>
+                        <div>
+                            <strong>Age</strong>
+                            <p>
+                                The adjustment associated with
+                                the animal's age.
+                            </p>
+                        </div>
+                        <div>
+                            <strong>Reproductive</strong>
+                            <p>
+                                The adjustment associated with
+                                reproductive classification.
+                            </p>
+                        </div>
+                        <div>
+                            <strong>Frame</strong>
+                            <p>
+                                The adjustment associated with
+                                frame classification.
+                            </p>
+                        </div>
+                        <div>
+                            <strong>Condition</strong>
+                            <p>
+                                The adjustment associated with
+                                the animal's recorded condition.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="calc-help-equation">
+                        <span>FPC-1.1 PRICING FORMULA</span>
+                        <strong>
+                            Adjusted Price/kg = Base Price/kg ×
+                            Breed × Age × Reproductive ×
+                            Frame × Condition
+                        </strong>
+                    </div>
+
+                    <div class="calc-help-equation">
+                        <span>FINAL VALUE</span>
+                        <strong>
+                            Fair Market Value =
+                            Weight Used × Adjusted Price/kg
+                        </strong>
+                    </div>
+
+                    <h4>What is the calculation snapshot?</h4>
+                    <p>
+                        It contains the saved calculation inputs and
+                        results, allowing reviewers to inspect the
+                        information used when the valuation was made.
+                    </p>
+
+                    <div class="calc-help-note">
+                        FPC Breakdown displays saved valuation
+                        evidence. It does not replace the official
+                        price validation process.
+                    </div>
+                </section>
+
+            </div>
+        </div>
+
+        <footer class="calc-help-footer">
+            <span>AgriTimbang · Calculator User Guide</span>
+            <button
+                type="button"
+                class="calc-help-done"
+                data-help-close
+            >
+                Got it
+            </button>
+        </footer>
+    </div>
+</div>
+
 @endsection
 
 @vite([

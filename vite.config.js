@@ -21,6 +21,7 @@ export default defineConfig({
                 "resources/css/admin-users.css",
                 "resources/css/farmer-profile.css",
                 "resources/css/lgu-encoders.css",
+                "resources/css/lgu-farmer-verifications.css",
 
                 // Livestock
                 "resources/css/livestock-directory.css",
@@ -65,6 +66,9 @@ export default defineConfig({
                 // GIS
                 "resources/css/lgu-gis-monitoring.css",
 
+                // Profile
+                "resources/css/profile.css",
+
                 // ==========================================
                 // JAVASCRIPT ENTRY POINTS
                 // ==========================================
@@ -80,6 +84,7 @@ export default defineConfig({
                 "resources/js/pages/forgot-password.js",
                 "resources/js/pages/reset-password.js",
                 "resources/js/pages/account-verification.js",
+                "resources/js/pages/lgu-farmer-verifications.js",
 
                 // Dashboard & Accounts
                 "resources/js/pages/dashboard.js",
@@ -131,6 +136,9 @@ export default defineConfig({
 
                 // GIS
                 "resources/js/pages/lgu-gis-monitoring.js",
+
+                // Profile
+                "resources/js/pages/profile.js",
             ],
 
             refresh: true,

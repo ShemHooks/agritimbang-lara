@@ -140,10 +140,11 @@ class UserVerificationService
     | No municipality restrictions apply to System Admin.
     */
 
+
     public function getPendingFarmers(
-        User $admin
+        User $reviewer
     ): LengthAwarePaginator {
-        $this->ensureSystemAdmin($admin);
+        $municipalityId = $this->reviewerMunicipalityId($reviewer);
 
         return User::query()
             ->where('verification_status', 'pending')
@@ -155,29 +156,49 @@ class UserVerificationService
                 'verificationDocuments',
                 fn($query) => $query->where('status', 'pending')
             )
+            ->when(
+                $municipalityId !== null,
+                fn($query) => $query->whereHas(
+                    'farmerProfile',
+                    fn($profile) => $profile->where(
+                        'municipality_id',
+                        $municipalityId
+                    )
+                )
+            )
             ->with([
                 'farmerProfile.municipality',
                 'farmerProfile.barangay',
                 'verificationDocuments' => fn($query) =>
-                    $query
-                        ->where('status', 'pending')
-                        ->latest(),
+                    $query->where('status', 'pending')->latest(),
             ])
             ->orderBy('last_name')
             ->paginate(15);
     }
 
+
+
     public function getFarmerForReview(
-        User $admin,
+        User $reviewer,
         string $farmerId
     ): User {
-        $this->ensureSystemAdmin($admin);
+        $municipalityId = $this->reviewerMunicipalityId($reviewer);
 
         return User::query()
             ->whereKey($farmerId)
             ->whereHas(
                 'roles',
                 fn($query) => $query->where('slug', 'farmer')
+            )
+            ->when(
+                $municipalityId !== null,
+                fn($query) => $query->whereHas(
+                    'farmerProfile',
+                    fn($profile) => $profile->where(
+                        'municipality_id',
+                        $municipalityId
+                    )
+                )
             )
             ->with([
                 'farmerProfile.municipality',
@@ -187,17 +208,29 @@ class UserVerificationService
             ->firstOrFail();
     }
 
+
+
     public function getDocumentForReview(
-        User $admin,
+        User $reviewer,
         string $documentId
     ): UserVerificationDocument {
-        $this->ensureSystemAdmin($admin);
+        $municipalityId = $this->reviewerMunicipalityId($reviewer);
 
         return UserVerificationDocument::query()
             ->whereKey($documentId)
             ->whereHas(
                 'user.roles',
                 fn($query) => $query->where('slug', 'farmer')
+            )
+            ->when(
+                $municipalityId !== null,
+                fn($query) => $query->whereHas(
+                    'user.farmerProfile',
+                    fn($profile) => $profile->where(
+                        'municipality_id',
+                        $municipalityId
+                    )
+                )
             )
             ->with([
                 'user.farmerProfile.municipality',
@@ -207,29 +240,38 @@ class UserVerificationService
             ->firstOrFail();
     }
 
+
     /*
     |--------------------------------------------------------------------------
     | System Admin — Approve Verification
     |--------------------------------------------------------------------------
     */
 
+
     public function approve(
-        User $admin,
+        User $reviewer,
         string $documentId
     ): UserVerificationDocument {
-        $this->ensureSystemAdmin($admin);
+        $this->reviewerMunicipalityId($reviewer);
 
-        return DB::transaction(function () use ($admin, $documentId) {
-            $document = $this->lockDocumentForReview($documentId);
-
-            $this->ensurePending($document);
+        return DB::transaction(function () use ($reviewer, $documentId) {
+            $document = $this->lockDocumentForReview(
+                $documentId
+            );
 
             $farmer = $document->user;
+
+            $this->ensureReviewerCanAccessFarmer(
+                $reviewer,
+                $farmer
+            );
+
+            $this->ensurePending($document);
 
             $document->update([
                 'status' => 'approved',
                 'rejection_reason' => null,
-                'reviewed_by' => $admin->id,
+                'reviewed_by' => $reviewer->id,
                 'reviewed_at' => now(),
             ]);
 
@@ -247,28 +289,37 @@ class UserVerificationService
         });
     }
 
+
     /*
     |--------------------------------------------------------------------------
     | System Admin — Reject Verification
     |--------------------------------------------------------------------------
     */
 
+
     public function reject(
-        User $admin,
+        User $reviewer,
         string $documentId,
         string $reason
     ): UserVerificationDocument {
-        $this->ensureSystemAdmin($admin);
+        $this->reviewerMunicipalityId($reviewer);
 
-        return DB::transaction(function () use ($admin, $documentId, $reason) {
-            $document = $this->lockDocumentForReview($documentId);
+        return DB::transaction(function () use ($reviewer, $documentId, $reason) {
+            $document = $this->lockDocumentForReview(
+                $documentId
+            );
+
+            $this->ensureReviewerCanAccessFarmer(
+                $reviewer,
+                $document->user
+            );
 
             $this->ensurePending($document);
 
             $document->update([
                 'status' => 'rejected',
                 'rejection_reason' => $reason,
-                'reviewed_by' => $admin->id,
+                'reviewed_by' => $reviewer->id,
                 'reviewed_at' => now(),
             ]);
 
@@ -284,22 +335,71 @@ class UserVerificationService
         });
     }
 
+
     /*
     |--------------------------------------------------------------------------
     | Private Helpers
     |--------------------------------------------------------------------------
     */
 
-    private function ensureSystemAdmin(User $user): void
+
+    private function reviewerMunicipalityId(User $reviewer): ?string
     {
+        if ($reviewer->roles()->where('slug', 'admin')->exists()) {
+            return null;
+        }
+
         abort_unless(
-            $user->roles()
-                ->where('slug', 'admin')
+            $reviewer->roles()
+                ->where('slug', 'lgu_authority')
                 ->exists(),
             403,
-            'Only the System Admin can review farmer verifications.'
+            'You are not authorized to review farmer verifications.'
+        );
+
+        abort_unless(
+            $reviewer->status === 'active' &&
+            $reviewer->verification_status === 'verified',
+            403,
+            'Your LGU Authority account must be active and verified.'
+        );
+
+        $profile = $reviewer->lguOfficerProfile()
+            ->with('municipality')
+            ->first();
+
+        abort_unless(
+            $profile?->municipality &&
+            $profile->municipality->is_active,
+            403,
+            'You must be assigned to an active municipality.'
+        );
+
+        return $profile->municipality_id;
+    }
+
+    private function ensureReviewerCanAccessFarmer(
+        User $reviewer,
+        User $farmer
+    ): void {
+        $municipalityId = $this->reviewerMunicipalityId($reviewer);
+
+        if ($municipalityId === null) {
+            return;
+        }
+
+        $belongsToMunicipality = FarmerProfile::query()
+            ->where('user_id', $farmer->id)
+            ->where('municipality_id', $municipalityId)
+            ->exists();
+
+        abort_unless(
+            $belongsToMunicipality,
+            404,
+            'Farmer verification not found.'
         );
     }
+
 
     private function lockDocumentForReview(
         string $documentId
