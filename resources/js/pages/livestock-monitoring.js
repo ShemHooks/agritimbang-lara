@@ -546,8 +546,26 @@ function unwrapGeojson(response) {
 
 function createPopup(feature) {
     const p = feature.properties ?? {};
-
     const count = livestockCount(feature);
+
+    const species = Array.isArray(p.by_species) ? p.by_species : [];
+
+    const speciesRows = species.length
+        ? species
+              .map(
+                  (item) => `
+            <div class="lm-popup-species-row">
+                <span>${escapeHtml(item.species_name)}</span>
+                <strong>${formatNumber(item.total)}</strong>
+            </div>
+        `,
+              )
+              .join("")
+        : `
+            <p class="lm-popup-empty">
+                No livestock species recorded.
+            </p>
+        `;
 
     return `
         <div class="lm-map-popup">
@@ -572,23 +590,28 @@ function createPopup(feature) {
 
             <p>
                 Available:
-                ${formatNumber(p.available)}
+                <b>${formatNumber(p.available)}</b>
             </p>
 
             <p>
                 In transaction:
-                ${formatNumber(p.in_transaction)}
+                <b>${formatNumber(p.in_transaction)}</b>
             </p>
 
             <p>
                 Sold:
-                ${formatNumber(p.sold)}
+                <b>${formatNumber(p.sold)}</b>
             </p>
 
             <p>
                 Archived:
-                ${formatNumber(p.archived)}
+                <b>${formatNumber(p.archived)}</b>
             </p>
+
+            <div class="lm-popup-species">
+                <h4>Livestock by Species</h4>
+                ${speciesRows}
+            </div>
         </div>
     `;
 }

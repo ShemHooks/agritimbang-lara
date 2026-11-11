@@ -39,7 +39,8 @@ use App\Http\Controllers\{
     TransactionDisputeController,
     UserVerificationController,
     AdminUserController,
-    OfficialPriceController
+    OfficialPriceController,
+    LguGisMonitoringController
 };
 
 /*
@@ -125,6 +126,30 @@ Route::prefix('gis')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('municipalities/active', [MunicipalityController::class, 'active']);
+
+    Route::middleware('role:lgu_authority')
+        ->prefix('lgu/gis-monitoring')
+        ->group(function () {
+            Route::get('geojson', [
+                LguGisMonitoringController::class,
+                'geojson',
+            ]);
+
+            Route::get('summary', [
+                LguGisMonitoringController::class,
+                'summary',
+            ]);
+
+            Route::get('prices', [
+                LguGisMonitoringController::class,
+                'prices',
+            ]);
+
+            Route::get(
+                'barangays/{barangay}/prices',
+                [LguGisMonitoringController::class, 'barangayPrices']
+            );
+        });
 });
 
 /*
@@ -489,6 +514,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('{auctionHouse}/encoders/{user}', [
             LguAuctionHouseController::class,
             'removeEncoder'
+        ]);
+
+        Route::get('eligible-encoders', [
+            LguAuctionHouseController::class,
+            'eligibleEncoders'
+        ]);
+
+        Route::get('{auctionHouse}/encoders', [
+            LguAuctionHouseController::class,
+            'assignedEncoders'
         ]);
     });
 

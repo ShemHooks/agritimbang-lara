@@ -82,6 +82,10 @@ class GisService
             )
             : [];
 
+        $speciesCounts = $includeLivestock
+            ? $this->speciesCountsByBarangay($municipalityId, $speciesId)
+            : [];
+
         $features = [];
 
         foreach ($barangays as $barangay) {
@@ -118,6 +122,7 @@ class GisService
                     'in_transaction' => (int) ($count->in_transaction ?? 0),
                     'sold' => (int) ($count->sold ?? 0),
                     'archived' => (int) ($count->archived ?? 0),
+                    'by_species' => $speciesCounts[$barangay->id] ?? [],
                 ];
             }
 
@@ -224,5 +229,52 @@ class GisService
         }
 
         return $geometry;
+    }
+
+    private function speciesCountsByBarangay(
+        ?string $municipalityId,
+        ?string $speciesId
+    ): array {
+        return LivestockRecord::query()
+            ->join(
+                'species',
+                'species.id',
+                '=',
+                'livestock_records.species_id'
+            )
+            ->select([
+                'livestock_records.barangay_id',
+                'species.id as species_id',
+                'species.name as species_name',
+            ])
+            ->selectRaw('COUNT(*) as total')
+            ->when(
+                $municipalityId,
+                fn($query) => $query->where(
+                    'livestock_records.municipality_id',
+                    $municipalityId
+                )
+            )
+            ->when(
+                $speciesId,
+                fn($query) => $query->where(
+                    'livestock_records.species_id',
+                    $speciesId
+                )
+            )
+            ->groupBy(
+                'livestock_records.barangay_id',
+                'species.id',
+                'species.name'
+            )
+            ->orderBy('species.name')
+            ->get()
+            ->groupBy('barangay_id')
+            ->map(fn($rows) => $rows->map(fn($row) => [
+                'species_id' => $row->species_id,
+                'species_name' => $row->species_name,
+                'total' => (int) $row->total,
+            ])->values()->all())
+            ->all();
     }
 }

@@ -154,3 +154,13 @@ Route::view(
     '/admin/species-breeds',
     'admin.species-breeds'
 );
+
+Route::view(
+    '/lgu/auction-houses',
+    'lgu.auction-houses'
+);
+
+Route::view(
+    '/lgu/gis-monitoring',
+    'lgu.gis-monitoring'
+)->name('lgu.gis-monitoring');

@@ -59,6 +59,12 @@ export default defineConfig({
                 // species and breed
                 "resources/css/species-breeds.css",
 
+                // auction house
+                "resources/css/auction-houses.css",
+
+                // GIS
+                "resources/css/lgu-gis-monitoring.css",
+
                 // ==========================================
                 // JAVASCRIPT ENTRY POINTS
                 // ==========================================
@@ -119,6 +125,12 @@ export default defineConfig({
 
                 // species and breed
                 "resources/js/pages/species-breeds.js",
+
+                // auction house
+                "resources/js/pages/auction-houses.js",
+
+                // GIS
+                "resources/js/pages/lgu-gis-monitoring.js",
             ],
 
             refresh: true,

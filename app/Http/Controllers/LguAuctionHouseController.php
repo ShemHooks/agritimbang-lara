@@ -106,4 +106,26 @@ class LguAuctionHouseController extends Controller
             'message' => 'LGU encoder assignment deactivated.',
         ]);
     }
+
+    public function assignedEncoders(
+        Request $request,
+        string $auctionHouse
+    ): JsonResponse {
+        return response()->json([
+            'data' => $this->service->assignedEncoders(
+                $request->user(),
+                $auctionHouse
+            ),
+        ]);
+    }
+
+    public function eligibleEncoders(
+        Request $request
+    ): JsonResponse {
+        return response()->json([
+            'data' => $this->service->eligibleEncoders(
+                $request->user()
+            ),
+        ]);
+    }
 }

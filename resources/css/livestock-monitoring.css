@@ -906,3 +906,39 @@
     top: 16px;
     right: 16px;
 }
+
+.lm-popup-species {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.lm-popup-species h4 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #183c2b;
+}
+
+.lm-popup-species-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 7px 0;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 13px;
+}
+
+.lm-popup-species-row span {
+    color: #475569;
+}
+
+.lm-popup-species-row strong {
+    color: #14532d;
+}
+
+.lm-popup-empty {
+    font-size: 12px;
+    color: #94a3b8;
+}

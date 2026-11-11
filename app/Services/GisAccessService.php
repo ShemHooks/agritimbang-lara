@@ -9,10 +9,13 @@ use Illuminate\Auth\Access\AuthorizationException;
 class GisAccessService
 {
     /**
-     * Resolve the municipality allowed for livestock monitoring.
+     * Existing GIS access.
      *
-     * Admin: all municipalities or a selected municipality.
-     * LGU: assigned active municipality only.
+     * Admin: all municipalities or selected municipality.
+     * LGU Authority: assigned municipality only.
+     * LGU Encoder: assigned municipality only.
+     *
+     * Preserve existing access behavior.
      */
     public function resolveMunicipality(
         User $user,
@@ -49,7 +52,8 @@ class GisAccessService
 
         if (
             $requestedMunicipalityId !== null &&
-            $requestedMunicipalityId !== $municipality->id
+            (string) $requestedMunicipalityId !==
+            (string) $municipality->id
         ) {
             throw new AuthorizationException(
                 'You cannot access another municipality.'
@@ -57,5 +61,83 @@ class GisAccessService
         }
 
         return $municipality->id;
+    }
+
+    /**
+     * Cross-municipality monitoring access.
+     *
+     * Only System Admin and LGU Authority.
+     *
+     * This method must be used exclusively for
+     * read-only aggregated monitoring endpoints.
+     */
+    public function resolveMonitoringMunicipality(
+        User $user,
+        ?string $requestedMunicipalityId = null
+    ): ?string {
+        $roles = $user->roles()->pluck('slug')->all();
+
+        if (in_array('admin', $roles, true)) {
+            return $this->validateMonitoringMunicipality(
+                $requestedMunicipalityId
+            );
+        }
+
+        if (!in_array('lgu_authority', $roles, true)) {
+            throw new AuthorizationException(
+                'Only LGU Authorities may access cross-municipality monitoring.'
+            );
+        }
+
+        if (
+            $user->status !== 'active' ||
+            $user->verification_status !== 'verified'
+        ) {
+            throw new AuthorizationException(
+                'Your LGU Authority account must be active and verified.'
+            );
+        }
+
+        $profile = $user->lguOfficerProfile()
+            ->with('municipality')
+            ->first();
+
+        if (
+            !$profile?->municipality ||
+            !$profile->municipality->is_active
+        ) {
+            throw new AuthorizationException(
+                'You must belong to an active municipality.'
+            );
+        }
+
+        return $this->validateMonitoringMunicipality(
+            $requestedMunicipalityId
+        );
+    }
+
+    /**
+     * Allow viewing all active municipalities
+     * or selecting one active municipality.
+     */
+    private function validateMonitoringMunicipality(
+        ?string $municipalityId
+    ): ?string {
+        if ($municipalityId === null) {
+            return null;
+        }
+
+        $exists = Municipality::query()
+            ->whereKey($municipalityId)
+            ->where('is_active', true)
+            ->exists();
+
+        if (!$exists) {
+            throw new AuthorizationException(
+                'The selected municipality is unavailable for monitoring.'
+            );
+        }
+
+        return $municipalityId;
     }
 }

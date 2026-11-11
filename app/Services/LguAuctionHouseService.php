@@ -11,13 +11,18 @@ use Illuminate\Support\Str;
 
 class LguAuctionHouseService
 {
+
+    public function __construct(
+        private AuditLogService $auditLogs
+    ) {
+    }
     private function officerMunicipality(User $user): string
     {
         $profile = $user->lguOfficerProfile;
 
         abort_unless(
             $profile &&
-            $user->roles()->where('slug', 'lgu_officer')->exists() &&
+            $user->roles()->where('slug', 'lgu_authority')->exists() &&
             $user->status === 'active' &&
             $user->verification_status === 'verified',
             403,
@@ -112,6 +117,7 @@ class LguAuctionHouseService
         return $house->refresh();
     }
 
+
     public function assignEncoder(
         User $officer,
         string $houseId,
@@ -125,19 +131,22 @@ class LguAuctionHouseService
             ]);
         }
 
-        $encoder = User::findOrFail($encoderId);
+        $encoder = User::with([
+            'roles',
+            'lguOfficerProfile',
+        ])->findOrFail($encoderId);
 
         if (
             $encoder->status !== 'active' ||
             $encoder->verification_status !== 'verified' ||
             !$encoder->lguOfficerProfile ||
-            $encoder->lguOfficerProfile->municipality_id !==
-            $house->municipality_id ||
-            !$encoder->roles()->where('slug', 'lgu_officer')->exists()
+            (string) $encoder->lguOfficerProfile->municipality_id !==
+            (string) $house->municipality_id ||
+            !$encoder->roles->contains('slug', 'lgu_encoder')
         ) {
             throw ValidationException::withMessages([
                 'user_id' =>
-                    'Encoder must be an active, verified LGU officer from the same municipality.',
+                    'Encoder must be an active, verified LGU Encoder from the same municipality.',
             ]);
         }
 
@@ -172,6 +181,7 @@ class LguAuctionHouseService
         });
     }
 
+
     public function removeEncoder(
         User $officer,
         string $houseId,
@@ -186,5 +196,71 @@ class LguAuctionHouseService
                 'is_active' => false,
                 'updated_at' => now(),
             ]);
+    }
+
+    public function assignedEncoders(
+        User $officer,
+        string $houseId
+    ) {
+        $house = $this->scopedHouse($officer, $houseId);
+
+        return DB::table('auction_house_encoder_assignments as assignments')
+            ->join('users', 'users.id', '=', 'assignments.user_id')
+            ->where('assignments.auction_house_id', $house->id)
+            ->where('assignments.is_active', true)
+            ->select([
+                'assignments.id',
+                'assignments.user_id',
+                'assignments.assigned_by',
+                'assignments.created_at',
+                'users.email',
+                'users.status',
+            ])
+            ->selectRaw("
+            TRIM(CONCAT_WS(' ',
+                users.first_name,
+                users.middle_name,
+                users.last_name
+            )) AS name
+        ")
+            ->orderBy('users.last_name')
+            ->orderBy('users.first_name')
+            ->get();
+    }
+
+    public function eligibleEncoders(User $officer)
+    {
+        $municipalityId = $this->officerMunicipality($officer);
+
+        return User::query()
+            ->where('status', 'active')
+            ->where('verification_status', 'verified')
+            ->whereHas('roles', function ($query) {
+                $query->where('slug', 'lgu_encoder');
+            })
+            ->whereHas('lguOfficerProfile', function ($query) use ($municipalityId) {
+                $query->where('municipality_id', $municipalityId);
+            })
+            ->select([
+                'id',
+                'first_name',
+                'middle_name',
+                'last_name',
+                'email',
+            ])
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get()
+            ->map(function ($encoder) {
+                return [
+                    'id' => $encoder->id,
+                    'name' => trim(implode(' ', array_filter([
+                        $encoder->first_name,
+                        $encoder->middle_name,
+                        $encoder->last_name,
+                    ]))),
+                    'email' => $encoder->email,
+                ];
+            });
     }
 }

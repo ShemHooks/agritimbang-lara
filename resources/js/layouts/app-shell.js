@@ -45,6 +45,20 @@ const NAV = {
         { label: "Overview", icon: "layout-dashboard", href: "/dashboard" },
         { label: "Livestock Management", icon: "beef", href: "/livestock" },
         { label: "Farmer Directory", icon: "users-round", href: "/farmers" },
+        {
+            label: "Auction Houses",
+            icon: "warehouse",
+            href: "/lgu/auction-houses",
+        },
+
+        { label: "Price Management", icon: "philippine-peso", href: "/prices" },
+        { label: "Market Monitoring", icon: "map-pinned", href: "/monitoring" },
+        {
+            label: "GIS Monitoring",
+            href: "/lgu/gis-monitoring",
+            icon: "map",
+            roles: ["lgu_authority"],
+        },
 
         {
             label: "Analytics",
@@ -71,9 +85,6 @@ const NAV = {
                 { label: "Dispute Resolution", href: "/transactions/disputes" },
             ],
         },
-
-        { label: "Price Management", icon: "philippine-peso", href: "/prices" },
-        { label: "Market Monitoring", icon: "map-pinned", href: "/monitoring" },
 
         {
             label: "Administration",
@@ -175,6 +186,8 @@ const IMPLEMENTED_ROUTES = new Set([
     "/audit-logs",
     "/admin/locations",
     "/admin/species-breeds",
+    "/lgu/auction-houses",
+    "/lgu/gis-monitoring",
 ]);
 
 /* ============================================================

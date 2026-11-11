@@ -1,0 +1,367 @@
+/* ========================================
+   FULL-WORKSPACE GIS MONITORING
+======================================== */
+
+.gis-page {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+.gis-map-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    background: #e7eee9;
+}
+
+.gis-map {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+}
+
+/* ========================================
+   FLOATING FILTER PANEL
+======================================== */
+
+.gis-floating-controls {
+    position: absolute;
+    top: 22px;
+    right: 22px;
+    z-index: 800;
+
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+
+    width: 280px;
+    max-width: calc(100% - 44px);
+    padding: 20px;
+
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 16px;
+    box-shadow: 0 12px 35px rgba(15, 23, 42, 0.15);
+    backdrop-filter: blur(14px);
+}
+
+.gis-floating-heading {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #183c2b;
+    font-size: 14px;
+}
+
+.gis-live-dot {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+}
+
+.gis-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+}
+
+.gis-filter span {
+    font-size: 11px;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.gis-filter select {
+    width: 100%;
+    height: 42px;
+    min-width: 0;
+    padding: 0 12px;
+
+    background: #fff;
+    border: 1px solid #dce5df;
+    border-radius: 9px;
+
+    color: #334155;
+    font-size: 12px;
+    outline: none;
+}
+
+.gis-filter select:focus {
+    border-color: #15803d;
+    box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.1);
+}
+
+.gis-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 3px;
+}
+
+.gis-btn {
+    height: 39px;
+    padding: 0 10px;
+
+    background: #f8fafc;
+    border: 1px solid #dce5df;
+    border-radius: 9px;
+
+    color: #334155;
+    font-size: 11px;
+    font-weight: 650;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.gis-btn:hover {
+    background: #eaf4ed;
+    border-color: #86b99a;
+    color: #166534;
+}
+
+.gis-floating-status {
+    padding-top: 11px;
+    border-top: 1px solid #e2e8f0;
+    color: #64748b;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+/* ========================================
+   LOADING AND ERRORS
+======================================== */
+
+.gis-map-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 900;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+
+    background: rgba(255, 255, 255, 0.65);
+    color: #334155;
+    font-size: 13px;
+}
+
+.gis-map-overlay[hidden],
+.gis-error[hidden] {
+    display: none !important;
+}
+
+.gis-spinner {
+    width: 30px;
+    height: 30px;
+    border: 3px solid #d1e7d8;
+    border-top-color: #166534;
+    border-radius: 50%;
+    animation: gis-spin 0.8s linear infinite;
+}
+
+@keyframes gis-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.gis-error {
+    position: absolute;
+    bottom: 24px;
+    left: 24px;
+    z-index: 1000;
+
+    max-width: 420px;
+    padding: 14px 16px;
+
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+
+    color: #b91c1c;
+    font-size: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* ========================================
+   LEAFLET POPUPS
+======================================== */
+
+.gis-popup {
+    min-width: 245px;
+    font-family: inherit;
+}
+
+.gis-popup-heading {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-bottom: 12px;
+}
+
+.gis-popup-heading > strong {
+    font-size: 17px;
+    color: #173c2b;
+}
+
+.gis-popup-heading span {
+    font-size: 12px;
+    color: #475569;
+}
+
+.gis-popup-heading small {
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.gis-popup-section {
+    padding: 12px 0;
+    border-top: 1px solid #e2e8f0;
+}
+
+.gis-popup-section h4 {
+    margin: 0 0 10px;
+    font-size: 12px;
+    font-weight: 750;
+    color: #183c2b;
+}
+
+.gis-popup-total,
+.gis-popup-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 5px 0;
+    font-size: 12px;
+}
+
+.gis-popup-total {
+    margin-bottom: 7px;
+    font-weight: 700;
+}
+
+.gis-popup-total strong {
+    color: #166534;
+    font-size: 20px;
+}
+
+.gis-popup-row span {
+    color: #64748b;
+}
+
+.gis-popup-row strong {
+    color: #1e293b;
+}
+
+.gis-empty {
+    margin: 5px 0;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.gis-price-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.gis-price-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.gis-price-details strong {
+    font-size: 12px;
+    color: #1e293b;
+}
+
+.gis-price-details span,
+.gis-price-details small {
+    font-size: 10px;
+    color: #64748b;
+}
+
+.gis-price-value {
+    color: #166534;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+/* ========================================
+   FULLSCREEN MODE
+======================================== */
+
+.gis-map-wrapper:fullscreen {
+    width: 100vw;
+    height: 100vh;
+}
+
+.gis-map-wrapper:fullscreen .gis-map {
+    width: 100%;
+    height: 100%;
+}
+
+/* ========================================
+   MOBILE
+======================================== */
+
+@media (max-width: 640px) {
+    .gis-floating-controls {
+        top: 12px;
+        right: 12px;
+        width: 235px;
+        max-width: calc(100% - 24px);
+        padding: 14px;
+        gap: 10px;
+    }
+
+    .gis-map-wrapper {
+        min-height: 0;
+    }
+
+    .gis-error {
+        bottom: 14px;
+        left: 12px;
+        right: 12px;
+    }
+}
+
+body:has(#gis-monitoring-page) {
+    overflow: hidden;
+}
+
+body:has(#gis-monitoring-page) .app-main,
+body:has(#gis-monitoring-page) .app-content,
+body:has(#gis-monitoring-page) .main-content {
+    min-height: 0;
+}
+
+body:has(#gis-monitoring-page) .app-content,
+body:has(#gis-monitoring-page) .main-content {
+    padding: 0 !important;
+}
+
+body:has(#gis-monitoring-page) .gis-page {
+    height: calc(100dvh - 80px);
+}
