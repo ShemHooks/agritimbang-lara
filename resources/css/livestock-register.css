@@ -262,3 +262,113 @@
         flex-wrap: wrap;
     }
 }
+
+.lr-assessment-category {
+    margin: 32px 0 18px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e4e9e0;
+    color: #264b30;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.lr-assessment-question {
+    border: 0;
+    padding: 0;
+    margin: 0 0 26px;
+    min-width: 0;
+}
+
+.lr-assessment-question legend {
+    display: block;
+    width: 100%;
+    margin-bottom: 14px;
+    color: #243e2b;
+}
+
+.lr-assessment-question legend strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 650;
+}
+
+.lr-assessment-question legend small {
+    display: block;
+    margin-top: 5px;
+    color: #849185;
+    font-size: 13px;
+}
+
+.lr-assessment-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.lr-assessment-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px;
+    border: 1px solid #dfe7dc;
+    border-radius: 12px;
+    background: #fff;
+    cursor: pointer;
+    transition: 0.2s ease;
+    font-size: 13px;
+    color: #425346;
+}
+
+.lr-assessment-option:hover {
+    border-color: #9cb79a;
+    background: #f6f9f4;
+}
+
+.lr-assessment-option:has(input:checked) {
+    border-color: #38643e;
+    background: #edf5e9;
+    color: #244a2b;
+    font-weight: 600;
+}
+
+.lr-assessment-option input {
+    accent-color: #315c38;
+    flex-shrink: 0;
+}
+
+.lr-assessment-result {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-top: 30px;
+    padding: 25px;
+    background: #f1f6ee;
+    border: 1px solid #dce9d7;
+    border-radius: 16px;
+}
+
+.lr-assessment-result span {
+    font-size: 12px;
+    color: #718573;
+}
+
+.lr-assessment-result h3 {
+    margin: 8px 0;
+    font-size: 23px;
+    color: #244d2d;
+}
+
+.lr-assessment-result p {
+    font-size: 13px;
+    color: #6d806f;
+}
+
+@media (max-width: 768px) {
+    .lr-assessment-options {
+        grid-template-columns: 1fr;
+    }
+
+    .lr-assessment-result {
+        grid-template-columns: 1fr;
+    }
+}

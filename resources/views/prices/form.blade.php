@@ -43,6 +43,29 @@
                         <small data-error-for="species_id"></small>
                     </label>
 
+
+                    <!-- Weekly Price Recommendation -->
+                    <div class="price-form-full price-species-heading">
+                        <div>
+                            <label for="price-species">Species <em>*</em></label>
+                        </div>
+
+                        <button type="button" id="open-price-recommendations" class="price-view-recommendations">
+                            <span aria-hidden="true">↗</span>
+                            View Recommended Prices
+                        </button>
+                    </div>
+
+                    <div class="price-form-field price-form-full">
+                        <select id="price-species" name="species_id" required>
+                            <option value="">Select species</option>
+                        </select>
+                        <small data-error-for="species_id"></small>
+                    </div>
+
+
+
+
                     <label class="price-form-field">
                         <span>Breed</span>
                         <select id="price-breed" name="breed_id" disabled>
@@ -117,6 +140,67 @@
                 </footer>
             </form>
         </section>
+
+        <div id="price-recommendations-modal" class="price-modal" role="dialog" aria-modal="true"
+            aria-labelledby="price-modal-title" aria-hidden="true" hidden>
+            <div class="price-modal-backdrop" data-close-price-modal></div>
+
+            <div class="price-modal-dialog">
+                <div class="price-modal-header">
+                    <div>
+                        <span class="price-modal-eyebrow">AGRITIMBANG MARKET INSIGHTS</span>
+                        <h2 id="price-modal-title">Recommended Livestock Prices</h2>
+                        <p id="price-modal-period">
+                            Previous completed week
+                        </p>
+                    </div>
+
+                    <button type="button" id="close-price-recommendations" class="price-modal-close"
+                        aria-label="Close recommendations">
+                        &times;
+                    </button>
+                </div>
+
+                <div class="price-modal-body">
+                    <div class="price-modal-summary">
+                        <div>
+                            <span>Species with data</span>
+                            <strong id="price-modal-species-count">—</strong>
+                        </div>
+
+                        <div>
+                            <span>Livestock sold</span>
+                            <strong id="price-modal-livestock-count">—</strong>
+                        </div>
+                    </div>
+
+                    <div class="price-modal-search">
+                        <input type="search" id="price-modal-search" placeholder="Search livestock species..."
+                            autocomplete="off">
+                    </div>
+
+                    <div id="price-modal-loading" class="price-modal-state" hidden>
+                        Loading verified transaction prices...
+                    </div>
+
+                    <div id="price-modal-error" class="price-modal-error" hidden></div>
+
+                    <div id="price-modal-list" class="price-modal-list"></div>
+
+                    <p class="price-modal-disclaimer">
+                        Recommendations are calculated from verified livestock
+                        transactions. These are reference values only and do not
+                        replace the official price validation process.
+                    </p>
+                </div>
+
+                <div class="price-modal-footer">
+                    <button type="button" id="price-modal-done">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 @endsection
 

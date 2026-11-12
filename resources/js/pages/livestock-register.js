@@ -7,12 +7,132 @@ const state = {
     breedRequestId: 0,
 };
 
+/* =========================================================
+   CONDITION ASSESSMENT CONFIGURATION
+========================================================= */
+
+const conditionQuestions = [
+    {
+        id: "currently_sick",
+        category: "Health History & Current Condition",
+        question: "Is the animal currently sick?",
+        translation: "Maysakit ba karon ang hayop?",
+        options: [
+            ["No / Wala", 2],
+            ["Not sure / Dili sigurado", 1],
+            ["Yes / Oo", 0],
+        ],
+    },
+    {
+        id: "recently_sick",
+        question: "Has the animal been sick recently?",
+        translation: "Nakasakit ba ang hayop bag-o lang?",
+        options: [
+            ["No / Wala", 2],
+            ["Yes, but recovered / Oo, pero naayo na", 1],
+            ["Yes, still recovering / Oo, nagpaayo pa", 0],
+        ],
+    },
+    {
+        id: "eating_normally",
+        question: "Is the animal eating normally?",
+        translation: "Normal ba ang pagkaon sa hayop?",
+        options: [
+            ["Yes / Oo", 2],
+            ["Less than usual / Gamay ra kaysa naandan", 1],
+            ["Not eating / Dili mokaon", 0],
+        ],
+    },
+    {
+        id: "visible_injuries",
+        question: "Does the animal have visible wounds or injuries?",
+        translation: "Aduna bay samad o pilas ang hayop?",
+        options: [
+            ["None / Wala", 2],
+            ["Minor wounds / Gamay nga samad", 1],
+            ["Serious wounds / Grabe nga samad", 0],
+        ],
+    },
+    {
+        id: "prominent_bones",
+        category: "Body Condition",
+        question: "Are the animal's bones visibly prominent?",
+        translation: "Klaro kaayo ba ang buto-buto sa hayop?",
+        options: [
+            ["Very prominent / Klaro kaayo ang buto-buto", 0],
+            ["Somewhat prominent / Medyo klaro", 1],
+            ["Not prominent / Dili kaayo klaro", 2],
+        ],
+    },
+    {
+        id: "overall_body",
+        question: "How does the animal's overall body look?",
+        translation: "Unsa ang kinatibuk-ang hitsura sa lawas sa hayop?",
+        options: [
+            ["Very thin / Niwang kaayo", 0],
+            ["Moderately filled / Sakto-sakto ang lawas", 1],
+            ["Well-filled / Puno ug maayong pagkabuo", 2],
+        ],
+    },
+    {
+        id: "tail_base",
+        question: "Does the area around the base of the tail look sunken?",
+        translation: "Lubog ba ang dapit sa punoan sa ikog?",
+        options: [
+            ["Deep hollow / Lawom ug lubog", 0],
+            ["Slight hollow / Medyo lubog", 1],
+            ["Filled / Puno ang hitsura", 2],
+        ],
+    },
+];
+
+/*
+ * Questionnaire interpretation:
+ * 0–4   Poor condition
+ * 5–8   Needs attention
+ * 9–11  Fair condition
+ * 12–14 Good condition
+ */
+function interpretConditionScore(total) {
+    if (total <= 4) return "Poor condition";
+    if (total <= 8) return "Needs attention";
+    if (total <= 11) return "Fair condition";
+    return "Good condition";
+}
+
+/*
+ * Proposed mapping to the existing Laravel 1–5 score.
+ * Confirm this mapping with the project stakeholders.
+ *
+ * 0–4   -> 1
+ * 5–8   -> 2
+ * 9–11  -> 3
+ * 12–13 -> 4
+ * 14    -> 5
+ */
+function mapAssessmentToConditionScore(total) {
+    if (total <= 4) return 1;
+    if (total <= 8) return 2;
+    if (total <= 11) return 3;
+    if (total <= 13) return 4;
+    return 5;
+}
+
+/* =========================================================
+   GENERAL HELPERS
+========================================================= */
+
 function getError(error) {
     const data = error?.response?.data;
     const first = Object.values(data?.errors ?? {})[0];
 
-    if (Array.isArray(first)) return first[0] ?? "Validation failed.";
-    if (typeof first === "string") return first;
+    if (Array.isArray(first)) {
+        return first[0] ?? "Validation failed.";
+    }
+
+    if (typeof first === "string") {
+        return first;
+    }
 
     return data?.message ?? error?.message ?? "Something went wrong.";
 }
@@ -30,14 +150,19 @@ function asArray(payload) {
 
 function showAlert(id, message) {
     const element = $(id);
+    if (!element) return;
+
     element.textContent = message;
     element.hidden = false;
 }
 
 function clearAlerts() {
     for (const id of ["lr-page-error", "lr-page-success"]) {
-        $(id).textContent = "";
-        $(id).hidden = true;
+        const element = $(id);
+        if (!element) continue;
+
+        element.textContent = "";
+        element.hidden = true;
     }
 }
 
@@ -59,6 +184,11 @@ function showValidationErrors(errors = {}) {
     }
 }
 
+function nullableString(value) {
+    const trimmed = String(value ?? "").trim();
+    return trimmed === "" ? null : trimmed;
+}
+
 function fillSelect(select, items, placeholder) {
     select.replaceChildren(new Option(placeholder, ""));
 
@@ -67,10 +197,13 @@ function fillSelect(select, items, placeholder) {
             continue;
         }
 
-        // Reference models are expected to expose id and name.
         select.add(new Option(item.name ?? item.id, item.id));
     }
 }
+
+/* =========================================================
+   SPECIES AND BREED
+========================================================= */
 
 async function loadSpecies() {
     const select = $("lr-species");
@@ -129,6 +262,10 @@ async function loadBreeds(speciesId) {
     }
 }
 
+/* =========================================================
+   REPRODUCTIVE INFORMATION
+========================================================= */
+
 function syncReproductiveFields() {
     const sex = $("lr-sex").value;
     const status = $("lr-reproductive");
@@ -156,9 +293,11 @@ function syncReproductiveFields() {
     if (sex === "male") {
         status.value = "not_applicable";
         status.disabled = true;
+
         parity.value = "";
         parity.disabled = true;
         parity.required = false;
+
         hint.textContent = "Not applicable to male livestock.";
         return;
     }
@@ -173,6 +312,7 @@ function syncReproductiveFields() {
         parity.value = "";
         parity.disabled = true;
         parity.required = false;
+
         hint.textContent = "Parity is only collected for female livestock.";
         return;
     }
@@ -195,10 +335,118 @@ function syncReproductiveFields() {
     }
 }
 
-function nullableString(value) {
-    const trimmed = String(value ?? "").trim();
-    return trimmed === "" ? null : trimmed;
+/* =========================================================
+   CONDITION ASSESSMENT UI
+========================================================= */
+
+function renderConditionQuestions() {
+    const container = $("lr-assessment-questions");
+    if (!container) return;
+
+    container.innerHTML = conditionQuestions
+        .map(
+            (question, index) => `
+            ${
+                question.category
+                    ? `<h4 class="lr-assessment-category">
+                        ${question.category}
+                       </h4>`
+                    : ""
+            }
+
+            <fieldset class="lr-assessment-question">
+                <legend>
+                    <strong>${index + 1}. ${question.question}</strong>
+                    <small>${question.translation}</small>
+                </legend>
+
+                <div class="lr-assessment-options">
+                    ${question.options
+                        .map(
+                            ([label, points]) => `
+                            <label class="lr-assessment-option">
+                                <input
+                                    type="radio"
+                                    name="assessment_${question.id}"
+                                    value="${points}"
+                                    required
+                                >
+                                <span>${label}</span>
+                            </label>
+                        `,
+                        )
+                        .join("")}
+                </div>
+            </fieldset>
+        `,
+        )
+        .join("");
 }
+
+/* =========================================================
+   CONDITION CALCULATION
+========================================================= */
+
+function calculateConditionAssessment() {
+    const answers = {};
+    let total = 0;
+    let answered = 0;
+
+    for (const question of conditionQuestions) {
+        const selected = document.querySelector(
+            `input[name="assessment_${question.id}"]:checked`,
+        );
+
+        if (!selected) continue;
+
+        const points = Number(selected.value);
+
+        if (![0, 1, 2].includes(points)) continue;
+
+        answers[question.id] = points;
+        total += points;
+        answered++;
+    }
+
+    const complete = answered === conditionQuestions.length;
+
+    const scoreElement = $("lr-assessment-score");
+    const progressElement = $("lr-assessment-progress");
+    const labelElement = $("lr-assessment-label");
+    const descriptionElement = $("lr-assessment-description");
+
+    if (scoreElement) {
+        scoreElement.textContent = complete ? `${total} / 14` : "— / 14";
+    }
+
+    if (progressElement) {
+        progressElement.textContent = `${answered} of ${conditionQuestions.length} questions answered`;
+    }
+
+    if (labelElement) {
+        labelElement.textContent = complete
+            ? interpretConditionScore(total)
+            : "Awaiting assessment";
+    }
+
+    if (descriptionElement) {
+        descriptionElement.textContent = complete
+            ? `Calculated condition score: ${mapAssessmentToConditionScore(total)} / 5`
+            : "Complete all questions to see the result.";
+    }
+
+    return {
+        complete,
+        answers,
+        total: complete ? total : null,
+        result: complete ? interpretConditionScore(total) : null,
+        conditionScore: complete ? mapAssessmentToConditionScore(total) : null,
+    };
+}
+
+/* =========================================================
+   BUILD REGISTRATION PAYLOAD
+========================================================= */
 
 function buildPayload(form) {
     const formData = new FormData(form);
@@ -217,6 +465,14 @@ function buildPayload(form) {
         parity = 0;
     }
 
+    const assessment = calculateConditionAssessment();
+
+    if (!assessment.complete) {
+        throw new Error(
+            "Please complete all seven condition assessment questions.",
+        );
+    }
+
     return {
         species_id: formData.get("species_id"),
         breed_id: nullableString(formData.get("breed_id")),
@@ -225,10 +481,18 @@ function buildPayload(form) {
         reproductive_status: reproductiveStatus,
         parity,
         sale_purpose: formData.get("sale_purpose"),
-        condition_score: Number(formData.get("condition_score")),
+
+        // Existing Laravel API field.
+        // Automatically derived from the seven questions.
+        condition_score: assessment.conditionScore,
+
         actual_weight_kg: nullableString(formData.get("actual_weight_kg")),
     };
 }
+
+/* =========================================================
+   SUBMIT REGISTRATION
+========================================================= */
 
 async function submitRegistration(event) {
     event.preventDefault();
@@ -243,22 +507,30 @@ async function submitRegistration(event) {
 
     if (!form.reportValidity()) return;
 
-    const payload = buildPayload(form);
+    let payload;
+
+    try {
+        payload = buildPayload(form);
+    } catch (error) {
+        showAlert("lr-page-error", getError(error));
+        return;
+    }
 
     state.submitting = true;
     button.disabled = true;
     button.textContent = "Registering...";
 
     try {
-        const response = await api.post("/farmer/livestock", payload);
-        const livestock = unwrap(response);
+        await api.post("/farmer/livestock", payload);
 
         form.reset();
         syncReproductiveFields();
+        calculateConditionAssessment();
+
+        state.breedRequestId++;
 
         $("lr-breed").replaceChildren(new Option("Select a species first", ""));
         $("lr-breed").disabled = true;
-        state.breedRequestId++;
 
         showAlert(
             "lr-page-success",
@@ -266,11 +538,10 @@ async function submitRegistration(event) {
                 "The record is now available in your livestock directory.",
         );
 
-        window.scrollTo({ top: 0, behavior: "smooth" });
-
-        // Optional: redirect once your Farmer Livestock
-        // Directory web route is confirmed.
-        // window.location.href = "/livestock";
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+        });
     } catch (error) {
         const data = error?.response?.data;
 
@@ -279,13 +550,21 @@ async function submitRegistration(event) {
         }
 
         showAlert("lr-page-error", getError(error));
-        window.scrollTo({ top: 0, behavior: "smooth" });
+
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth",
+        });
     } finally {
         state.submitting = false;
         button.disabled = false;
         button.textContent = "Register Livestock";
     }
 }
+
+/* =========================================================
+   INITIALIZATION
+========================================================= */
 
 function init() {
     const form = $("lr-form");
@@ -296,7 +575,15 @@ function init() {
     });
 
     $("lr-sex").addEventListener("change", syncReproductiveFields);
+
     $("lr-reproductive").addEventListener("change", syncReproductiveFields);
+
+    renderConditionQuestions();
+
+    $("lr-assessment-questions")?.addEventListener(
+        "change",
+        calculateConditionAssessment,
+    );
 
     form.addEventListener("submit", submitRegistration);
 
@@ -304,16 +591,22 @@ function init() {
         setTimeout(() => {
             clearAlerts();
             clearFieldErrors();
+
             state.breedRequestId++;
+
             $("lr-breed").replaceChildren(
                 new Option("Select a species first", ""),
             );
+
             $("lr-breed").disabled = true;
+
             syncReproductiveFields();
+            calculateConditionAssessment();
         }, 0);
     });
 
     syncReproductiveFields();
+    calculateConditionAssessment();
     loadSpecies();
 }
 

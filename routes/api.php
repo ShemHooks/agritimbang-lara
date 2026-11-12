@@ -42,6 +42,8 @@ use App\Http\Controllers\{
     TransactionDisputeController,
     UserVerificationController,
     ProfileController,
+    PriceRecommendationController,
+    LguTransactionEncodingController
 };
 
 /*
@@ -232,6 +234,8 @@ Route::prefix('admin')
                 LguAuthorityController::class,
                 'updateStatus'
             ]);
+
+
         });
 
         // Farmer verification — all municipalities
@@ -410,6 +414,16 @@ Route::prefix('lgu')
     ])
     ->group(function () {
 
+        Route::get(
+            'transactions',
+            [LguTransactionVerificationController::class, 'index']
+        );
+
+        Route::get(
+            'transactions/{transaction}',
+            [LguTransactionVerificationController::class, 'show']
+        );
+
         // LGU Encoder account management
     
         Route::prefix('encoders')->group(function () {
@@ -536,8 +550,45 @@ Route::prefix('lgu')
     ])
     ->group(function () {
 
+
+        // LGU Encoder transaction encoding
+        Route::prefix('transactions/encoding')->group(function () {
+            Route::get('farmers', [
+                LguTransactionEncodingController::class,
+                'farmers',
+            ]);
+
+            Route::get('farmers/{farmer}/livestock', [
+                LguTransactionEncodingController::class,
+                'livestock',
+            ]);
+
+            Route::post('/', [
+                LguTransactionEncodingController::class,
+                'store',
+            ]);
+
+            Route::post('{transaction}/submit', [
+                LguTransactionEncodingController::class,
+                'submit',
+            ]);
+        });
+
+
         // Weekly price references
     
+        // All species recommendations (modal)
+        Route::get(
+            'price-references/recommendations',
+            [PriceRecommendationController::class, 'index']
+        );
+
+        // Single species recommendation
+        Route::get(
+            'price-references/recommendation',
+            [PriceRecommendationController::class, 'show']
+        );
+
         Route::prefix('price-references')
             ->group(function () {
                 Route::get('/', [
@@ -873,13 +924,9 @@ Route::prefix('analytics')
             'valuations'
         ]);
 
-        Route::get('forecast', [
-            ForecastController::class
-        ]);
+        Route::get('forecast', ForecastController::class);
 
-        Route::get('reports/export', [
-            ReportController::class
-        ]);
+        Route::get('reports/export', ReportController::class);
     });
 
 /*

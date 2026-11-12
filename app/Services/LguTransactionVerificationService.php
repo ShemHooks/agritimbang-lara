@@ -168,6 +168,7 @@ class LguTransactionVerificationService
     }
 
 
+
     private function validateTransaction(Transaction $transaction): void
     {
         if ($transaction->status !== 'pending_lgu_verification') {
@@ -176,11 +177,29 @@ class LguTransactionVerificationService
             ]);
         }
 
-        if (!$transaction->farmer_id || !$transaction->farmer()->exists()) {
+        $farmer = $transaction->farmer;
+
+        if (!$farmer) {
             throw ValidationException::withMessages([
                 'farmer' => 'A registered farmer is required.',
             ]);
         }
+
+        if (
+            (string) $farmer->municipality_id !==
+            (string) $transaction->municipality_id
+        ) {
+            throw ValidationException::withMessages([
+                'farmer' => 'Farmer municipality does not match the transaction.',
+            ]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | FARMER-CREATED TRANSACTION
+        |--------------------------------------------------------------------------
+        | Buyer confirmation is mandatory.
+        */
 
         if ($transaction->source === 'farmer') {
             if (
@@ -189,33 +208,71 @@ class LguTransactionVerificationService
                     ->exists()
             ) {
                 throw ValidationException::withMessages([
-                    'buyer_confirmation' => 'Buyer confirmation is required.',
+                    'buyer_confirmation' =>
+                        'Buyer confirmation is required.',
                 ]);
             }
-
-
-
 
             return;
         }
 
+        /*
+        |--------------------------------------------------------------------------
+        | LGU ENCODER TRANSACTION
+        |--------------------------------------------------------------------------
+        | No buyer confirmation required.
+        | Must be encoded by an authorized LGU Encoder.
+        */
 
-        if ($transaction->source === 'auction_house') {
-
-            $farmer = $transaction->farmer;
-
-            if (
-                !$farmer ||
-                $farmer->municipality_id !== $transaction->municipality_id
-            ) {
+        if ($transaction->source === 'lgu_encoder') {
+            if (!$transaction->encoded_by) {
                 throw ValidationException::withMessages([
-                    'farmer_id' =>
-                        'Transaction farmer does not belong to this municipality.',
+                    'encoder' => 'An LGU Encoder is required.',
                 ]);
             }
 
+            $encoder = User::query()
+                ->with('lguOfficerProfile')
+                ->find($transaction->encoded_by);
+
+            if (
+                !$encoder ||
+                !$encoder->roles()
+                    ->where('slug', 'lgu_encoder')
+                    ->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'encoder' =>
+                        'Transaction was not created by an LGU Encoder.',
+                ]);
+            }
+
+            if (
+                (string) $encoder->lguOfficerProfile?->municipality_id !==
+                (string) $transaction->municipality_id
+            ) {
+                throw ValidationException::withMessages([
+                    'encoder' =>
+                        'Encoder municipality does not match the transaction.',
+                ]);
+            }
+
+            return;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | AUCTION HOUSE TRANSACTION
+        |--------------------------------------------------------------------------
+        | Existing acknowledgement workflow.
+        */
+
+        if ($transaction->source === 'auction_house') {
             $validHouse = $transaction->auctionHouse()
-                ->where('municipality_id', $transaction->municipality_id)
+                ->where(
+                    'municipality_id',
+                    $transaction->municipality_id
+                )
                 ->exists();
 
             if (
@@ -233,9 +290,19 @@ class LguTransactionVerificationService
             $encoderWasAssigned = DB::table(
                 'auction_house_encoder_assignments'
             )
-                ->where('auction_house_id', $transaction->auction_house_id)
-                ->where('user_id', $transaction->encoded_by)
-                ->where('created_at', '<=', $transaction->created_at)
+                ->where(
+                    'auction_house_id',
+                    $transaction->auction_house_id
+                )
+                ->where(
+                    'user_id',
+                    $transaction->encoded_by
+                )
+                ->where(
+                    'created_at',
+                    '<=',
+                    $transaction->created_at
+                )
                 ->exists();
 
             if (!$encoderWasAssigned) {
@@ -248,11 +315,9 @@ class LguTransactionVerificationService
             return;
         }
 
-
-
-
         throw ValidationException::withMessages([
             'source' => 'Unsupported transaction source.',
         ]);
     }
+
 }

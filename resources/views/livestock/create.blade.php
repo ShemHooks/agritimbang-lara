@@ -129,18 +129,7 @@
                         <small class="lr-field-error" data-error-for="sale_purpose"></small>
                     </label>
 
-                    <label class="lr-field">
-                        <span>Condition Score <b>*</b></span>
-                        <select name="condition_score" required>
-                            <option value="">Select score</option>
-                            <option value="1">1 — Very Poor</option>
-                            <option value="2">2 — Poor</option>
-                            <option value="3">3 — Moderate</option>
-                            <option value="4">4 — Good</option>
-                            <option value="5">5 — Excellent</option>
-                        </select>
-                        <small class="lr-field-error" data-error-for="condition_score"></small>
-                    </label>
+
 
                     <label class="lr-field">
                         <span>Actual Weight (kg)</span>
@@ -150,6 +139,45 @@
                     </label>
                 </div>
             </section>
+
+
+            <section class="lr-card" id="lr-condition-assessment">
+                <div class="lr-section-header">
+                    <span class="lr-step">04</span>
+                    <div>
+                        <h3>Livestock Condition Assessment</h3>
+                        <p>
+                            Answer all seven questions to calculate the
+                            livestock's condition automatically.
+                        </p>
+                    </div>
+                </div>
+
+                <div id="lr-assessment-questions"></div>
+
+                <div class="lr-assessment-result" aria-live="polite">
+                    <div>
+                        <span>Assessment Score</span>
+                        <h3 id="lr-assessment-score">0 / 14</h3>
+                        <p id="lr-assessment-progress">
+                            0 of 7 questions answered
+                        </p>
+                    </div>
+
+                    <div>
+                        <span>Condition Result</span>
+                        <h3 id="lr-assessment-label">
+                            Awaiting assessment
+                        </h3>
+                        <p id="lr-assessment-description">
+                            Complete all questions to see the result.
+                        </p>
+                    </div>
+                </div>
+
+                <small class="lr-field-error" data-error-for="condition_assessment"></small>
+            </section>
+
 
             <div class="lr-footer">
                 <p>

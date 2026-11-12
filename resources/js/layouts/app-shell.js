@@ -38,6 +38,7 @@ const NAV = {
             href: "/transactions/create",
         },
         { label: "Calculators", icon: "calculator", href: "/calculator" },
+
         { label: "Profile Settings", icon: "settings", href: "/profile" },
     ],
 
@@ -76,6 +77,10 @@ const NAV = {
                     href: "/analytics/transactions",
                 },
                 { label: "Valuation Analytics", href: "/analytics/valuations" },
+                {
+                    label: "Reports & Exports",
+                    href: "/reports",
+                },
             ],
         },
 
@@ -120,6 +125,10 @@ const NAV = {
                     href: "/analytics/transactions",
                 },
                 { label: "Valuation Analytics", href: "/analytics/valuations" },
+                {
+                    label: "Reports & Exports",
+                    href: "/reports",
+                },
             ],
         },
 
@@ -154,6 +163,10 @@ const NAV = {
                     href: "/analytics/transactions",
                 },
                 { label: "Valuation Analytics", href: "/analytics/valuations" },
+                {
+                    label: "Reports & Exports",
+                    href: "/reports",
+                },
             ],
         },
 
@@ -164,7 +177,7 @@ const NAV = {
                 { label: "User Management", href: "/users" },
                 { label: "Location Management", href: "/admin/locations" },
                 { label: "Audit Logs", href: "/audit-logs" },
-                { label: "System Settings", href: "/settings" },
+                // { label: "System Settings", href: "/settings" },
             ],
         },
         { label: "Profile Settings", icon: "settings", href: "/profile" },
@@ -198,6 +211,8 @@ const IMPLEMENTED_ROUTES = new Set([
     "/lgu/gis-monitoring",
     "/lgu/farmer-verifications",
     "/profile",
+    "/transactions/assist",
+    "/reports",
 ]);
 
 /* ============================================================

@@ -154,13 +154,21 @@
 }
 
 .verification-badge {
-    display: inline-block;
-    border-radius: 30px;
-    padding: 6px 10px;
-    font-size: 11px;
-    font-weight: 700;
-    background: #edf2ee;
-    color: #526458;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    width: max-content;
+    max-width: none;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.verification-table th:nth-child(6),
+.verification-table td:nth-child(6) {
+    min-width: 190px;
 }
 .verification-badge.verified {
     background: #e0f5e9;
@@ -270,5 +278,88 @@
     }
     .verification-dialog-actions button {
         width: 100%;
+    }
+}
+
+.verification-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+}
+
+.verification-items {
+    margin: 24px 0;
+}
+
+.verification-items h3 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 14px;
+}
+
+.verification-item {
+    border: 1px solid #e5e9e6;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 12px;
+    background: #fafcfb;
+}
+
+.verification-item-header {
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #e5e9e6;
+}
+
+.verification-item-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.verification-detail {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+}
+
+.verification-detail span {
+    font-size: 12px;
+    color: #7b857f;
+}
+
+.verification-detail strong {
+    font-size: 13px;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+
+.verification-muted {
+    font-size: 12px;
+    color: #87918a;
+}
+
+.verification-empty {
+    padding: 40px 20px;
+    text-align: center;
+    color: #87918a;
+}
+
+#verification-dialog-alert:not([hidden]) {
+    display: block;
+    padding: 12px 14px;
+    margin: 12px 0;
+    border-radius: 10px;
+    background: #fff0ed;
+    color: #a53c32;
+    font-size: 13px;
+}
+
+@media (max-width: 640px) {
+    .verification-detail-grid,
+    .verification-item-grid {
+        grid-template-columns: 1fr;
     }
 }

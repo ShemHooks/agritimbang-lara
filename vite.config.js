@@ -139,6 +139,12 @@ export default defineConfig({
 
                 // Profile
                 "resources/js/pages/profile.js",
+
+                "resources/css/transaction-assist.css",
+                "resources/js/pages/transaction-assist.js",
+
+                "resources/css/reports.css",
+                "resources/js/pages/reports.js",
             ],
 
             refresh: true,

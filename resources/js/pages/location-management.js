@@ -89,22 +89,38 @@ async function loadMunicipalities() {
 }
 
 async function loadBarangays() {
-    const params = {};
+    const params = {
+        page: state.page,
+    };
 
     const municipality = $("location-municipality").value;
     const status = $("location-status").value;
     const search = $("location-search").value.trim();
 
-    if (municipality) params.municipality_id = municipality;
-    if (status) params.is_active = status === "active" ? 1 : 0;
-    if (search) params.search = search;
+    if (municipality) {
+        params.municipality_id = municipality;
+    }
 
-    // Existing controller passes these filters to BarangayService.
-    const response = await api.get("/admin/barangays", { params });
+    if (status) {
+        params.is_active = status === "active" ? 1 : 0;
+    }
+
+    if (search) {
+        params.search = search;
+    }
+
+    const response = await api.get("/admin/barangays", {
+        params,
+    });
+
     const result = unpack(response);
 
     state.barangays = result.items;
     state.barangayPagination = result.pagination;
+
+    if (result.pagination) {
+        state.page = Number(result.pagination.current_page ?? state.page);
+    }
 }
 
 function filteredMunicipalities() {
@@ -377,15 +393,35 @@ $("location-municipality").addEventListener("change", () => {
 });
 
 $("location-prev").addEventListener("click", () => {
-    if (state.page > 1) {
-        state.page--;
+    if (state.busy) return;
+
+    const page = pageData();
+
+    if (page.current <= 1) return;
+
+    state.page = page.current - 1;
+
+    if (state.tab === "barangays") {
+        load();
+    } else {
         renderTable();
     }
 });
 
 $("location-next").addEventListener("click", () => {
-    state.page++;
-    renderTable();
+    if (state.busy) return;
+
+    const page = pageData();
+
+    if (page.current >= page.last) return;
+
+    state.page = page.current + 1;
+
+    if (state.tab === "barangays") {
+        load();
+    } else {
+        renderTable();
+    }
 });
 
 $("location-rows").addEventListener("click", (event) => {

@@ -172,3 +172,9 @@ Route::view(
 
 Route::view('/profile', 'profile.index')
     ->name('profile.index');
+
+Route::view('/transactions/assist', 'transactions.assist')
+    ->name('transactions.assist');
+
+Route::view('/reports', 'reports.index')
+    ->name('reports.index');
