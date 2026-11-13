@@ -56,14 +56,12 @@
                         </button>
                     </div>
 
-                    <div class="price-form-field price-form-full">
+                    {{-- <div class="price-form-field price-form-full">
                         <select id="price-species" name="species_id" required>
                             <option value="">Select species</option>
                         </select>
                         <small data-error-for="species_id"></small>
-                    </div>
-
-
+                    </div> --}}
 
 
                     <label class="price-form-field">
