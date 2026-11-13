@@ -46,9 +46,9 @@
 
                     <!-- Weekly Price Recommendation -->
                     <div class="price-form-full price-species-heading">
-                        <div>
-                            <label for="price-species">Species <em>*</em></label>
-                        </div>
+                        <!-- <div>
+                                    <label for="price-species">Species <em>*</em></label>
+                                </div> -->
 
                         <button type="button" id="open-price-recommendations" class="price-view-recommendations">
                             <span aria-hidden="true">↗</span>
