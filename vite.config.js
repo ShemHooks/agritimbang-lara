@@ -11,7 +11,7 @@ export default defineConfig({
                 // ==========================================
 
                 // Global & Layout
-                "resources/css/App.css",
+                "resources/css/app.css",
                 "resources/css/app-shell.css",
                 "resources/css/agritimbang-auth.css",
                 "resources/css/dashboard.css",
@@ -74,7 +74,7 @@ export default defineConfig({
                 // ==========================================
 
                 // Core & Layout
-                "resources/js/app.js",
+                "resources/js/App.js",
                 "resources/js/layouts/app-shell.js",
 
                 // Authentication
