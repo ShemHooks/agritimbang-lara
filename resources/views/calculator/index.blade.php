@@ -17,6 +17,7 @@
                 </p>
             </div>
 
+            {{-- Calculator Guideline Button --}}
             <button type="button" id="calc-help-open" class="calc-help-trigger" aria-haspopup="dialog"
                 aria-controls="calc-help-modal">
                 <span class="calc-help-icon" aria-hidden="true">?</span>
