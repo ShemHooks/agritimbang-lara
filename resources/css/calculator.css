@@ -915,3 +915,56 @@ body.calc-help-open {
         padding: 12px 17px;
     }
 }
+
+.calc-how-to-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin: 18px 0;
+}
+
+.calc-help-definitions > .calc-how-to-grid {
+    grid-column: 1 / -1;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.calc-how-to-grid article {
+    border: 1px solid #dce8df;
+    border-radius: 12px;
+    padding: 12px;
+    min-width: 0;
+}
+
+.measure-guide-image {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: 220px;
+    object-fit: contain;
+}
+
+.calc-how-to-grid h3 {
+    font-size: 1rem;
+    margin: 10px 0 5px;
+}
+
+.calc-how-to-grid p {
+    font-size: .9rem;
+    color: #475569;
+}
+
+@media (max-width: 700px) {
+    .calc-how-to-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .measure-guide-image {
+        height: 200px;
+    }
+
+    .calc-how-to-dialog {
+        padding: 16px;
+    }
+}

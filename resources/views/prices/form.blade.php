@@ -35,35 +35,24 @@
             <form id="price-reference-form" novalidate>
                 <div class="price-form-grid">
 
-                    <label class="price-form-field">
-                        <span>Species <em>*</em></span>
-                        <select id="price-species" name="species_id" required>
-                            <option value="">Select species</option>
-                        </select>
-                        <small data-error-for="species_id"></small>
-                    </label>
-
-
                     <!-- Weekly Price Recommendation -->
                     <div class="price-form-full price-species-heading">
-                        {{-- <div>
-                            <label for="price-species">Species <em>*</em></label>
-                        </div> --}}
-
                         <button type="button" id="open-price-recommendations" class="price-view-recommendations">
                             <span aria-hidden="true">↗</span>
                             View Recommended Prices
                         </button>
                     </div>
+                    
+                    <label class="price-form-field">
+                        <span>Species <em>*</em></span>
 
-                    {{-- <div class="price-form-field price-form-full">
                         <select id="price-species" name="species_id" required>
                             <option value="">Select species</option>
                         </select>
+
                         <small data-error-for="species_id"></small>
-                    </div> --}}
-
-
+                    </label>
+                    
                     <label class="price-form-field">
                         <span>Breed</span>
                         <select id="price-breed" name="breed_id" disabled>

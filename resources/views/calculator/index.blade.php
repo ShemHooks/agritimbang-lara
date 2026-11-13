@@ -59,7 +59,7 @@
                 <section class="calc-card">
                     <div class="calc-card-heading">
                         <h2>Animal measurements</h2>
-                        <p>Select a livestock record and enter its measurements in centimeters.</p>
+                        <p>Pwede ka mubutang lang sa detalye. Sukda gamit ang tape measure (sentimetro)..</p>
                     </div>
 
                     <form id="calc-form">
@@ -626,40 +626,28 @@
 
                     <h4>How to use</h4>
                     <ol>
-                        <li>Select the livestock record.</li>
-                        <li>Measure the animal using a measuring tape.</li>
-                        <li>Enter the required measurements in centimeters.</li>
-                        <li>Click <strong>Calculate &amp; Save Estimation</strong>.</li>
-                        <li>Review the result and estimation history.</li>
+                        <li>Pilia ang rekord sa hayop.</li>
+                        <li>Sukda ang hayop gamit ang sukod-sukod.</li>
+                        <li>Isulod ang gikinahanglang sukod sa sentimetro.</li>
+                        <li>I-klik ang <strong>Kuwenta ug Tipigi ang Banabana</strong>.</li>
+                        <li>Tan-awa ang resulta ug ang kasaysayan sa banabana.</li>
                     </ol>
 
                     <h4>Understanding the measurements</h4>
-
-                    <div class="calc-help-definitions">
-                        <div>
-                            <strong>Heart girth</strong>
-                            <p>
-                                The circumference around the animal's
-                                chest, immediately behind the front legs.
-                            </p>
+                        <div class="calc-how-to-grid">
+                            <article><img class="measure-guide-image" src="/images/measure-heart-girth.svg" alt="Tape around the chest, just behind the front legs">
+                                <h3>1. Heart girth / Libot sa dughan</h3>
+                                <p>Ilibot ang tape sa pinakalapad nga bahin sa dughan, luyo sa atubangang tiil. Dili hugot kaayo ug dili luag.</p>
+                            </article>
+                            <article><img class="measure-guide-image" src="/images/measure-body-length.svg" alt="Measure from the shoulder point to the pin bone">
+                                <h3>2. Body length / Gitas-on sa lawas</h3>
+                                <p>Sukda gikan sa abaga (shoulder point) hangtod sa bukog sa likod sa hawak (pin bone), subay sa kilid sa hayop.</p>
+                            </article>
+                            <article><img class="measure-guide-image" src="/images/measure-rump-height.svg" alt="Measure vertically from the ground to the top of the rump">
+                                <h3>3. Rump height / Taas sa lubot</h3>
+                                <p>Sukda gikan sa yuta hangtod sa pinakataas nga bahin sa hawak o rump. Siguroha nga patag ang baroganan.</p>
+                            </article>
                         </div>
-                        <div>
-                            <strong>Body length</strong>
-                            <p>
-                                The body measurement from the shoulder
-                                region toward the rear of the animal.
-                                Follow the measurement landmarks required
-                                by your livestock measurement protocol.
-                            </p>
-                        </div>
-                        <div>
-                            <strong>Rump height</strong>
-                            <p>
-                                The vertical height from level ground
-                                to the animal's rump or hip region.
-                            </p>
-                        </div>
-                    </div>
 
                     <h4>Understanding the result</h4>
                     <div class="calc-help-definitions">
@@ -691,11 +679,16 @@
                     </div>
 
                     <div class="calc-help-note">
-                        Measurement requirements depend on the formula
-                        selected by the backend. Fields not required
-                        by that formula may be left blank. For better
-                        estimates, measure the animal carefully and
-                        keep the measuring tape correctly positioned.
+                        <strong>Timailhan</strong>: Dili tanan nga pamaagi nanginahanglan sa tanang sukod. 
+                        Sundon ang mga sukod nga gipangayo sa calculator. 
+                        Ang resulta banabana lamang, dili kapuli sa timbangan.
+                        </p>
+
+                        <p>
+                        <strong>Mga Kinahanglanon sa Pagsukod</strong>: Magkalahi kini base sa pamaagi nga gipili sa sistema. 
+                        Ang mga blangko nga dili kinahanglanon sa maong pamaagi mahimong ibilin nga walay sulod. 
+                        Aron mas tukma ang banabana, sukda og maayo ang hayop ug siguroa nga husto ang pagbutang sa imong sukod-sukod.
+                        </p>
                     </div>
                 </section>
 
@@ -711,27 +704,19 @@
 
                     <h4>How to use</h4>
                     <ol>
-                        <li>Select a livestock record.</li>
-                        <li>
-                            Choose a saved weight estimation, or leave
-                            the selection on
-                            <strong>Automatic — use latest estimation</strong>.
-                        </li>
-                        <li>
-                            Click <strong>Calculate &amp; Save Valuation</strong>.
-                        </li>
-                        <li>
-                            Review the estimated fair market value
-                            and pricing adjustments.
-                        </li>
+                        <li>Pilia ang rekord sa hayop.</li>
+                        <li>Pilia ang natipig na banabana sa timbang, o ibilin ang pagpili sa <strong>Automatic — use latest estimation</strong>.</li>
+                        <li>I-klik ang <strong>Kuwenta ug Tipigi ang Pagtimbang-timbang</strong>.</li>
+                        <li>Tan-awa ang gibanabanang patas nga bili sa merkado ug ang mga pagbag-o sa presyo.</li>
                     </ol>
 
                     <h4>How is the weight selected?</h4>
                     <p>
-                        When an actual scale weight is available, it
-                        takes priority. Otherwise, the calculator uses
-                        the selected weight estimation or the latest
-                        available estimation.
+                        Kung adunay tinuod nga timbang gikan 
+                        sa timbangan, kini ang una nga gamiton. 
+                        Kung wala, gamiton sa kuwentador ang gipili 
+                        nga banabana sa timbang o ang pinakabag-o nga 
+                        natipig nga banabana.
                     </p>
 
                     <h4>Understanding the result</h4>
@@ -775,11 +760,12 @@
                     </div>
 
                     <div class="calc-help-note">
-                        A valuation depends on available weight
-                        evidence, applicable official prices, and
-                        the adjustment factors returned by the
-                        backend. Missing required data may prevent
-                        a valuation from being calculated.
+                        Ang pagtimbang-timbang sa bili nagdepende 
+                        sa kasaligang timbang nga makuha, sa opisyal 
+                        nga presyo nga magamit, ug sa mga hinungdan 
+                        sa pagbag-o nga gihatag sa sistema. Kung kulang 
+                        ang gikinahanglang impormasyon, dili mahimo a
+                        ng pagkuwenta sa bili.
                     </div>
                 </section>
 
@@ -794,14 +780,11 @@
 
                     <h4>How to use</h4>
                     <ol>
-                        <li>Open the <strong>FPC Breakdown</strong> tab.</li>
-                        <li>Select a livestock record.</li>
-                        <li>Select one of its saved valuations.</li>
-                        <li>Review the value, weight, and pricing factors.</li>
-                        <li>
-                            Expand the calculation snapshot when
-                            detailed calculation data is needed.
-                        </li>
+                        <li>Ablihi ang tab nga <strong>FPC Breakdown</strong>.</li>
+                        <li>Pilia ang rekord sa hayop.</li>
+                        <li>Pilia ang usa sa mga natipig nga pagtimbang-timbang niini.</li>
+                        <li>Tan-awa ang bili, timbang, ug mga hinungdan sa pagtakda sa presyo.</li>
+                        <li>Ibukhad ang kuwentahon kung kinahanglan ang detalyadong impormasyon sa pagkuwenta.</li>
                     </ol>
 
                     <h4>Pricing adjustment factors</h4>
