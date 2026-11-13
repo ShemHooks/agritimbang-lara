@@ -11,7 +11,7 @@ export default defineConfig({
                 // ==========================================
 
                 // Global & Layout
-                "resources/css/app.css",
+                "resources/css/App.css",
                 "resources/css/app-shell.css",
                 "resources/css/agritimbang-auth.css",
                 "resources/css/dashboard.css",
