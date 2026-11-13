@@ -74,7 +74,7 @@ export default defineConfig({
                 // ==========================================
 
                 // Core & Layout
-                "resources/js/app.js",
+                "resources/js/App.js",
                 "resources/js/layouts/app-shell.js",
 
                 // Authentication
