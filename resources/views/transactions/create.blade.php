@@ -14,7 +14,7 @@
                 <h1>Record Private Sale</h1>
                 <p>Record livestock sold outside an auction house.</p>
             </div>
-            <a href="/livestock" class="sale-back">My Livestock</a>
+            <a href="{{ route('transactions.index') }}" class="sale-back">← Balik sa Transactions</a>
         </div>
 
         <div class="sale-notice">
@@ -36,7 +36,7 @@
 
                     <label>
                         Mobile number
-                        <input name="buyer_phone" required maxlength="30" placeholder="09XXXXXXXXX">
+                        <input name="buyer_phone" type="tel" required maxlength="13" pattern="(?:09[0-9]{9}|\+639[0-9]{9})" title="Use 09XXXXXXXXX (11 digits) or +639XXXXXXXXX" placeholder="09XXXXXXXXX or +639XXXXXXXXX">
                         <small>Confirmation link will be sent via SMS.</small>
                     </label>
 

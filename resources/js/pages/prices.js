@@ -19,7 +19,7 @@ const state = {
 };
 
 const MANAGED_ROLES = ["lgu_encoder"];
-const VIEW_ROLES = ["farmer", "lgu_encoder", "lgu_authority"];
+const VIEW_ROLES = ["farmer", "lgu_encoder", "lgu_authority", "admin"];
 
 function unwrap(response) {
     return response.data?.data ?? response.data;
@@ -148,6 +148,7 @@ function resolveRole(payload) {
 
     if (roles.includes("lgu_encoder")) return "lgu_encoder";
     if (roles.includes("lgu_authority")) return "lgu_authority";
+    if (roles.includes("admin")) return "admin";
     if (roles.includes("farmer")) return "farmer";
 
     return null;
@@ -171,7 +172,10 @@ function configureRoleUI() {
     };
 
     toggle("prices-create-button", encoder);
-    toggle("prices-history-button", encoder);
+    toggle("prices-history-button", encoder || authority);
+    if ($("prices-history-button")) {
+        $("prices-history-button").textContent = authority ? "Submission History" : "Submission History";
+    }
 
     toggle("prices-approval-button", authority);
 
@@ -345,6 +349,124 @@ function renderTable() {
     updatePagination();
 }
 
+let showcaseRows = [];
+let activeShowcaseCategory = "Slaughter";
+
+const LIVESTOCK_SPECIES = [
+    { name: "Carabao", icon: "🐃" },
+    { name: "Cattle", icon: "🐄" },
+    { name: "Hog", icon: "🐖" },
+    { name: "Goat", icon: "🐐" },
+];
+
+function todayLabel() {
+    return new Intl.DateTimeFormat("en-PH", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+    }).format(new Date());
+}
+
+function renderPriceShowcase() {
+    const container = $("prices-reference-slider");
+    if (!container) return;
+
+    const categoryRows = showcaseRows.filter((row) => {
+        const category = String(
+            row.reference_category ?? row.sale_purpose ?? "Slaughter",
+        ).toLowerCase();
+
+        return category === activeShowcaseCategory.toLowerCase() ||
+            String(row.sale_purpose ?? "").toLowerCase() === activeShowcaseCategory.toLowerCase();
+    });
+
+    container.replaceChildren();
+
+    const latest = new Map();
+    categoryRows.forEach((row) => {
+        const speciesName = row.species?.name ?? "Unknown";
+        const old = latest.get(speciesName);
+        if (
+            !old ||
+            String(row.effective_from ?? "") > String(old.effective_from ?? "") ||
+            (
+                String(row.effective_from ?? "") === String(old.effective_from ?? "") &&
+                String(row.approved_at ?? "") > String(old.approved_at ?? "")
+            )
+        ) {
+            latest.set(speciesName, row);
+        }
+    });
+
+    const ordered = LIVESTOCK_SPECIES
+        .map((species) => ({
+            species,
+            record: latest.get(species.name) ?? null,
+        }))
+        .filter((item) => item.record);
+
+    if (!ordered.length) {
+        const empty = document.createElement("p");
+        empty.className = "prices-reference-empty";
+        empty.textContent = `No approved ${activeShowcaseCategory.toLowerCase()} livestock prices are available yet.`;
+        container.append(empty);
+        return;
+    }
+
+    ordered.forEach(({ species, record }) => {
+        const card = document.createElement("article");
+        card.className = "prices-reference-slide dashboard-price-card";
+
+        const heading = document.createElement("div");
+        heading.className = "dashboard-price-card-heading";
+
+        const icon = document.createElement("span");
+        icon.className = "dashboard-price-animal-icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.textContent = species.icon;
+
+        const title = document.createElement("strong");
+        title.textContent = species.name;
+        heading.append(icon, title);
+
+        const price = document.createElement("b");
+        const min = Number(record.price_min_per_unit ?? record.price_per_kg);
+        const max = Number(record.price_max_per_unit ?? record.price_per_kg);
+        price.textContent = Number.isFinite(min) && Number.isFinite(max) && min !== max
+            ? `${money(min)} – ${money(max)}`
+            : money(record.price_per_kg ?? record.price_min_per_unit);
+
+        const unit = document.createElement("small");
+        unit.className = "dashboard-price-unit";
+        unit.textContent = record.price_unit ?? "PHP/kg";
+
+        const municipality = document.createElement("small");
+        municipality.className = "dashboard-price-meta";
+        municipality.textContent = `Munisipyo: ${record.municipality?.name ?? "—"}`;
+
+        const effective = document.createElement("small");
+        effective.className = "dashboard-price-meta";
+        const approvedDate = record.approved_at
+            ? date(record.approved_at)
+            : date(record.effective_from);
+        effective.textContent = `Epektibo sugod ${approvedDate} – karon ${todayLabel()}`;
+
+        const source = document.createElement("small");
+        source.className = "dashboard-price-source";
+        source.textContent = `Tinubdan: ${record.source ?? "Wala matino nga tinubdan"}`;
+
+        card.append(heading, price, unit, municipality, effective, source);
+        container.append(card);
+    });
+}
+
+async function loadPriceShowcase() {
+    const response = await api.get("/official-prices", { params: { per_page: 100 } });
+    const payload = unwrap(response);
+    showcaseRows = Array.isArray(payload) ? payload : (payload?.data ?? []);
+    renderPriceShowcase();
+}
+
 async function loadSpecies() {
     try {
         const response = await api.get("/reference/species");
@@ -428,6 +550,21 @@ async function loadPrices() {
     }
 }
 
+function personName(person, fallback = "Not available") {
+    if (!person) return fallback;
+
+    const directName = person.name ?? person.full_name;
+    if (directName) return directName;
+
+    const composed = [
+        person.first_name,
+        person.middle_name,
+        person.last_name,
+    ].filter(Boolean).join(" ").trim();
+
+    return composed || fallback;
+}
+
 function detailField(container, label, value) {
     const field = document.createElement("div");
     field.className = "prices-detail-field";
@@ -462,14 +599,11 @@ function renderDetails(record) {
         ["Source", record.source],
         ["Remarks", record.remarks],
         ["Status", readable(record.status)],
+        ["Submitted at", record.submitted_at ? date(record.submitted_at) : "—"],
+        ["Submitted by", personName(record.submitter)],
+        ["Approved at", record.approved_at ? date(record.approved_at) : "Not yet approved"],
+        ["Approved by", personName(record.approver, "Not yet approved")],
     ];
-
-    if (isEncoder()) {
-        fields.push(
-            ["Submitted at", record.submitted_at],
-            ["Submitted by", record.submitter?.name],
-        );
-    }
 
     fields.forEach(([label, value]) => {
         detailField(container, label, value);
@@ -632,3 +766,15 @@ async function init() {
 }
 
 init();
+
+document.querySelectorAll("[data-price-category]").forEach((button) => {
+    button.addEventListener("click", () => {
+        activeShowcaseCategory = button.dataset.priceCategory;
+        document.querySelectorAll("[data-price-category]").forEach((item) => item.classList.toggle("active", item === button));
+        renderPriceShowcase();
+    });
+});
+loadPriceShowcase().catch(() => {
+    const slider = $("prices-reference-slider");
+    if (slider) slider.textContent = "Unable to load current official prices.";
+});

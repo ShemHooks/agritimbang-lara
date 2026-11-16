@@ -15,13 +15,16 @@
             </div>
 
 
-            <div>
+            <div class="l55-actions">
                 <a id="l55-edit-link" class="l55-primary" href="#" hidden>
                     Edit livestock
                 </a>
 
                 <a id="l55-estimate-link" class="l55-primary" href="#" hidden>
                     Estimate Weight
+                </a>
+                <a id="l55-valuation-link" class="l55-primary" href="#" hidden>
+                    Find Market Value
                 </a>
             </div>
         </header>

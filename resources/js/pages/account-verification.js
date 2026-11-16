@@ -1,4 +1,5 @@
 import api from "../api";
+import { formatDate as sharedFormatDate } from "../utils/date-format";
 
 const $ = (selector) => document.querySelector(selector);
 
@@ -58,19 +59,7 @@ function setBusy(form, busy) {
     button.textContent = busy ? "Please wait..." : button.dataset.originalText;
 }
 
-function formatDate(value) {
-    if (!value) return "—";
-
-    const date = new Date(value);
-
-    return Number.isNaN(date.getTime())
-        ? "—"
-        : date.toLocaleDateString("en-PH", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-          });
-}
+function formatDate(value) { return sharedFormatDate(value); }
 
 function markSteps(profileComplete, documentSubmitted) {
     const email = $("#step-email");

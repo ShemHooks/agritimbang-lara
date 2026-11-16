@@ -91,7 +91,9 @@ if (page) {
         container.replaceChildren();
 
         if (!farmers.length) {
-            container.append(el("p", "tx-muted", "No verified farmers found."));
+            container.append(
+                el("p", "tx-muted", "No verified farmers match your search. Try another name, email, or registration code."),
+            );
             return;
         }
 
@@ -113,6 +115,19 @@ if (page) {
     async function searchFarmers() {
         const requestId = ++state.searchRequest;
         const search = $("tx-farmer-search").value.trim();
+        const container = $("tx-farmer-results");
+
+        // Never request or display the full farmer directory. Results appear
+        // only after the Encoder enters at least two search characters.
+        if (search.length < 2) {
+            container.replaceChildren();
+            if (search.length === 1) {
+                container.append(
+                    el("p", "tx-muted", "Type at least 2 characters to search for a farmer."),
+                );
+            }
+            return;
+        }
 
         try {
             const response = await api.get(
@@ -386,6 +401,22 @@ if (page) {
 
     $("tx-farmer-search").addEventListener("input", () => {
         clearTimeout(searchTimer);
+
+        // If the Encoder changes the query after selecting a farmer, clear the
+        // previous selection and its livestock before showing new matches.
+        if (state.farmer) {
+            state.farmer = null;
+            state.livestock = [];
+            state.selected.clear();
+            $("tx-selected-farmer").hidden = true;
+            $("tx-selected-farmer").textContent = "";
+            $("tx-livestock-list").replaceChildren(
+                el("p", "tx-muted", "Select a farmer to view livestock."),
+            );
+            renderSelected();
+            updateSummary();
+        }
+
         searchTimer = setTimeout(searchFarmers, 300);
     });
 
@@ -398,5 +429,7 @@ if (page) {
         String(new Date().getDate()).padStart(2, "0"),
     ].join("-");
 
-    searchFarmers();
+    // Intentionally do not load farmers on page entry. The result panel stays
+    // empty until the Encoder searches for a specific farmer.
+    $("tx-farmer-results").replaceChildren();
 }

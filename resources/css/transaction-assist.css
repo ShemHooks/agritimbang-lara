@@ -322,3 +322,101 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+.tx-page {
+    padding-top: 24px;
+    padding-bottom: 44px;
+}
+
+.tx-header {
+    padding: 27px 30px;
+    border-radius: 16px;
+    background: linear-gradient(120deg, #203d28, #426a39);
+    color: #fff;
+}
+
+.tx-header h1 {
+    color: #fff;
+}
+
+.tx-header p {
+    color: #e0eadc;
+}
+
+.tx-eyebrow {
+    color: #d6e8ce;
+}
+
+.tx-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 39px;
+    padding: 9px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 9px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.09);
+}
+
+.tx-back:hover {
+    background: rgba(255, 255, 255, 0.17);
+    color: #fff;
+}
+
+.tx-card {
+    border-radius: 14px;
+    border-color: #e4eae3;
+    box-shadow: 0 3px 16px rgba(20, 60, 35, 0.025);
+}
+
+.tx-card-heading {
+    padding-bottom: 17px;
+    border-bottom: 1px solid #edf0eb;
+}
+
+.tx-step {
+    background: #edf3e8;
+    color: #3c6339;
+    border-radius: 11px;
+}
+
+.tx-card label {
+    color: #405346;
+}
+
+.tx-card input,
+.tx-card textarea {
+    min-height: 43px;
+    border-color: #dce5dc;
+    border-radius: 9px;
+}
+
+.tx-card input:focus,
+.tx-card textarea:focus {
+    border-color: #638b59;
+    box-shadow: 0 0 0 3px rgba(99, 139, 89, 0.12);
+}
+
+#tx-save,
+#tx-submit {
+    min-height: 42px;
+    padding: 11px 18px;
+    border-radius: 9px;
+    background: #345d35;
+    transition: background 0.18s ease, transform 0.18s ease;
+}
+
+#tx-save:hover:not(:disabled),
+#tx-submit:hover:not(:disabled) {
+    background: #274b29;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 700px) {
+    .tx-header {
+        padding: 22px;
+        align-items: flex-start;
+    }
+}

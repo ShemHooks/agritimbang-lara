@@ -61,7 +61,7 @@
 
                             <label>
                                 Phone Number
-                                <input name="phone_number" type="tel" maxlength="30">
+                                <input name="phone_number" type="tel" maxlength="13" pattern="(?:09[0-9]{9}|\+639[0-9]{9})" title="Use 09XXXXXXXXX (11 digits) or +639XXXXXXXXX" placeholder="09XXXXXXXXX or +639XXXXXXXXX">
                             </label>
 
                             <label class="profile-full">

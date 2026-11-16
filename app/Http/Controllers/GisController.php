@@ -84,7 +84,18 @@ class GisController extends Controller
                 'uuid',
                 Rule::exists(Species::class, 'id'),
             ],
+            'dataset' => ['nullable', Rule::in(['livestock', 'verified_sales'])],
+            'status' => ['nullable', Rule::in(['available', 'in_transaction', 'sold'])],
+            'sale_purpose' => ['nullable', Rule::in(['slaughter', 'breeding', 'fattening', 'work'])],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date'],
         ]);
+
+        if (!empty($data['date_from']) && !empty($data['date_to']) && $data['date_from'] > $data['date_to']) {
+            throw ValidationException::withMessages([
+                'date_to' => 'The end date must be on or after the start date.',
+            ]);
+        }
 
         $municipalityId = $this->access->resolveMunicipality(
             $request->user(),
@@ -95,7 +106,12 @@ class GisController extends Controller
             $this->gis->geojson(
                 $municipalityId,
                 $data['species_id'] ?? null,
-                true
+                true,
+                $data['dataset'] ?? 'livestock',
+                $data['status'] ?? null,
+                $data['sale_purpose'] ?? null,
+                $data['date_from'] ?? null,
+                $data['date_to'] ?? null
             )
         );
     }

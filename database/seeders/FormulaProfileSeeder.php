@@ -41,7 +41,7 @@ class FormulaProfileSeeder extends Seeder
             'version' => '1.0',
 
             'source' =>
-                'Validated AgriTimbang WET/FPC specification.',
+                'AgriTimbang livestock tape fallback specification: HG(in)^2 x BL(in) / 300, converted to kilograms.',
 
             'is_fallback' => false,
             'is_active' => true,
@@ -84,15 +84,15 @@ class FormulaProfileSeeder extends Seeder
         ]);
 
         /*
-         * HOG — commercial/crossbred fallback
+         * HOG — commercial/crossbred/unspecified-breed fallback
          *
-         * W = HG² × BL × 69.3
-         *
-         * Formula requires meters internally.
+         * W(lb) = HG(in)² × BL(in) / 400
+         * Add 7 lb when the unadjusted estimate is below 150 lb.
+         * AgriTimbang stores the final result in kilograms.
          */
         $this->profile([
             'formula_code' => 'HOG_COMMERCIAL_FALLBACK',
-            'name' => 'Commercial/Crossbred Hog Weight Formula',
+            'name' => 'Commercial/Unspecified-Breed Hog Fallback Formula',
             'species_id' => $hog->id,
             'breed_id' => null,
 
@@ -102,15 +102,18 @@ class FormulaProfileSeeder extends Seeder
             ],
 
             'applicability' => [
-                'profile' => 'commercial_crossbred',
+                'profile' => 'commercial_crossbred_or_unspecified_breed',
                 'input_unit' => 'cm',
-                'calculation_unit' => 'm',
+                'formula_unit' => 'inches',
+                'output_unit' => 'kg',
+                'divisor' => 400,
+                'under_150_lb_adjustment' => 7,
             ],
 
             'version' => '1.0',
 
             'source' =>
-                'Validated AgriTimbang WET/FPC specification.',
+                'AgriTimbang hog tape fallback specification: HG(in)^2 x BL(in) / 400, with +7 lb below 150 lb.',
 
             'is_fallback' => true,
             'is_active' => true,
@@ -148,13 +151,15 @@ class FormulaProfileSeeder extends Seeder
         ]);
 
         /*
-         * GOAT — young fallback
+         * GOAT — young or unspecified-breed fallback
          *
-         * W ≈ HG² × BL / 10838
+         * W(lb) = HG(in)² × BL(in) / 300
+         * AgriTimbang stores the converted result in kilograms.
+         * This fallback does not require rump height.
          */
         $this->profile([
             'formula_code' => 'GOAT_YOUNG_FALLBACK',
-            'name' => 'Young Goat Weight Fallback Formula',
+            'name' => 'Young/Unspecified-Breed Goat Fallback Formula',
             'species_id' => $goat->id,
             'breed_id' => null,
 
@@ -169,14 +174,19 @@ class FormulaProfileSeeder extends Seeder
                     'young',
                     'yearling',
                 ],
+                'profile' => 'young_or_unspecified_breed',
                 'input_unit' => 'cm',
+                'formula_unit' => 'inches',
+                'output_unit' => 'kg',
+                'divisor' => 300,
+                'requires_rump_height' => false,
                 'confidence' => 'low',
             ],
 
             'version' => '1.0',
 
             'source' =>
-                'Validated AgriTimbang WET/FPC specification.',
+                'AgriTimbang goat tape fallback specification: HG(in)^2 x BL(in) / 300, converted to kilograms.',
 
             'is_fallback' => true,
             'is_active' => true,
@@ -212,15 +222,16 @@ class FormulaProfileSeeder extends Seeder
         ]);
 
         /*
-         * CARABAO — native/swamp fallback
+         * CARABAO/BUFFALO — native/swamp/unspecified-breed fallback
          *
-         * W = HG² × BL / 10840
+         * W(lb) = HG(in)² × BL(in) / 300
+         * AgriTimbang stores the converted result in kilograms.
          *
          * Provisional/lower-confidence fallback.
          */
         $this->profile([
             'formula_code' => 'CARABAO_NATIVE_FALLBACK',
-            'name' => 'Native/Swamp Carabao Bovine Fallback Formula',
+            'name' => 'Native/Swamp/Unspecified Carabao-Buffalo Fallback Formula',
             'species_id' => $carabao->id,
             'breed_id' => null,
 
@@ -230,8 +241,11 @@ class FormulaProfileSeeder extends Seeder
             ],
 
             'applicability' => [
-                'profile' => 'native_swamp',
+                'profile' => 'native_swamp_buffalo_or_unspecified_breed',
                 'input_unit' => 'cm',
+                'formula_unit' => 'inches',
+                'output_unit' => 'kg',
+                'divisor' => 300,
                 'confidence' => 'low',
                 'provisional' => true,
             ],
@@ -239,7 +253,7 @@ class FormulaProfileSeeder extends Seeder
             'version' => '1.0',
 
             'source' =>
-                'Validated AgriTimbang WET/FPC specification.',
+                'AgriTimbang carabao/buffalo tape fallback specification: HG(in)^2 x BL(in) / 300, converted to kilograms.',
 
             'is_fallback' => true,
             'is_active' => true,

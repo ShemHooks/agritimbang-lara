@@ -363,3 +363,115 @@
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Transaction review refinements */
+
+.verification-transaction-ref {
+    display: inline-block;
+    white-space: nowrap;
+    letter-spacing: 0.02em;
+    color: #245b42;
+}
+
+.verification-dialog {
+    width: min(980px, calc(100% - 32px));
+    max-height: 90vh;
+    padding: 34px;
+}
+
+.verification-details {
+    gap: 22px;
+    margin: 28px 0;
+}
+
+.verification-detail-grid {
+    column-gap: 30px;
+    row-gap: 20px;
+}
+
+.verification-items-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e3ebe4;
+    border-radius: 12px;
+}
+
+.verification-items-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.verification-items-table th {
+    padding: 13px 14px;
+    background: #f3f7f3;
+    color: #61746a;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.verification-items-table td {
+    padding: 14px;
+    border-top: 1px solid #edf1ed;
+    vertical-align: top;
+    font-size: 12px;
+}
+
+.verification-items-table td strong {
+    color: #234c37;
+}
+
+.verification-items-table .verification-muted {
+    margin-top: 4px;
+}
+
+.verification-items {
+    margin: 28px 0;
+}
+
+.verification-alert[data-type="success"] {
+    background: #e5f6eb;
+    border: 1px solid #b9e4c8;
+    color: #176b3b;
+}
+
+@media (max-width: 640px) {
+    .verification-dialog {
+        padding: 20px;
+    }
+}
+
+.verification-items h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.verification-items-count {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 9px;
+    border-radius: 999px;
+    background: #edf7ef;
+    color: #286b40;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.verification-items-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+}
+
+.verification-items-table {
+    min-width: 1180px;
+}
+
+.verification-items-table td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+}

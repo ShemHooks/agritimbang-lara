@@ -30,6 +30,13 @@ const state = {
 
 const REVIEWABLE_STATUS = "pending_lgu_verification";
 
+function isReviewable(transaction) {
+    return transaction?.status === REVIEWABLE_STATUS ||
+        (transaction?.status === "pending" &&
+            (transaction?.source === "lgu_encoder" ||
+                (transaction?.buyer_confirmations ?? []).some((item) => item.status === "confirmed")));
+}
+
 const escapeHtml = (value) =>
     String(value ?? "").replace(
         /[&<>"']/g,
@@ -113,7 +120,7 @@ function encoderName(transaction) {
     if (!encoder) return "—";
 
     return (
-        [encoder.first_name, encoder.last_name].filter(Boolean).join(" ") || "—"
+        [encoder.first_name, encoder.middle_name, encoder.last_name].filter(Boolean).join(" ") || encoder.name || "—"
     );
 }
 
@@ -173,12 +180,12 @@ function setProcessing(processing) {
     approveButton.disabled =
         processing ||
         !state.selected ||
-        state.selected.status !== REVIEWABLE_STATUS;
+        !isReviewable(state.selected);
 
     rejectButton.disabled =
         processing ||
         !state.selected ||
-        state.selected.status !== REVIEWABLE_STATUS;
+        !isReviewable(state.selected);
 
     closeButton.disabled = processing;
 
@@ -193,7 +200,12 @@ function updateStats() {
             (transaction) => transaction.status === status,
         ).length;
 
-    $("stat-pending").textContent = count("pending_lgu_verification");
+    $("stat-pending").textContent =
+        count("pending_lgu_verification") +
+        state.transactions.filter((transaction) =>
+            transaction.status === "pending" &&
+            (transaction.buyer_confirmations ?? []).some((item) => item.status === "confirmed")
+        ).length;
 
     $("stat-verified").textContent = count("verified");
     $("stat-rejected").textContent = count("rejected");
@@ -216,10 +228,17 @@ function renderTransactions() {
             .join(" ")
             .toLowerCase();
 
-        return (
-            (!search || searchable.includes(search)) &&
-            (!status || item.status === status)
-        );
+        // The API already applies the review_queue filter. It is a UI filter
+        // mode, not a persisted transaction status, so comparing a record's
+        // status directly with "review_queue" hides every result.
+        const statusMatches =
+            !status ||
+            status === "all" ||
+            (status === "review_queue"
+                ? isReviewable(item)
+                : item.status === status);
+
+        return (!search || searchable.includes(search)) && statusMatches;
     });
 
     if (!filtered.length) {
@@ -257,8 +276,8 @@ function renderTransactions() {
                 </td>
 
                 <td>
-                    <span class="verification-badge ${escapeHtml(item.status)}">
-                        ${escapeHtml(statusLabel(item.status))}
+                    <span class="verification-badge ${escapeHtml(isReviewable(item) ? "pending_lgu_verification" : item.status)}">
+                        ${escapeHtml(isReviewable(item) ? "Pending LGU Verification" : statusLabel(item.status))}
                     </span>
                 </td>
 
@@ -440,7 +459,7 @@ async function openTransaction(transaction) {
         renderTransactionDetails(detail);
         setProcessing(false);
 
-        if (detail.status !== REVIEWABLE_STATUS) {
+        if (!isReviewable(detail)) {
             showDialogAlert(
                 "This transaction is not awaiting LGU verification. Review only.",
             );
@@ -481,7 +500,8 @@ async function loadTransactions() {
             const response = await api.get("/lgu/transactions", {
                 params: {
                     page,
-                    per_page: state.perPage,
+                    per_page: 100,
+                    status: statusInput.value || "review_queue",
                 },
             });
 
@@ -538,7 +558,7 @@ async function processDecision(action) {
     if (
         !transaction ||
         state.processing ||
-        transaction.status !== REVIEWABLE_STATUS
+        !isReviewable(transaction)
     ) {
         return;
     }
@@ -625,7 +645,7 @@ if (
 
     searchInput.addEventListener("input", renderTransactions);
 
-    statusInput.addEventListener("change", renderTransactions);
+    statusInput.addEventListener("change", loadTransactions);
 
     refreshButton.addEventListener("click", loadTransactions);
 

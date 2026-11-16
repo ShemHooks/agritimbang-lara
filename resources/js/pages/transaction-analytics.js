@@ -28,6 +28,8 @@ const $ = (id) => document.getElementById(id);
 
 const state = {
     byStatus: [],
+    byStatusYear: [],
+    filteredByStatus: [],
     verifiedMonthly: [],
     filteredMonthly: [],
     municipalities: [],
@@ -172,12 +174,18 @@ async function loadTransactions() {
         if (
             !data ||
             !Array.isArray(data.by_status) ||
+            !Array.isArray(data.by_status_year) ||
             !Array.isArray(data.verified_monthly)
         ) {
             throw new Error("Unexpected transaction analytics API response.");
         }
 
         state.byStatus = data.by_status.map((item) => ({
+            status: String(item.status || "").toLowerCase(),
+            total: Number(item.total) || 0,
+        }));
+        state.byStatusYear = data.by_status_year.map((item) => ({
+            year: String(item.year || ""),
             status: String(item.status || "").toLowerCase(),
             total: Number(item.total) || 0,
         }));
@@ -240,9 +248,10 @@ function populateYears() {
     const previousYear = state.year;
 
     const years = [
-        ...new Set(
-            state.verifiedMonthly.map((item) => item.month.substring(0, 4)),
-        ),
+        ...new Set([
+            ...state.verifiedMonthly.map((item) => item.month.substring(0, 4)),
+            ...state.byStatusYear.map((item) => item.year),
+        ].filter(Boolean)),
     ].sort((a, b) => b.localeCompare(a));
 
     select.replaceChildren(new Option("All years", ""));
@@ -267,6 +276,11 @@ function applyYearFilter() {
               item.month.startsWith(`${state.year}-`),
           )
         : [...state.verifiedMonthly];
+    state.filteredByStatus = state.year
+        ? state.byStatusYear
+              .filter((item) => item.year === state.year)
+              .map(({ status, total }) => ({ status, total }))
+        : [...state.byStatus];
 
     state.page = 1;
 
@@ -287,18 +301,20 @@ function render() {
 
 /* ============================================================
    KPI CARDS
-   IMPORTANT: These are ALL-TIME metrics for the municipality.
-   The year filter only affects monthly data.
+   Metrics follow the selected reporting year; blank year means all years.
    ============================================================ */
 
 function renderKPIs() {
-    const totalTransactions = sum(state.byStatus, "total");
+    const statusRows = state.filteredByStatus.length || !state.year
+        ? state.filteredByStatus
+        : [];
+    const totalTransactions = sum(statusRows, "total");
 
-    const verifiedTransactions = state.byStatus
+    const verifiedTransactions = statusRows
         .filter((item) => item.status === "verified")
         .reduce((total, item) => total + item.total, 0);
 
-    const verifiedSales = sum(state.verifiedMonthly, "selling_total");
+    const verifiedSales = sum(state.filteredMonthly, "selling_total");
 
     const verificationRate =
         totalTransactions > 0
@@ -323,7 +339,7 @@ function renderStatusChart() {
     const chart = $("ta-status-chart");
     const legend = $("ta-status-legend");
 
-    const total = sum(state.byStatus, "total");
+    const total = sum(state.filteredByStatus, "total");
 
     chart.replaceChildren();
     legend.replaceChildren();
@@ -338,7 +354,7 @@ function renderStatusChart() {
     }
 
     const statusMap = new Map(
-        state.byStatus.map((item) => [item.status, item.total]),
+        state.filteredByStatus.map((item) => [item.status, item.total]),
     );
 
     const knownStatuses = Object.keys(STATUS_LABELS);
@@ -392,7 +408,7 @@ function renderStatusChart() {
 
     totalLabel.innerHTML = `
         <strong>${formatNumber(total)}</strong>
-        <span>Total recorded transactions</span>
+        <span>${state.year ? `Transactions in ${escapeHtml(state.year)}` : "Total recorded transactions"}</span>
     `;
 
     chart.appendChild(totalLabel);

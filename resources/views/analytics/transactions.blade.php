@@ -120,7 +120,7 @@
                 </strong>
 
                 <small>
-                    All recorded transaction statuses
+                    All years or selected reporting year
                 </small>
             </article>
 
@@ -132,7 +132,7 @@
                 </strong>
 
                 <small>
-                    Successfully verified livestock transactions
+                    Verified transactions in the selected reporting year
                 </small>
             </article>
 
@@ -144,7 +144,7 @@
                 </strong>
 
                 <small>
-                    Total selling value of verified transactions
+                    Verified selling value in the selected reporting year
                 </small>
             </article>
 
@@ -156,7 +156,7 @@
                 </strong>
 
                 <small>
-                    Verified transactions as a percentage of total
+                    Verified share in the selected reporting year
                 </small>
             </article>
 
@@ -172,8 +172,7 @@
                         <h3>Transaction Status Distribution</h3>
 
                         <p>
-                            Breakdown of transactions by
-                            their current status.
+                            Current status of transactions dated within the selected reporting year.
                         </p>
                     </div>
                 </div>

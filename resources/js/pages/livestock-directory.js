@@ -99,6 +99,44 @@ function formatWeight(value) {
     })} kg`;
 }
 
+function formatWeightNumber(value) {
+    const weight = Number(value);
+    if (!Number.isFinite(weight) || weight <= 0) return "Not recorded";
+
+    return weight.toLocaleString("en-PH", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+    });
+}
+
+
+function formatLivestockWeight(livestock) {
+    const actual = Number(livestock?.actual_weight_kg);
+    if (
+        livestock?.actual_weight_kg !== null &&
+        livestock?.actual_weight_kg !== undefined &&
+        livestock?.actual_weight_kg !== "" &&
+        Number.isFinite(actual) &&
+        actual > 0
+    ) {
+        return `${formatWeight(actual)} (Actual)`;
+    }
+
+    const estimatedValue = livestock?.latest_weight_estimation?.estimated_weight_kg;
+    const estimated = Number(estimatedValue);
+    if (
+        estimatedValue !== null &&
+        estimatedValue !== undefined &&
+        estimatedValue !== "" &&
+        Number.isFinite(estimated) &&
+        estimated > 0
+    ) {
+        return `${formatWeight(estimated)} (Estimated)`;
+    }
+
+    return "Not recorded";
+}
+
 function formatAge(months) {
     if (months === null || months === undefined) {
         return "Age not recorded";
@@ -225,9 +263,43 @@ function renderRow(livestock) {
             </td>
 
             <td>
-                <span class="ld-weight">
-                    ${escapeHtml(formatWeight(livestock.actual_weight_kg))}
-                </span>
+                <div class="ld-primary-cell ld-weight-cell">
+                    ${(() => {
+                        const actualValue = livestock?.actual_weight_kg;
+                        const actual = Number(actualValue);
+                        if (
+                            actualValue !== null &&
+                            actualValue !== undefined &&
+                            actualValue !== "" &&
+                            Number.isFinite(actual) &&
+                            actual > 0
+                        ) {
+                            return `
+                                <strong>${escapeHtml(formatWeightNumber(actual))}</strong>
+                                <small>Actual Weight</small>
+                            `;
+                        }
+
+                        const estimatedValue = livestock?.latest_weight_estimation?.estimated_weight_kg;
+                        const estimated = Number(estimatedValue);
+                        if (
+                            estimatedValue !== null &&
+                            estimatedValue !== undefined &&
+                            estimatedValue !== "" &&
+                            Number.isFinite(estimated) &&
+                            estimated > 0
+                        ) {
+                            return `
+                                <strong>${escapeHtml(formatWeightNumber(estimated))}</strong>
+                                <small>Estimated Weight</small>
+                            `;
+                        }
+
+                        return `
+                            <strong>Not recorded</strong>
+                        `;
+                    })()}
+                </div>
             </td>
 
             <td>
@@ -244,15 +316,14 @@ function renderRow(livestock) {
             </td>
 
             <td class="ld-actions-cell">
-                <td class="ld-actions-cell">
-    <a
-        href="/livestock/${encodeURIComponent(livestock.id)}"
-        class="ld-view-button"
-        title="View livestock details"
-    >
-        View
-    </a>
-</td>
+                <div class="ld-action-group">
+                    <a href="/livestock/${encodeURIComponent(livestock.id)}"
+                       class="ld-view-button" title="Tan-awa ang detalye">View</a>
+                    ${state.role === "farmer" && status === "available" ? `
+                        <a href="/livestock/${encodeURIComponent(livestock.id)}/edit" class="ld-edit-button">Edit</a>
+                        <button type="button" class="ld-delete-button" data-delete-livestock="${escapeHtml(livestock.id)}">Delete</button>
+                    ` : ""}
+                </div>
             </td>
         </tr>
     `;
@@ -378,6 +449,17 @@ async function loadAccountContext() {
 
     const isAdmin = state.role === "admin";
     const isFarmer = state.role === "farmer";
+
+    if (isFarmer) {
+        const heading = document.querySelector(".welcome h1");
+        const intro = document.querySelector(".welcome p");
+        const toolbarLabel = document.querySelector(".ld-toolbar-label");
+        const toolbarDescription = document.querySelector(".ld-toolbar-info p");
+        if (heading) heading.textContent = "Akong mga Hayop";
+        if (intro) intro.textContent = "Tan-awa ug dumalaha ang mga hayop nga imong narehistro.";
+        if (toolbarLabel) toolbarLabel.textContent = "AKONG MGA HAYOP";
+        if (toolbarDescription) toolbarDescription.textContent = "Mga rekord sa hayop nga nakarehistro sa imong account lamang.";
+    }
 
     $("ld-municipality-field").hidden = !isAdmin;
 
@@ -601,6 +683,21 @@ async function loadLivestock() {
    ============================================================ */
 
 function initEvents() {
+    $("ld-table-body").addEventListener("click", async (event) => {
+        const button = event.target.closest("[data-delete-livestock]");
+        if (!button) return;
+        const id = button.dataset.deleteLivestock;
+        if (!window.confirm("Delete this livestock record? This cannot be undone. Records with transaction or valuation history must be archived instead.")) return;
+        button.disabled = true;
+        try {
+            await api.delete(`/farmer/livestock/${encodeURIComponent(id)}`);
+            await loadLivestock();
+        } catch (error) {
+            window.alert(errorMessage(error, "Unable to delete this livestock record."));
+            button.disabled = false;
+        }
+    });
+
     $("ld-filter-form").addEventListener("submit", (event) => {
         event.preventDefault();
 

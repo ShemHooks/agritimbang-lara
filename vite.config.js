@@ -49,6 +49,7 @@ export default defineConfig({
                 "resources/css/buyer-confirmation.css",
                 "resources/css/lgu-transaction-verification.css",
                 "resources/css/dispute-resolution.css",
+                "resources/css/transactions-history.css",
 
                 // Tools & Administration
                 "resources/css/calculator.css",
@@ -62,6 +63,7 @@ export default defineConfig({
 
                 // auction house
                 "resources/css/auction-houses.css",
+                "resources/css/auction-management.css",
 
                 // GIS
                 "resources/css/lgu-gis-monitoring.css",
@@ -74,7 +76,7 @@ export default defineConfig({
                 // ==========================================
 
                 // Core & Layout
-                "resources/js/App.js",
+                "resources/js/app.js",
                 "resources/js/layouts/app-shell.js",
 
                 // Authentication
@@ -120,6 +122,7 @@ export default defineConfig({
                 "resources/js/pages/buyer-confirmation.js",
                 "resources/js/pages/lgu-transaction-verification.js",
                 "resources/js/pages/dispute-resolution.js",
+                "resources/js/pages/transactions-history.js",
 
                 // Tools & Administration
                 "resources/js/pages/calculator.js",
@@ -133,6 +136,12 @@ export default defineConfig({
 
                 // auction house
                 "resources/js/pages/auction-houses.js",
+                "resources/js/pages/auction-schedules.js",
+                "resources/js/pages/auction-registrations.js",
+                "resources/js/pages/farmer-auctions.js",
+                "resources/js/pages/farmer-auction-detail.js",
+                "resources/js/pages/farmer-auction-register.js",
+                "resources/js/pages/buyer-interest.js",
 
                 // GIS
                 "resources/js/pages/lgu-gis-monitoring.js",

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\PriceReference;
 use App\Models\User;
+use App\Notifications\SystemAlertNotification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -11,70 +12,54 @@ use Illuminate\Validation\ValidationException;
 class PriceValidationService
 {
 
-    private function ensureNoOfficialConflict(
-        PriceReference $priceReference
-    ): void {
-        $query = PriceReference::query()
+    private function supersedePriorOfficialReferences(PriceReference $priceReference): void
+    {
+        $references = PriceReference::query()
             ->where('id', '!=', $priceReference->id)
             ->where('status', 'official')
-            ->where(
-                'municipality_id',
-                $priceReference->municipality_id
+            ->where('municipality_id', $priceReference->municipality_id)
+            ->where('species_id', $priceReference->species_id)
+            ->where('sale_purpose', $priceReference->sale_purpose)
+            ->where('reference_category', $priceReference->reference_category)
+            ->whereNull('barangay_id')
+            ->when(
+                $priceReference->breed_id === null,
+                fn ($query) => $query->whereNull('breed_id'),
+                fn ($query) => $query->where('breed_id', $priceReference->breed_id)
             )
-            ->where(
-                'species_id',
-                $priceReference->species_id
-            )
-            ->where(
-                'sale_purpose',
-                $priceReference->sale_purpose
-            );
+            ->lockForUpdate()
+            ->get();
 
-        if ($priceReference->barangay_id === null) {
-            $query->whereNull('barangay_id');
-        } else {
-            $query->where(
-                'barangay_id',
-                $priceReference->barangay_id
-            );
-        }
+        $newStart = $priceReference->effective_from->toDateString();
+        $newEnd = $priceReference->effective_to?->toDateString();
 
-        if ($priceReference->breed_id === null) {
-            $query->whereNull('breed_id');
-        } else {
-            $query->where(
-                'breed_id',
-                $priceReference->breed_id
-            );
-        }
+        foreach ($references as $existing) {
+            $existingStart = $existing->effective_from->toDateString();
+            $existingEnd = $existing->effective_to?->toDateString();
 
-        $query
-            ->where(function ($query) use ($priceReference) {
-                if ($priceReference->effective_to !== null) {
-                    $query->where(
-                        'effective_from',
-                        '<=',
-                        $priceReference->effective_to
-                    );
-                }
-            })
-            ->where(function ($query) use ($priceReference) {
-                $query
-                    ->whereNull('effective_to')
-                    ->orWhere(
-                        'effective_to',
-                        '>=',
-                        $priceReference->effective_from
-                    );
-            });
+            $overlaps = ($newEnd === null || $existingStart <= $newEnd)
+                && ($existingEnd === null || $existingEnd >= $newStart);
 
-        if ($query->exists()) {
+            if (!$overlaps) {
+                continue;
+            }
+
+            if ($existingStart < $newStart) {
+                // Preserve the old approved price up to the day before the new
+                // one becomes effective. This is the weekly carry-forward boundary.
+                $existing->update([
+                    'effective_to' => \Illuminate\Support\Carbon::parse($newStart)->subDay()->toDateString(),
+                ]);
+                continue;
+            }
+
             throw ValidationException::withMessages([
                 'price_reference' =>
-                    'An official price reference already exists for the same locality, species, breed, sale purpose, and overlapping effective period.',
+                    'A future or same-date official price already overlaps this effective period. Adjust its effective date before approving this reference.',
             ]);
         }
     }
+
     public function getPendingPriceReferences(
         User $authority,
         array $filters = []
@@ -84,6 +69,12 @@ class PriceValidationService
         return PriceReference::query()
             ->where('municipality_id', $municipalityId)
             ->where('status', 'pending_review')
+            ->where('sale_purpose', '!=', 'piglet')
+            ->where(function ($query) {
+                $query->whereNull('reference_category')
+                    ->orWhere('reference_category', 'not like', 'Piglet%');
+            })
+            ->whereNull('barangay_id')
 
             ->when(
                 $filters['species_id'] ?? null,
@@ -103,11 +94,6 @@ class PriceValidationService
                     $query->where('sale_purpose', $salePurpose)
             )
 
-            ->when(
-                $filters['barangay_id'] ?? null,
-                fn($query, $barangayId) =>
-                    $query->where('barangay_id', $barangayId)
-            )
 
             ->with([
                 'municipality',
@@ -129,6 +115,7 @@ class PriceValidationService
             $authority,
             $priceReference
         );
+        $this->ensureSupportedSalePurpose($priceReference);
 
         return $priceReference->load([
             'municipality',
@@ -161,6 +148,7 @@ class PriceValidationService
                 $authority,
                 $lockedPriceReference
             );
+            $this->ensureSupportedSalePurpose($lockedPriceReference);
 
             if ($lockedPriceReference->status !== 'pending_review') {
                 throw ValidationException::withMessages([
@@ -169,7 +157,10 @@ class PriceValidationService
                 ]);
             }
 
-            $this->ensureNoOfficialConflict(
+            // All official price references are municipality-wide.
+            $lockedPriceReference->update(['barangay_id' => null]);
+
+            $this->supersedePriorOfficialReferences(
                 $lockedPriceReference
             );
 
@@ -194,6 +185,21 @@ class PriceValidationService
                     'remarks' => null,
                     'performed_by' => $authority->id,
                 ]);
+
+            $speciesName = $lockedPriceReference->species()->value('name') ?? 'livestock';
+            $farmers = User::query()
+                ->whereHas('farmerProfile', fn ($q) => $q->where('municipality_id', $lockedPriceReference->municipality_id))
+                ->get();
+            foreach ($farmers as $farmerUser) {
+                $farmerUser->notify(new SystemAlertNotification(
+                    'price.approved',
+                    'Bag-ong opisyal nga presyo',
+                    'An official ' . $lockedPriceReference->sale_purpose . ' price reference for ' . $speciesName . ' has been approved. Open Official Prices to view the details.',
+                    (string) $lockedPriceReference->municipality_id,
+                    'price_reference',
+                    (string) $lockedPriceReference->id
+                ));
+            }
 
             return $lockedPriceReference
                 ->fresh()
@@ -230,6 +236,7 @@ class PriceValidationService
                 $authority,
                 $lockedPriceReference
             );
+            $this->ensureSupportedSalePurpose($lockedPriceReference);
 
             if ($lockedPriceReference->status !== 'pending_review') {
                 throw ValidationException::withMessages([
@@ -271,6 +278,20 @@ class PriceValidationService
                     'validationLogs.performer',
                 ]);
         });
+    }
+
+    private function ensureSupportedSalePurpose(PriceReference $priceReference): void
+    {
+        $legacyPigletCategory = str_starts_with(
+            strtolower((string) $priceReference->reference_category),
+            'piglet'
+        );
+
+        if ($priceReference->sale_purpose === 'piglet' || $legacyPigletCategory) {
+            throw ValidationException::withMessages([
+                'sale_purpose' => 'Piglet is no longer a supported sale purpose. Use Slaughter, Breeding, Fattening, or Work.',
+            ]);
+        }
     }
 
     private function municipalityId(User $user): string

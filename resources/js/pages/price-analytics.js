@@ -1,4 +1,5 @@
 import api from "../api";
+import { formatDate as sharedFormatDate } from "../utils/date-format";
 
 const PAGE_SIZE = 10;
 
@@ -39,19 +40,7 @@ const money = (value) =>
 
 const number = (value) => new Intl.NumberFormat("en-PH").format(value || 0);
 
-const dateText = (value) => {
-    if (!value) return "—";
-
-    const date = new Date(`${value}T00:00:00`);
-
-    return Number.isNaN(date.getTime())
-        ? "—"
-        : date.toLocaleDateString("en-PH", {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-          });
-};
+const dateText = (value) => sharedFormatDate(value);
 
 const average = (values) => {
     const valid = values.filter(Number.isFinite);
@@ -251,7 +240,6 @@ function render() {
 function comparableKey(point) {
     return [
         point.municipality_id || "",
-        point.barangay_id || "",
         point.species_id || "",
         point.breed_id || "",
         point.sale_purpose || "",
@@ -519,57 +507,49 @@ function renderTrendChart() {
 
 function renderComparisonChart() {
     const container = $("pa-comparison-chart");
-
-    const grouped = new Map();
+    const purposeLabels = {
+        slaughter: "Slaughter",
+        breeding: "Breeding",
+        fattening: "Fattening",
+        work: "Work",
+    };
+    const grouped = new Map(
+        Object.keys(purposeLabels).map((purpose) => [purpose, []]),
+    );
 
     for (const point of state.filteredPoints) {
-        const key = point.species_id || "unknown";
-
-        if (!grouped.has(key)) {
-            grouped.set(key, {
-                label: point.species_name || "Unknown",
-                prices: [],
-            });
-        }
-
-        grouped.get(key).prices.push(point.price_per_kg);
+        const key = point.sale_purpose || "unspecified";
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(Number(point.price_per_kg) || 0);
     }
 
-    const comparisons = [...grouped.values()]
-        .map((item) => ({
-            label: item.label,
-            price: average(item.prices),
-        }))
-        .sort((a, b) => b.price - a.price);
+    const comparisons = [...grouped.entries()]
+        .map(([key, prices]) => ({
+            key,
+            label: purposeLabels[key] || key.replaceAll("_", " "),
+            price: prices.length ? average(prices) : null,
+            count: prices.length,
+        }));
 
     if (!comparisons.length) {
-        container.innerHTML =
-            '<div class="pa-empty">No price comparison data available.</div>';
+        container.innerHTML = '<div class="pa-empty">No sale-purpose comparison data available.</div>';
         return;
     }
 
     const maximum = Math.max(...comparisons.map((item) => item.price), 1);
-
-    container.innerHTML = comparisons
-        .map(
-            (item, index) => `
-                <div class="pa-comparison-row">
-                    <div class="pa-comparison-meta">
-                        <span>${escapeHtml(item.label)}</span>
-                        <strong>${money(item.price)}</strong>
-                    </div>
-
-                    <div class="pa-comparison-track">
-                        <div
-                            class="pa-comparison-fill"
-                            style="width:${Math.max(0, (item.price / maximum) * 100)}%;
-                                   background:${COLORS[index % COLORS.length]}"
-                        ></div>
-                    </div>
-                </div>
-            `,
-        )
-        .join("");
+    container.innerHTML = comparisons.map((item, index) => `
+        <div class="pa-comparison-row">
+            <div class="pa-comparison-meta">
+                <span>${escapeHtml(item.label)} <small>(${number(item.count)} references)</small></span>
+                <strong>${item.price == null ? "No official price yet" : money(item.price)}</strong>
+            </div>
+            <div class="pa-comparison-track">
+                <div class="pa-comparison-fill"
+                    style="width:${item.price == null ? 0 : Math.max(0, (item.price / maximum) * 100)}%;
+                    background:${COLORS[index % COLORS.length]}"></div>
+            </div>
+        </div>
+    `).join("");
 }
 
 function renderTable() {

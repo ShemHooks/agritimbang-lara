@@ -25,6 +25,7 @@ class FarmerLivestockController extends BaseController
                 'status',
                 'species_id',
                 'breed_id',
+                'per_page',
             ])
         );
 
@@ -73,6 +74,12 @@ class FarmerLivestockController extends BaseController
             $livestock,
             'Livestock updated successfully.'
         );
+    }
+
+    public function destroy(Request $request, LivestockRecord $livestock): JsonResponse
+    {
+        $this->service->deleteForFarmer($request->user(), $livestock);
+        return $this->success(null, 'Livestock record deleted successfully.');
     }
 
     public function updateStatus(

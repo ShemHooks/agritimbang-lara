@@ -27,12 +27,12 @@
                         <span class="tx-step">01</span>
                         <div>
                             <h2>Select Farmer</h2>
-                            <p>Search by farmer name or registration code.</p>
+                            <p>Search by farmer name, email, or registration code.</p>
                         </div>
                     </div>
 
                     <label for="tx-farmer-search">Find a farmer</label>
-                    <input id="tx-farmer-search" type="search" placeholder="Search verified farmers..." autocomplete="off">
+                    <input id="tx-farmer-search" type="search" placeholder="Enter a farmer name, email, or registration code..." autocomplete="off">
 
                     <div id="tx-farmer-results" class="tx-results"></div>
                     <div id="tx-selected-farmer" class="tx-selected" hidden></div>
@@ -125,7 +125,7 @@
 
                     <div id="tx-draft-actions" hidden>
                         <p id="tx-draft-message"></p>
-                        <<button type="button" id="tx-submit">
+                        <button type="button" id="tx-submit">
                             Submit for LGU Verification
                             </button>
                     </div>

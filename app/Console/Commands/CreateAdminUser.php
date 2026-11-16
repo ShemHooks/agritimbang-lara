@@ -42,8 +42,8 @@ class CreateAdminUser extends Command
         $firstName = $this->ask('First Name');
         $middleName = $this->ask('Middle Name (optional)');
         $lastName = $this->ask('Last Name');
-        $email = $this->ask('Email');
-        $phoneNumber = $this->ask('Phone Number (optional)');
+        $email = strtolower(trim((string) $this->ask('Email')));
+        $phoneNumber = trim((string) ($this->ask('Phone Number (optional)') ?? ''));
 
         $password = $this->secret('Password');
         $passwordConfirmation = $this->secret('Confirm Password');
@@ -64,14 +64,15 @@ class CreateAdminUser extends Command
             'last_name' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
-                'email',
+                'email:rfc',
                 'max:255',
                 'unique:users,email',
             ],
             'phone_number' => [
                 'nullable',
                 'string',
-                'max:255',
+                \App\Support\ContactValidationRules::philippineMobile(),
+                'max:13',
             ],
             'password' => [
                 'required',

@@ -1,9 +1,11 @@
 import api from "../api";
+import { formatDate as sharedFormatDate, formatDateTime as sharedFormatDateTime } from "../utils/date-format";
 
 const $ = (id) => document.getElementById(id);
 
 const state = {
     authorized: false,
+    role: null,
     page: 1,
     lastPage: 1,
     total: 0,
@@ -79,6 +81,16 @@ function resolveRoles(payload) {
         );
 }
 
+function userName(user) {
+    if (!user) return "—";
+
+    const fullName = [user.first_name, user.middle_name, user.last_name]
+        .filter((part) => part && String(part).trim())
+        .join(" ");
+
+    return fullName || user.name || user.full_name || "—";
+}
+
 function readable(value) {
     if (value == null || value === "") return "—";
 
@@ -100,29 +112,9 @@ function money(value) {
     }).format(number);
 }
 
-function date(value) {
-    if (!value) return "—";
+function date(value) { return sharedFormatDate(value); }
 
-    const match = String(value).match(/^\d{4}-\d{2}-\d{2}/);
-
-    return match ? match[0] : String(value);
-}
-
-function dateTime(value) {
-    if (!value) return "Not yet submitted";
-
-    const parsed = new Date(value);
-
-    if (Number.isNaN(parsed.getTime())) {
-        return String(value);
-    }
-
-    return new Intl.DateTimeFormat("en-PH", {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "Asia/Manila",
-    }).format(parsed);
-}
+function dateTime(value, fallback = "—") { return sharedFormatDateTime(value, fallback); }
 
 function createCell(row, value) {
     const cell = row.insertCell();
@@ -237,12 +229,15 @@ function renderTable() {
 
         createCell(
             row,
-            record.submitter?.name ??
-                record.submitter?.full_name ??
-                "Unknown encoder",
+            record.submitted_at ? userName(record.submitter) : "Not submitted (draft)",
         );
 
-        createCell(row, dateTime(record.submitted_at));
+        createCell(row, record.submitted_at ? dateTime(record.submitted_at) : "Not submitted");
+
+        createCell(
+            row,
+            record.reviewer ? userName(record.reviewer) : "Not yet reviewed",
+        );
 
         const status = row.insertCell();
         status.append(statusBadge(record.status));
@@ -254,7 +249,7 @@ function renderTable() {
 
         group.append(actionButton("View", () => showDetails(record.id)));
 
-        if (record.status === "draft") {
+        if (record.status === "draft" && state.role === "lgu_encoder") {
             const edit = document.createElement("a");
 
             edit.href = `/prices/${encodeURIComponent(record.id)}/edit`;
@@ -311,13 +306,30 @@ async function loadHistory() {
             if (value) params[key] = value;
         });
 
-        const response = await api.get("/lgu/price-references", { params });
+        const endpoint = state.role === "lgu_authority" ? "/lgu/price-submissions" : "/lgu/price-references";
+        const response = await api.get(endpoint, { params });
 
         if (requestId !== state.requestId) return;
 
         const paginator = unwrap(response);
 
-        state.records = normalizeRecords(paginator);
+        // Keep the visible page newest-first even if an API response arrives
+        // without the expected ordering. The server also sorts before pagination,
+        // so this is a defensive UI guarantee rather than the primary sort.
+        state.records = normalizeRecords(paginator).sort((a, b) => {
+            const timestamp = (record) => {
+                const value = record.submitted_at || record.created_at;
+                const parsed = value ? new Date(value).getTime() : 0;
+                return Number.isFinite(parsed) ? parsed : 0;
+            };
+            const bySubmission = timestamp(b) - timestamp(a);
+            if (bySubmission !== 0) return bySubmission;
+
+            const byCreation = timestamp({ created_at: b.created_at }) - timestamp({ created_at: a.created_at });
+            if (byCreation !== 0) return byCreation;
+
+            return String(b.id ?? '').localeCompare(String(a.id ?? ''));
+        });
         state.page = Number(paginator?.current_page ?? 1);
         state.lastPage = Math.max(1, Number(paginator?.last_page ?? 1));
         state.total = Number(paginator?.total ?? state.records.length);
@@ -379,8 +391,7 @@ function renderValidationLogs(logs) {
 
         const meta = document.createElement("span");
 
-        const performer =
-            log.performer?.name ?? log.performer?.full_name ?? "System";
+        const performer = userName(log.performer) === "—" ? "System" : userName(log.performer);
 
         meta.textContent = `${performer} · ${dateTime(log.created_at)}`;
 
@@ -400,6 +411,9 @@ function renderDetails(record) {
     const container = $("history-detail-content");
     container.replaceChildren();
 
+    const validationLogs = record.validation_logs ?? record.validationLogs ?? [];
+    const rejectionLog = validationLogs.find((log) => log.action === "rejected");
+
     const fields = [
         ["Species", record.species?.name],
         ["Breed", record.breed?.name ?? "All breeds"],
@@ -415,18 +429,21 @@ function renderDetails(record) {
         ["Source", record.source],
         ["Remarks", record.remarks],
         ["Status", readable(record.status)],
-        ["Submitted by", record.submitter?.name ?? record.submitter?.full_name],
-        ["Submitted at", dateTime(record.submitted_at)],
-        ["Reviewed by", record.reviewer?.name ?? record.reviewer?.full_name],
-        ["Approved by", record.approver?.name ?? record.approver?.full_name],
+        ["Submitted by", record.submitted_at ? userName(record.submitter) : "Not submitted (draft)"],
+        ["Submitted at", dateTime(record.submitted_at, "Not submitted")],
+        ["Reviewed by", userName(record.reviewer)],
+        ["Reviewed at", dateTime(record.reviewed_at)],
+        ["Approved by", record.status === "official" ? userName(record.approver) : "—"],
         ["Approved at", dateTime(record.approved_at)],
+        ["Rejected by", record.status === "rejected" ? (userName(rejectionLog?.performer) !== "—" ? userName(rejectionLog?.performer) : userName(record.reviewer)) : "—"],
+        ["Rejected at", dateTime(rejectionLog?.created_at)],
     ];
 
     fields.forEach(([label, value]) => {
         detailField(container, label, value);
     });
 
-    renderValidationLogs(record.validation_logs ?? record.validationLogs ?? []);
+    renderValidationLogs(validationLogs);
 
     $("history-detail").hidden = false;
 
@@ -440,9 +457,8 @@ async function showDetails(id) {
     clearNotice();
 
     try {
-        const response = await api.get(
-            `/lgu/price-references/${encodeURIComponent(id)}`,
-        );
+        const endpoint = state.role === "lgu_authority" ? "/lgu/price-submissions" : "/lgu/price-references";
+        const response = await api.get(`${endpoint}/${encodeURIComponent(id)}`);
 
         renderDetails(unwrap(response));
     } catch (error) {
@@ -550,14 +566,25 @@ async function init() {
 
         const roles = resolveRoles(payload);
 
-        if (!roles.includes("lgu_encoder")) {
-            notify("Only LGU Encoders can access price submission history.");
+        const isEncoder = roles.includes("lgu_encoder");
+        const isAuthority = roles.includes("lgu_authority");
+        if (!isEncoder && !isAuthority) {
+            notify("Only LGU Encoders and LGU Authorities can access price submission history.");
 
             setEmpty("Access unavailable.");
             return;
         }
 
         state.authorized = true;
+        state.role = isEncoder ? "lgu_encoder" : "lgu_authority";
+        if (state.role === "lgu_authority") {
+            const createLink = $("history-new-price");
+            if (createLink) createLink.hidden = true;
+            const backLink = $("history-back-link");
+            if (backLink) backLink.textContent = "Back to Price Management";
+            const intro = document.querySelector(".price-history-header p:last-child");
+            if (intro) intro.textContent = "Review price references submitted by Encoders in your assigned municipality, including their validation status.";
+        }
 
         await Promise.all([loadSpecies(), loadHistory()]);
     } catch (error) {

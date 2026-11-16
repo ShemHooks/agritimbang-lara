@@ -8,6 +8,7 @@ use App\Models\LivestockRecord;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Valuation;
+use App\Notifications\SystemAlertNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -369,6 +370,14 @@ class TransactionService
                 : 'Draft transaction created.'
             );
 
+            $this->notifyTransactionEvent(
+                $transaction,
+                $farmer,
+                'transaction.draft_created',
+                'Bag-ong transaction record',
+                'A transaction draft has been saved. You can review and continue editing it before submission.'
+            );
+
             return $transaction->load([
                 'items.livestock',
                 'items.valuation',
@@ -383,6 +392,77 @@ class TransactionService
     | SHARED TRANSACTION SUBMISSION
     |--------------------------------------------------------------------------
     */
+
+
+    public function updateFarmerDraft(User $user, string $transactionId, array $data): Transaction
+    {
+        $farmer = $this->verifiedFarmer($user);
+        $this->validateItems($data);
+
+        return DB::transaction(function () use ($farmer, $transactionId, $data) {
+            $transaction = Transaction::query()
+                ->whereKey($transactionId)
+                ->where('farmer_id', $farmer->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($transaction->status !== 'draft' || $transaction->source !== 'farmer') {
+                throw ValidationException::withMessages([
+                    'status' => 'Only your own saved farmer drafts can be edited.',
+                ]);
+            }
+
+            $transaction->update([
+                'buyer_name' => $data['buyer_name'],
+                'buyer_phone' => $data['buyer_phone'] ?? null,
+                'transaction_date' => $data['transaction_date'] ?? $transaction->transaction_date,
+                'remarks' => $data['remarks'] ?? null,
+            ]);
+            $transaction->items()->delete();
+
+            $totalReference = 0;
+            $totalSelling = 0;
+            foreach (collect($data['items'])->values() as $index => $item) {
+                $livestock = $this->lockEligibleLivestock($farmer, $item['livestock_id'], $index);
+                $valuation = $this->getValidValuation($livestock, $item['valuation_id'], $index);
+                $sellingPrice = $this->validateSellingPrice($item['actual_selling_price'], $index);
+                $referenceValue = (float) $valuation->estimated_value;
+                $weight = (float) $valuation->weight_used_kg;
+                $difference = round($sellingPrice - $referenceValue, 2);
+                $deviation = round(($difference / $referenceValue) * 100, 4);
+
+                $transaction->items()->create([
+                    'livestock_id' => $livestock->id,
+                    'valuation_id' => $valuation->id,
+                    'weight_type' => $valuation->weight_type,
+                    'weight_used_kg' => $valuation->weight_used_kg,
+                    'base_price_per_kg' => $valuation->base_price_per_kg,
+                    'final_price_per_kg' => $valuation->final_price_per_kg,
+                    'reference_value' => $referenceValue,
+                    'actual_selling_price' => $sellingPrice,
+                    'actual_selling_price_per_kg' => round($sellingPrice / $weight, 2),
+                    'price_difference' => $difference,
+                    'percentage_deviation' => $deviation,
+                    'valuation_snapshot' => $this->valuationSnapshot($valuation),
+                    'calculation_version' => $valuation->calculation_version,
+                ]);
+                $totalReference += $referenceValue;
+                $totalSelling += $sellingPrice;
+            }
+
+            $transaction->update([
+                'total_reference_value' => round($totalReference, 2),
+                'total_selling_price' => round($totalSelling, 2),
+            ]);
+
+            return $transaction->fresh([
+                'items.livestock.species',
+                'items.valuation',
+                'farmer',
+                'statusLogs',
+            ]);
+        }, 3);
+    }
 
     private function submitTransactionDraft(
         User $actor,
@@ -517,6 +597,14 @@ class TransactionService
                 $issued['token']
             )->afterCommit();
 
+            $this->notifyTransactionEvent(
+                $transaction,
+                $farmer,
+                'transaction.submitted',
+                'Na-submit na ang transaction',
+                'Your transaction has been submitted and is awaiting buyer confirmation.'
+            );
+
             return $transaction->fresh([
                 'items',
                 'buyerConfirmations',
@@ -530,6 +618,26 @@ class TransactionService
     | FARMER & ENCODER AUTHORIZATION
     |--------------------------------------------------------------------------
     */
+
+    private function notifyTransactionEvent(Transaction $transaction, FarmerProfile $farmer, string $event, string $title, string $message): void
+    {
+        $farmer->user?->notify(new SystemAlertNotification(
+            $event, $title, $message, (string) $transaction->municipality_id,
+            'transaction', (string) $transaction->id
+        ));
+
+        $officers = User::query()
+            ->where('status', 'active')
+            ->whereHas('roles', fn ($q) => $q->whereIn('slug', ['lgu_encoder', 'lgu_authority']))
+            ->whereHas('lguOfficerProfile', fn ($q) => $q->where('municipality_id', $transaction->municipality_id))
+            ->get();
+        foreach ($officers as $officer) {
+            $officer->notify(new SystemAlertNotification(
+                $event, $title, 'A farmer transaction has been recorded. Review it in the transaction workspace.',
+                (string) $transaction->municipality_id, 'transaction', (string) $transaction->id
+            ));
+        }
+    }
 
     private function verifiedFarmer(User $user): FarmerProfile
     {
@@ -554,7 +662,10 @@ class TransactionService
     {
         abort_unless(
             $user->roles()
-                ->where('slug', 'lgu_encoder')
+                ->where(function ($query) {
+                    $query->whereIn('slug', ['lgu_encoder', 'lgu-encoder', 'encoder'])
+                        ->orWhereRaw('LOWER(name) = ?', ['lgu encoder']);
+                })
                 ->exists(),
             403,
             'Only LGU Encoders may encode transactions.'

@@ -31,7 +31,8 @@ class StoreEncoderTransactionRequest extends StoreTransactionRequest
             'buyer_phone' => [
                 'required',
                 'string',
-                'max:30',
+                \App\Support\ContactValidationRules::philippineMobile(),
+                'max:13',
             ],
         ]);
     }

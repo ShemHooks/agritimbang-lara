@@ -24,9 +24,18 @@ class PriceReferenceController extends BaseController
                 'status',
                 'species_id',
                 'breed_id',
-                'barangay_id',
                 'sale_purpose',
             ])
+        );
+
+        return $this->success($data);
+    }
+
+    public function submissions(Request $request): JsonResponse
+    {
+        $data = $this->service->getPriceSubmissions(
+            $request->user(),
+            $request->only(['status', 'species_id', 'sale_purpose'])
         );
 
         return $this->success($data);

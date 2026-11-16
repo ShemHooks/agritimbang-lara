@@ -1,4 +1,5 @@
 import api from '../api';
+import { formatDateTime as sharedFormatDateTime } from "../utils/date-format";
 
 const $ = (id) => document.getElementById(id);
 const button = $('notification-button');
@@ -14,17 +15,14 @@ if (button && panel && badge && list && status && allRead && more) {
   let loading = false;
   let unreadCount = 0;
 
-  const formatDate = (date) => {
-    if (!date) return '';
-    const d = new Date(date);
-    return Number.isNaN(d.getTime()) ? '' : new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short' }).format(d);
-  };
+  const formatDate = (date) => date ? sharedFormatDateTime(date, '') : '';
 
   function getDisplay(notification) {
     const data = notification.data && typeof notification.data === 'object' ? notification.data : {};
     return {
       title: String(data.title ?? data.subject ?? data.heading ?? 'Account notification'),
       message: String(data.message ?? data.body ?? data.description ?? 'You have a new update.'),
+      url: typeof data.url === 'string' && data.url.startsWith('/') && !data.url.startsWith('//') ? data.url : null,
     };
   }
 
@@ -53,12 +51,12 @@ if (button && panel && badge && list && status && allRead && more) {
 
   function createItem(notification) {
     const unread = !notification.read_at;
-    const { title, message } = getDisplay(notification);
+    const { title, message, url } = getDisplay(notification);
     const item = document.createElement('button');
     item.type = 'button';
     item.className = `notification-item${unread ? ' is-unread' : ''}`;
     item.dataset.id = String(notification.id);
-    item.disabled = !unread;
+    item.disabled = !unread && !url;
 
     const dot = document.createElement('span');
     dot.className = 'notification-item-dot';
@@ -75,10 +73,10 @@ if (button && panel && badge && list && status && allRead && more) {
     body.append(heading, description, time);
     item.append(dot, body);
 
-    if (unread) {
-      item.title = 'Mark as read';
-      item.addEventListener('click', async () => {
-        item.disabled = true;
+    item.title = url ? 'Open notification' : (unread ? 'Mark as read' : 'Read notification');
+    item.addEventListener('click', async () => {
+      item.disabled = true;
+      if (unread) {
         try {
           await api.patch(`/notifications/${encodeURIComponent(notification.id)}/read`);
           item.classList.remove('is-unread');
@@ -86,11 +84,14 @@ if (button && panel && badge && list && status && allRead && more) {
           unreadCount = Math.max(0, unreadCount - 1);
           renderBadge();
         } catch (error) {
-          item.disabled = false;
+          item.disabled = !unread && !url;
           setStatus(error.response?.data?.message || 'Unable to mark notification as read.');
+          return;
         }
-      });
-    }
+      }
+      if (url) window.location.assign(url);
+      else item.disabled = false;
+    });
     return item;
   }
 

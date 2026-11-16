@@ -1,4 +1,5 @@
 import api from "../api";
+import { formatDateTime as sharedFormatDateTime } from "../utils/date-format";
 
 const $ = (id) => document.getElementById(id);
 
@@ -23,21 +24,7 @@ function escapeHtml(value) {
     );
 }
 
-function formatDate(value) {
-    if (!value) return "—";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-        return String(value);
-    }
-
-    return new Intl.DateTimeFormat("en-PH", {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "Asia/Manila",
-    }).format(date);
-}
+function formatDate(value) { return sharedFormatDateTime(value); }
 
 function displayName(user) {
     if (!user) return "System / Unknown";

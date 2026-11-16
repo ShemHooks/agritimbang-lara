@@ -5,6 +5,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
     submitting: false,
     breedRequestId: 0,
+    calculatorPrefill: null,
 };
 
 /* =========================================================
@@ -14,9 +15,9 @@ const state = {
 const conditionQuestions = [
     {
         id: "currently_sick",
-        category: "Health History & Current Condition",
-        question: "Is the animal currently sick?",
-        translation: "Maysakit ba karon ang hayop?",
+        category: "Kahimsog sa Hayop (Animal Health)",
+        question: "Maysakit ba karon ang hayop?",
+        translation: "Is the animal currently sick?",
         options: [
             ["No / Wala", 2],
             ["Not sure / Dili sigurado", 1],
@@ -25,8 +26,8 @@ const conditionQuestions = [
     },
     {
         id: "recently_sick",
-        question: "Has the animal been sick recently?",
-        translation: "Nakasakit ba ang hayop bag-o lang?",
+        question: "Nakasakit ba ang hayop bag-o lang?",
+        translation: "Has the animal been sick recently?",
         options: [
             ["No / Wala", 2],
             ["Yes, but recovered / Oo, pero naayo na", 1],
@@ -35,8 +36,8 @@ const conditionQuestions = [
     },
     {
         id: "eating_normally",
-        question: "Is the animal eating normally?",
-        translation: "Normal ba ang pagkaon sa hayop?",
+        question: "Normal ba ang pagkaon sa hayop?",
+        translation: "Is the animal eating normally?",
         options: [
             ["Yes / Oo", 2],
             ["Less than usual / Gamay ra kaysa naandan", 1],
@@ -45,8 +46,8 @@ const conditionQuestions = [
     },
     {
         id: "visible_injuries",
-        question: "Does the animal have visible wounds or injuries?",
-        translation: "Aduna bay samad o pilas ang hayop?",
+        question: "Aduna bay samad o pilas ang hayop?",
+        translation: "Does the animal have visible wounds or injuries?",
         options: [
             ["None / Wala", 2],
             ["Minor wounds / Gamay nga samad", 1],
@@ -55,9 +56,9 @@ const conditionQuestions = [
     },
     {
         id: "prominent_bones",
-        category: "Body Condition",
-        question: "Are the animal's bones visibly prominent?",
-        translation: "Klaro kaayo ba ang buto-buto sa hayop?",
+        category: "Kahimtang sa Lawas (Body Condition)",
+        question: "Klaro kaayo ba ang buto-buto sa hayop?",
+        translation: "Are the animal's bones visibly prominent?",
         options: [
             ["Very prominent / Klaro kaayo ang buto-buto", 0],
             ["Somewhat prominent / Medyo klaro", 1],
@@ -66,8 +67,8 @@ const conditionQuestions = [
     },
     {
         id: "overall_body",
-        question: "How does the animal's overall body look?",
-        translation: "Unsa ang kinatibuk-ang hitsura sa lawas sa hayop?",
+        question: "Unsa ang kinatibuk-ang hitsura sa lawas sa hayop?",
+        translation: "How does the animal's overall body look?",
         options: [
             ["Very thin / Niwang kaayo", 0],
             ["Moderately filled / Sakto-sakto ang lawas", 1],
@@ -76,8 +77,8 @@ const conditionQuestions = [
     },
     {
         id: "tail_base",
-        question: "Does the area around the base of the tail look sunken?",
-        translation: "Lubog ba ang dapit sa punoan sa ikog?",
+        question: "Lubog ba ang dapit sa punoan sa ikog?",
+        translation: "Does the area around the base of the tail look sunken?",
         options: [
             ["Deep hollow / Lawom ug lubog", 0],
             ["Slight hollow / Medyo lubog", 1],
@@ -262,6 +263,103 @@ async function loadBreeds(speciesId) {
     }
 }
 
+async function applyCalculatorPrefill() {
+    const fromCalculator = new URLSearchParams(window.location.search).get("from_calculator") === "1";
+    let prefill = null;
+    try {
+        const raw = sessionStorage.getItem("agritimbang_calculator_prefill");
+        if (raw) prefill = JSON.parse(raw);
+    } catch (_) {
+        prefill = null;
+    }
+
+    if (!fromCalculator || !prefill || !prefill.species_id) {
+        try { sessionStorage.removeItem("agritimbang_calculator_prefill"); } catch (_) {}
+        return;
+    }
+
+    state.calculatorPrefill = prefill;
+    $("lr-species").value = prefill.species_id;
+    await loadBreeds(prefill.species_id);
+
+    if (prefill.breed_id) $("lr-breed").value = prefill.breed_id;
+    if (prefill.sex) $("lr-sex").value = prefill.sex;
+    if (prefill.age_months !== null && prefill.age_months !== undefined) {
+        const ageInput = document.querySelector('#lr-form [name="age_months"]');
+        if (ageInput) ageInput.value = prefill.age_months;
+    }
+
+    const salePurposeInput = document.querySelector('#lr-form [name="sale_purpose"]');
+    if (salePurposeInput && prefill.sale_purpose) salePurposeInput.value = prefill.sale_purpose;
+    if (prefill.reproductive_status) $("lr-reproductive").value = prefill.reproductive_status;
+    if (prefill.parity !== null && prefill.parity !== undefined) $("lr-parity").value = prefill.parity;
+    syncReproductiveFields();
+
+    // Restore the calculator's seven-question condition checklist so the
+    // registration form retains the actual assessment, not only its score.
+    if (prefill.condition_answers && typeof prefill.condition_answers === "object") {
+        for (const [questionId, points] of Object.entries(prefill.condition_answers)) {
+            const radio = document.querySelector(
+                `input[name="assessment_${questionId}"][value="${Number(points)}"]`,
+            );
+            if (radio) radio.checked = true;
+        }
+        calculateConditionAssessment();
+    }
+
+    const summary = $("lr-calculator-summary");
+    if (summary) {
+        summary.hidden = false;
+        $("lr-calculator-summary-weight").textContent = prefill.estimated_weight_kg
+            ? `Estimated weight: ${Number(prefill.estimated_weight_kg).toLocaleString("en-PH", { maximumFractionDigits: 2 })} kg`
+            : (prefill.manual_weight_kg ? `Manual weight: ${Number(prefill.manual_weight_kg).toLocaleString("en-PH", { maximumFractionDigits: 2 })} kg` : "Weight estimate will be saved after the livestock record is registered.");
+        const estimateInput = $("lr-calculator-estimated-weight");
+        if (estimateInput) estimateInput.value = prefill.estimated_weight_kg ?? "";
+        const estimatedWeightInput = $("lr-estimated-weight");
+        const estimatedWeightField = $("lr-estimated-weight-field");
+        if (estimatedWeightInput && prefill.estimated_weight_kg != null) {
+            estimatedWeightInput.value = Number(prefill.estimated_weight_kg).toFixed(2);
+            if (estimatedWeightField) estimatedWeightField.hidden = false;
+        }
+        const actualWeightInput = document.querySelector('#lr-form [name="actual_weight_kg"]');
+        if (actualWeightInput && prefill.manual_weight_kg) actualWeightInput.value = Number(prefill.manual_weight_kg).toFixed(2);
+        const valuationField = $("lr-valuation-estimate-field");
+        const valuationInput = $("lr-valuation-estimated-value");
+        const valuationDetails = $("lr-valuation-estimate-details");
+        if (prefill.estimated_value != null && valuationField && valuationInput) {
+            valuationField.hidden = false;
+            valuationInput.value = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(prefill.estimated_value));
+            if (valuationDetails) {
+                const price = prefill.final_price_per_kg != null ? ` · ${Number(prefill.final_price_per_kg).toFixed(2)} per kg` : "";
+                valuationDetails.textContent = `FPC valuation preview${price}. The valuation will be saved after livestock registration.`;
+            }
+        }
+        const labels = [
+            ["Heart girth", prefill.measurements?.heart_girth_cm],
+            ["Body length", prefill.measurements?.body_length_cm],
+            ["Rump height", prefill.measurements?.rump_height_cm],
+        ].filter(([, value]) => value !== null && value !== undefined && value !== "")
+         .map(([label, value]) => `${label}: ${Number(value).toLocaleString("en-PH", { maximumFractionDigits: 2 })} cm`);
+        $("lr-calculator-summary-measurements").textContent = labels.length
+            ? labels.join(" · ")
+            : "No measurement details were transferred.";
+        $("lr-calculator-summary-method").textContent = [prefill.formula_code, prefill.formula_version, prefill.estimate_confidence ? `Confidence: ${prefill.estimate_confidence}` : null, prefill.frame_category ? `Frame: ${prefill.frame_category}` : null].filter(Boolean).join(" · ");
+    }
+
+    if (prefill.condition_answers && typeof prefill.condition_answers === "object") {
+        for (const [questionId, points] of Object.entries(prefill.condition_answers)) {
+            const radio = document.querySelector(`input[name="assessment_${questionId}"][value="${points}"]`);
+            if (radio) radio.checked = true;
+        }
+        calculateConditionAssessment();
+    }
+
+    showAlert(
+        "lr-page-success",
+        "Calculator details were carried over. Complete the remaining livestock information to save this animal.",
+    );
+}
+
 /* =========================================================
    REPRODUCTIVE INFORMATION
 ========================================================= */
@@ -425,13 +523,13 @@ function calculateConditionAssessment() {
 
     if (labelElement) {
         labelElement.textContent = complete
-            ? interpretConditionScore(total)
+            ? `${mapAssessmentToConditionScore(total)} / 5`
             : "Awaiting assessment";
     }
 
     if (descriptionElement) {
         descriptionElement.textContent = complete
-            ? `Calculated condition score: ${mapAssessmentToConditionScore(total)} / 5`
+            ? interpretConditionScore(total)
             : "Complete all questions to see the result.";
     }
 
@@ -487,6 +585,7 @@ function buildPayload(form) {
         condition_score: assessment.conditionScore,
 
         actual_weight_kg: nullableString(formData.get("actual_weight_kg")),
+        photo: formData.get("photo"),
     };
 }
 
@@ -521,7 +620,42 @@ async function submitRegistration(event) {
     button.textContent = "Registering...";
 
     try {
-        await api.post("/farmer/livestock", payload);
+        const multipart = new FormData();
+        Object.entries(payload).forEach(([key, value]) => {
+            if (value !== null && value !== undefined && value !== "") multipart.append(key, value);
+        });
+        const response = await api.post("/farmer/livestock", multipart);
+        const createdLivestock = unwrap(response);
+        let estimationSaved = false;
+        let estimationSaveFailed = false;
+        let valuationSaved = false;
+        let valuationSaveFailed = false;
+        let savedEstimation = null;
+
+        if (state.calculatorPrefill?.measurements && createdLivestock?.id) {
+            try {
+                const estimationResponse = await api.post(
+                    `/farmer/livestock/${encodeURIComponent(createdLivestock.id)}/weight-estimations`,
+                    state.calculatorPrefill.measurements,
+                );
+                savedEstimation = unwrap(estimationResponse);
+                estimationSaved = true;
+            } catch (_) {
+                estimationSaveFailed = true;
+            }
+        }
+
+        if (state.calculatorPrefill?.valuation_requested && createdLivestock?.id) {
+            try {
+                const valuationPayload = savedEstimation?.id
+                    ? { weight_estimation_id: savedEstimation.id }
+                    : {};
+                await api.post(`/farmer/livestock/${encodeURIComponent(createdLivestock.id)}/valuations`, valuationPayload);
+                valuationSaved = true;
+            } catch (_) {
+                valuationSaveFailed = true;
+            }
+        }
 
         form.reset();
         syncReproductiveFields();
@@ -532,16 +666,33 @@ async function submitRegistration(event) {
         $("lr-breed").replaceChildren(new Option("Select a species first", ""));
         $("lr-breed").disabled = true;
 
-        showAlert(
-            "lr-page-success",
-            "Livestock registered successfully! " +
-                "The record is now available in your livestock directory.",
-        );
+        // Keep the confirmation across the redirect to the livestock directory.
+        const flashParts = [];
+        if (estimationSaved) flashParts.push("the calculated weight estimate was saved");
+        else if (estimationSaveFailed) flashParts.push("the calculated weight estimate could not be saved");
+        if (valuationSaved) flashParts.push("the valuation was saved");
+        else if (valuationSaveFailed) flashParts.push("the valuation could not be saved");
+        if (state.calculatorPrefill?.action === "auction") {
+            flashParts.push("auction schedule registration is not yet available; please coordinate with your LGU Encoder");
+        }
+        const flashMessage = flashParts.length
+            ? `Livestock successfully registered; ${flashParts.join("; ")}.`
+            : "Livestock successfully registered!";
+        const flashType = estimationSaveFailed || valuationSaveFailed ? "warning" : "success";
+        try {
+            sessionStorage.setItem(
+                "agritimbang_livestock_registration_flash",
+                JSON.stringify({ type: flashType, message: flashMessage }),
+            );
+        } catch (_) {
+            showAlert(flashType === "warning" ? "lr-page-error" : "lr-page-success", flashMessage);
+            try { sessionStorage.removeItem("agritimbang_calculator_prefill"); } catch (_) {}
+            window.scrollTo({ top: 0, behavior: "smooth" });
+            return;
+        }
 
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth",
-        });
+        try { sessionStorage.removeItem("agritimbang_calculator_prefill"); } catch (_) {}
+        window.location.assign("/livestock");
     } catch (error) {
         const data = error?.response?.data;
 
@@ -549,7 +700,7 @@ async function submitRegistration(event) {
             showValidationErrors(data?.errors);
         }
 
-        showAlert("lr-page-error", getError(error));
+        showAlert("lr-page-error", `Livestock registration failed: ${getError(error)}`);
 
         window.scrollTo({
             top: 0,
@@ -562,12 +713,30 @@ async function submitRegistration(event) {
     }
 }
 
+
+function enforceTwoDecimalWeight(input) {
+    if (!input) return;
+    input.addEventListener("input", () => {
+        let value = String(input.value ?? "");
+        value = value.replace(/[^0-9.]/g, "");
+        const firstDot = value.indexOf(".");
+        if (firstDot !== -1) {
+            value = value.slice(0, firstDot + 1) + value.slice(firstDot + 1).replace(/\./g, "");
+            const [whole, decimal = ""] = value.split(".");
+            value = `${whole}.${decimal.slice(0, 2)}`;
+        }
+        if (input.value !== value) input.value = value;
+    });
+}
+
 /* =========================================================
    INITIALIZATION
 ========================================================= */
 
-function init() {
+async function init() {
     const form = $("lr-form");
+    if (!form) return;
+    enforceTwoDecimalWeight(form.querySelector('[name="actual_weight_kg"]'));
 
     $("lr-species").addEventListener("change", (event) => {
         clearAlerts();
@@ -607,7 +776,8 @@ function init() {
 
     syncReproductiveFields();
     calculateConditionAssessment();
-    loadSpecies();
+    await loadSpecies();
+    await applyCalculatorPrefill();
 }
 
 document.addEventListener("DOMContentLoaded", init);

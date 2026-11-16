@@ -74,13 +74,6 @@ class PriceAnalyticsService
             );
         }
 
-        if (!empty($filters['barangay_id'])) {
-            $query->where(
-                'transactions.barangay_id',
-                $filters['barangay_id']
-            );
-        }
-
         // A sale-purpose filter is intentionally not applied here.
         // Confirm whether LivestockRecord stores a sale_purpose
         // field before enabling purpose-specific recommendations.
@@ -108,7 +101,7 @@ class PriceAnalyticsService
             'municipality_id' => $municipalityId,
             'species_id' => $filters['species_id'],
             'breed_id' => $filters['breed_id'] ?? null,
-            'barangay_id' => $filters['barangay_id'] ?? null,
+            'barangay_id' => null,
             'sale_purpose' => $filters['sale_purpose'] ?? null,
             'sale_purpose_applied' => false,
             'week_start' => $weekStart->toDateString(),
@@ -128,18 +121,23 @@ class PriceAnalyticsService
     {
         $rows = PriceReference::query()
             ->where('status', 'official')
+            ->where('sale_purpose', '!=', 'piglet')
+            ->where(function ($query) {
+                $query->whereNull('reference_category')
+                    ->orWhere('reference_category', 'not like', 'Piglet%');
+            })
+            ->whereNull('barangay_id')
             ->when($municipalityId, fn($q) => $q->where('municipality_id', $municipalityId))
             ->when($speciesId, fn($q) => $q->where('species_id', $speciesId))
             ->when($breedId, fn($q) => $q->where('breed_id', $breedId))
             ->with(['species:id,name', 'breed:id,name'])
             ->orderBy('effective_from')->orderBy('id')
-            ->get(['id', 'municipality_id', 'barangay_id', 'species_id', 'breed_id', 'sale_purpose', 'price_per_kg', 'effective_from', 'effective_to']);
+            ->get(['id', 'municipality_id', 'species_id', 'breed_id', 'sale_purpose', 'price_per_kg', 'effective_from', 'effective_to']);
 
         return [
             'points' => $rows->map(fn($p) => [
                 'id' => $p->id,
                 'municipality_id' => $p->municipality_id,
-                'barangay_id' => $p->barangay_id,
                 'species_id' => $p->species_id,
                 'species_name' => $p->species?->name,
                 'breed_id' => $p->breed_id,

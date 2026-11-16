@@ -1,4 +1,5 @@
 import api from "../api";
+import { formatDateTime as sharedFormatDateTime } from "../utils/date-format";
 
 const $ = (id) => document.getElementById(id);
 
@@ -36,19 +37,7 @@ const label = (value) =>
         .replaceAll("_", " ")
         .replace(/\b\w/g, (character) => character.toUpperCase());
 
-const formatDate = (value) => {
-    if (!value) return "—";
-
-    const date = new Date(value);
-
-    return Number.isNaN(date.getTime())
-        ? String(value)
-        : new Intl.DateTimeFormat("en-PH", {
-              dateStyle: "medium",
-              timeStyle: "short",
-              timeZone: "Asia/Manila",
-          }).format(date);
-};
+const formatDate = (value) => sharedFormatDateTime(value);
 
 const errorMessage = (error) => {
     const response = error.response?.data;

@@ -7,6 +7,8 @@ use App\Models\LivestockRecord;
 use App\Models\User;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use App\Notifications\SystemAlertNotification;
 use Illuminate\Validation\ValidationException;
 
 class LivestockService
@@ -95,10 +97,12 @@ class LivestockService
                 'breed',
                 'municipality',
                 'barangay',
+                'latestWeightEstimation',
             ])
+            ->withCount(['weightEstimations', 'valuations'])
 
             ->latest()
-            ->paginate(20);
+            ->paginate(min(max((int) ($filters['per_page'] ?? 20), 1), 100));
     }
 
     public function getFarmerLivestockRecord(
@@ -117,6 +121,8 @@ class LivestockService
             'municipality',
             'barangay',
             'creator',
+            'latestWeightEstimation',
+            'latestValuation',
         ]);
     }
 
@@ -168,6 +174,7 @@ class LivestockService
 
                 'actual_weight_kg' =>
                     $data['actual_weight_kg'] ?? null,
+                'photo_path' => isset($data['photo']) ? $data['photo']->store('livestock', 'public') : null,
 
                 'municipality_id' =>
                     $farmer->municipality_id,
@@ -179,6 +186,8 @@ class LivestockService
 
                 'created_by' => $user->id,
             ]);
+
+            $this->notifyLivestockCreated($livestock->load('species'), $user);
 
             return $livestock->load([
                 'farmer.user',
@@ -203,11 +212,12 @@ class LivestockService
 
         $this->ensureEditable($livestock);
 
-        $data = $this->prepareLivestockUpdate(
-            $livestock,
-            $data
-        );
-
+        $data = $this->prepareLivestockUpdate($livestock, $data);
+        if (isset($data['photo'])) {
+            if ($livestock->photo_path) Storage::disk('public')->delete($livestock->photo_path);
+            $data['photo_path'] = $data['photo']->store('livestock', 'public');
+            unset($data['photo']);
+        }
         $livestock->update($data);
 
         return $livestock
@@ -259,6 +269,12 @@ class LivestockService
             ]);
         }
 
+        if ($status === 'archived' && $livestock->activeAuctionRegistration()->exists()) {
+            throw ValidationException::withMessages([
+                'status' => 'Withdraw this livestock from its active auction registration before archiving it.',
+            ]);
+        }
+
         $livestock->update([
             'status' => $status,
         ]);
@@ -274,6 +290,57 @@ class LivestockService
     */
 
 
+
+    public function deleteForFarmer(User $user, LivestockRecord $livestock): void
+    {
+        $this->ensureFarmerOwnsLivestock($user, $livestock);
+        $this->ensureEditable($livestock);
+        if ($livestock->status !== 'available') {
+            throw ValidationException::withMessages(['status' => 'Only available livestock can be deleted.']);
+        }
+        if ($livestock->transactionItems()->exists()) {
+            throw ValidationException::withMessages(['livestock' => 'This livestock has transaction history and cannot be deleted. Archive it instead.']);
+        }
+        if ($livestock->auctionRegistrations()->exists()) {
+            throw ValidationException::withMessages(['livestock' => 'This livestock has auction registration history and cannot be deleted. Archive it instead.']);
+        }
+        DB::transaction(function () use ($livestock) {
+            // Preserve referential integrity: valuations reference weight estimations.
+            $livestock->valuations()->delete();
+            $livestock->weightEstimations()->delete();
+            if ($livestock->photo_path) Storage::disk('public')->delete($livestock->photo_path);
+            $livestock->delete();
+        });
+    }
+
+    private function notifyLivestockCreated(LivestockRecord $livestock, User $farmerUser): void
+    {
+        $notification = new SystemAlertNotification(
+            'livestock.created',
+            'Bag-ong hayop nairehistro',
+            'A new livestock record was added to your AgriTimbang account.',
+            (string) $livestock->municipality_id,
+            'livestock',
+            (string) $livestock->id
+        );
+        $farmerUser->notify($notification);
+
+        $officers = User::query()
+            ->where('status', 'active')
+            ->whereHas('roles', fn ($q) => $q->whereIn('slug', ['lgu_encoder', 'lgu_authority']))
+            ->whereHas('lguOfficerProfile', fn ($q) => $q->where('municipality_id', $livestock->municipality_id))
+            ->get();
+        foreach ($officers as $officer) {
+            $officer->notify(new SystemAlertNotification(
+                'livestock.created',
+                'Bag-ong livestock record',
+                'A farmer registered a new ' . ($livestock->species?->name ?? 'livestock') . ' record. Please review it when needed.',
+                (string) $livestock->municipality_id,
+                'livestock',
+                (string) $livestock->id
+            ));
+        }
+    }
 
     public function getMunicipalityLivestock(
         User $user,
@@ -291,7 +358,9 @@ class LivestockService
                 'breed',
                 'municipality',
                 'barangay',
-            ]);
+                'latestWeightEstimation',
+            ])
+            ->withCount(['weightEstimations', 'valuations']);
 
         // LGU users are always restricted to their municipality.
         if (!$isAdmin) {
@@ -357,10 +426,13 @@ class LivestockService
         User $encoder,
         LivestockRecord $livestock
     ): LivestockRecord {
-        $this->ensureSameMunicipality(
-            $encoder,
-            $livestock
-        );
+        $isAdmin = $encoder->roles()
+            ->where('slug', 'admin')
+            ->exists();
+
+        if (!$isAdmin) {
+            $this->ensureSameMunicipality($encoder, $livestock);
+        }
 
         return $livestock->load([
             'farmer.user',
@@ -369,6 +441,8 @@ class LivestockService
             'municipality',
             'barangay',
             'creator',
+            'latestWeightEstimation',
+            'latestValuation',
         ]);
     }
 
@@ -476,6 +550,15 @@ class LivestockService
             $livestock,
             $data
         );
+
+        if (isset($data['photo'])) {
+            $newPhotoPath = $data['photo']->store('livestock', 'public');
+            if ($livestock->photo_path) {
+                Storage::disk('public')->delete($livestock->photo_path);
+            }
+            $data['photo_path'] = $newPhotoPath;
+            unset($data['photo']);
+        }
 
         $livestock->update($data);
 

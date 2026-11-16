@@ -14,19 +14,37 @@ class ArimaEngine
             throw new RuntimeException('ARIMA Python script is missing.');
         }
 
-        $process = new Process([
-            config('forecast.python_binary', 'python'),
-            $script,
-        ]);
-        $process->setInput(json_encode([
+        $payload = json_encode([
             'prices' => $prices,
             'weeks' => $weeks,
-        ], JSON_THROW_ON_ERROR));
-        $process->setTimeout((int) config('forecast.timeout_seconds', 30));
-        $process->run();
+        ], JSON_THROW_ON_ERROR);
+        $configuredBinary = (string) config('forecast.python_binary', 'python');
+        $binaries = array_values(array_unique(array_filter([
+            $configuredBinary,
+            $configuredBinary === 'python' ? 'python3' : null,
+        ])));
+        $process = null;
+        $lastError = 'Python process could not be started.';
 
-        if (!$process->isSuccessful()) {
-            throw new RuntimeException('ARIMA process failed: '.mb_substr(trim($process->getErrorOutput()), 0, 400));
+        foreach ($binaries as $binary) {
+            $candidate = new Process([$binary, $script]);
+            $candidate->setInput($payload);
+            $candidate->setTimeout((int) config('forecast.timeout_seconds', 30));
+            try {
+                $candidate->run();
+            } catch (\Throwable $exception) {
+                $lastError = $exception->getMessage();
+                continue;
+            }
+            $process = $candidate;
+            if ($candidate->isSuccessful()) {
+                break;
+            }
+            $lastError = trim($candidate->getErrorOutput()) ?: trim($candidate->getOutput());
+        }
+
+        if (!$process || !$process->isSuccessful()) {
+            throw new RuntimeException('ARIMA process failed: '.mb_substr($lastError, 0, 400));
         }
 
         try {

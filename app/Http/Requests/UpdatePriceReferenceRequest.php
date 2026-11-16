@@ -15,13 +15,6 @@ class UpdatePriceReferenceRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'barangay_id' => [
-                'sometimes',
-                'nullable',
-                'uuid',
-                'exists:barangays,id',
-            ],
-
             'species_id' => [
                 'sometimes',
                 'uuid',
@@ -99,31 +92,6 @@ class UpdatePriceReferenceRequest extends FormRequest
                     $priceReference->species_id
                 );
 
-                $barangayId = $this->has('barangay_id')
-                    ? $this->input('barangay_id')
-                    : $priceReference->barangay_id;
-
-                $breedId = $this->has('breed_id')
-                    ? $this->input('breed_id')
-                    : $priceReference->breed_id;
-
-                if ($barangayId) {
-                    $validBarangay = \App\Models\Barangay::query()
-                        ->whereKey($barangayId)
-                        ->where(
-                            'municipality_id',
-                            $profile->municipality_id
-                        )
-                        ->where('is_active', true)
-                        ->exists();
-
-                    if (!$validBarangay) {
-                        $validator->errors()->add(
-                            'barangay_id',
-                            'The selected barangay is invalid for your municipality.'
-                        );
-                    }
-                }
 
                 $validSpecies = \App\Models\Species::query()
                     ->whereKey($speciesId)
@@ -136,6 +104,8 @@ class UpdatePriceReferenceRequest extends FormRequest
                         'The selected species is inactive.'
                     );
                 }
+
+                $breedId = $this->input('breed_id', $priceReference->breed_id);
 
                 if ($breedId) {
                     $validBreed = \App\Models\Breed::query()
@@ -152,27 +122,27 @@ class UpdatePriceReferenceRequest extends FormRequest
                     }
                 }
 
-                $from = $this->input(
-                    'effective_from',
-                    $priceReference->effective_from
-                );
 
-                $to = $this->has('effective_to')
-                    ? $this->input('effective_to')
-                    : $priceReference->effective_to;
-
-                if ($from && $to && strtotime($to) < strtotime($from)) {
-                    $validator->errors()->add(
-                        'effective_to',
-                        'The effective end date cannot be before the start date.'
-                    );
-                }
             },
         ];
     }
 
     protected function prepareForValidation(): void
     {
+        $this->merge(['barangay_id' => null]);
+
+        $effectiveFrom = $this->input(
+            'effective_from',
+            $this->route('priceReference')?->effective_from?->toDateString()
+        );
+        if ($effectiveFrom) {
+            $this->merge([
+                'effective_to' => \Carbon\CarbonImmutable::parse($effectiveFrom)
+                    ->endOfWeek(\Carbon\Carbon::SUNDAY)
+                    ->toDateString(),
+            ]);
+        }
+
         if ($this->has('source')) {
             $this->merge([
                 'source' => trim((string) $this->source),

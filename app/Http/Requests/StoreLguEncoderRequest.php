@@ -35,7 +35,7 @@ class StoreLguEncoderRequest extends FormRequest
 
             'email' => [
                 'required',
-                'email',
+                'email:rfc',
                 'max:255',
                 'unique:users,email',
             ],
@@ -43,7 +43,8 @@ class StoreLguEncoderRequest extends FormRequest
             'phone_number' => [
                 'nullable',
                 'string',
-                'max:20',
+                \App\Support\ContactValidationRules::philippineMobile(),
+                'max:13',
             ],
 
             'station' => [

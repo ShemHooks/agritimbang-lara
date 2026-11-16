@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class LivestockRecord extends Model
 {
@@ -23,6 +24,7 @@ class LivestockRecord extends Model
         'sale_purpose',
         'condition_score',
         'actual_weight_kg',
+        'photo_path',
         'municipality_id',
         'barangay_id',
         'status',
@@ -96,6 +98,14 @@ class LivestockRecord extends Model
     }
 
     /**
+     * Most recent weight estimation for this livestock.
+     */
+    public function latestWeightEstimation(): HasOne
+    {
+        return $this->hasOne(WeightEstimation::class, 'livestock_id')->latestOfMany('created_at');
+    }
+
+    /**
      * Valuation history for this livestock.
      */
     public function valuations(): HasMany
@@ -103,8 +113,26 @@ class LivestockRecord extends Model
         return $this->hasMany(Valuation::class, 'livestock_id');
     }
 
+    /**
+     * Most recent saved valuation for this livestock.
+     */
+    public function latestValuation(): HasOne
+    {
+        return $this->hasOne(Valuation::class, 'livestock_id')->latestOfMany('created_at');
+    }
+
     public function transactionItems(): HasMany
     {
         return $this->hasMany(TransactionItem::class, 'livestock_id');
+    }
+
+    public function auctionRegistrations(): HasMany
+    {
+        return $this->hasMany(AuctionRegistration::class, 'livestock_id');
+    }
+
+    public function activeAuctionRegistration()
+    {
+        return $this->hasOne(AuctionRegistration::class, 'active_livestock_id');
     }
 }

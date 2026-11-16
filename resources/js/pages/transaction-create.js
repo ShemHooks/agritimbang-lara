@@ -1,4 +1,5 @@
 import api from "../api";
+import { formatDate as sharedFormatDate } from "../utils/date-format";
 
 console.log("[AgriTimbang] Transaction module loaded");
 
@@ -92,30 +93,16 @@ function initializeTransactionPage() {
         state.busy = value;
 
         saveButton.disabled =
-            value || Boolean(state.draftId) || state.uncertain;
+            value || state.uncertain;
 
         submitButton.disabled = value || state.submitted || state.uncertain;
 
-        addButton.disabled = value || Boolean(state.draftId) || state.uncertain;
+        addButton.disabled = value || state.uncertain;
 
         for (const row of state.rows.values()) {
             row.remove.disabled =
-                value || Boolean(state.draftId) || state.uncertain;
+                value || state.uncertain;
         }
-    }
-
-    function lockForm() {
-        form.querySelectorAll("input, select, textarea").forEach((el) => {
-            el.disabled = true;
-        });
-
-        for (const row of state.rows.values()) {
-            row.remove.disabled = true;
-        }
-
-        addButton.disabled = true;
-        saveButton.disabled = true;
-        saveButton.textContent = "Draft Saved";
     }
 
     function updateTotal() {
@@ -185,7 +172,7 @@ function initializeTransactionPage() {
 
             console.log("[Transactions] Livestock response:", response.data);
 
-            state.livestock = collection(unwrap(response));
+            state.livestock = collection(unwrap(response)).filter((animal) => String(animal.status || "").toLowerCase() === "available");
 
             refreshLivestockOptions();
 
@@ -247,7 +234,7 @@ function initializeTransactionPage() {
                 const amount = money.format(Number(valuation.estimated_value));
 
                 const date = valuation.created_at
-                    ? new Date(valuation.created_at).toLocaleDateString("en-PH")
+                    ? sharedFormatDate(valuation.created_at)
                     : "";
 
                 row.valuation.add(
@@ -285,7 +272,6 @@ function initializeTransactionPage() {
     function addRow() {
         if (
             state.busy ||
-            state.draftId ||
             state.uncertain ||
             state.rows.size >= 50
         ) {
@@ -355,7 +341,7 @@ function initializeTransactionPage() {
         row.price.addEventListener("input", updateTotal);
 
         row.remove.addEventListener("click", () => {
-            if (state.busy || state.draftId || state.uncertain) return;
+            if (state.busy || state.uncertain) return;
 
             state.rows.delete(id);
             element.remove();
@@ -435,8 +421,14 @@ function initializeTransactionPage() {
 
         console.log("[Transactions] Draft created:", state.draftId);
 
-        lockForm();
+        return state.draftId;
+    }
 
+    async function updateDraft() {
+        const payload = buildPayload();
+        const response = await api.patch(`/farmer/transactions/${encodeURIComponent(state.draftId)}`, payload);
+        const transaction = unwrap(response);
+        if (!transaction?.id) throw new Error("The updated draft could not be confirmed.");
         return state.draftId;
     }
 
@@ -470,6 +462,8 @@ function initializeTransactionPage() {
         try {
             if (!state.draftId) {
                 await createDraft();
+            } else {
+                await updateDraft();
             }
 
             if (shouldSubmit) {
@@ -508,11 +502,6 @@ function initializeTransactionPage() {
         } finally {
             setBusy(false);
 
-            if (state.draftId) {
-                saveButton.disabled = true;
-                addButton.disabled = true;
-            }
-
             if (state.submitted || state.uncertain) {
                 submitButton.disabled = true;
             }
@@ -538,6 +527,38 @@ function initializeTransactionPage() {
     // Initialization
     // --------------------------------------------------
 
+    async function loadDraftFromUrl() {
+        const draftId = new URLSearchParams(window.location.search).get("draft");
+        if (!draftId) return;
+
+        const response = await api.get(`/farmer/transactions/${encodeURIComponent(draftId)}`);
+        const draft = unwrap(response);
+        if (draft.status !== "draft" || draft.source !== "farmer") {
+            throw new Error("Only your own saved draft can be edited.");
+        }
+
+        state.draftId = draft.id;
+        form.querySelector('[name="buyer_name"]').value = draft.buyer_name || "";
+        form.querySelector('[name="buyer_phone"]').value = draft.buyer_phone || "";
+        form.querySelector('[name="transaction_date"]').value = draft.transaction_date ? String(draft.transaction_date).slice(0, 10) : "";
+        form.querySelector('[name="remarks"]').value = draft.remarks || "";
+        state.rows.clear();
+        itemsContainer.replaceChildren();
+
+        for (const item of (draft.items || [])) {
+            addRow();
+            const row = [...state.rows.values()].at(-1);
+            row.livestock.value = String(item.livestock_id);
+            await loadValuations(row);
+            row.valuation.value = String(item.valuation_id);
+            row.price.value = Number(item.actual_selling_price || 0).toFixed(2);
+        }
+
+        refreshLivestockOptions();
+        updateTotal();
+        showAlert("Editing saved draft. Update the details, then choose Save Draft or Submit.", "success");
+    }
+
     async function initialize() {
         console.log("[Transactions] Initializing page...");
 
@@ -557,6 +578,7 @@ function initializeTransactionPage() {
 
         // Fetch livestock independently.
         await loadLivestock();
+        await loadDraftFromUrl();
 
         console.log("[Transactions] Initialization complete");
     }

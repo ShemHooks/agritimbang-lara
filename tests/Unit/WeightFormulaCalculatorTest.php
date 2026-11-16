@@ -17,7 +17,7 @@ class WeightFormulaCalculatorTest extends TestCase
                 'CATTLE_SCHAEFFER',
                 ['heart_girth_cm' => 150, 'body_length_cm' => 120],
                 ['heart_girth_cm', 'body_length_cm'],
-                249.0775,
+                249.1191,
             ],
             'native hog' => [
                 'HOG_NATIVE_REGRESSION',
@@ -29,7 +29,13 @@ class WeightFormulaCalculatorTest extends TestCase
                 'HOG_COMMERCIAL_FALLBACK',
                 ['heart_girth_cm' => 100, 'body_length_cm' => 100],
                 ['heart_girth_cm', 'body_length_cm'],
-                69.3,
+                69.1998,
+            ],
+            'unspecified-breed hog below 150 lb includes 7 lb adjustment' => [
+                'HOG_COMMERCIAL_FALLBACK',
+                ['heart_girth_cm' => 80, 'body_length_cm' => 70],
+                ['heart_girth_cm', 'body_length_cm'],
+                34.1766,
             ],
             'adult goat' => [
                 'GOAT_BARILI_ADULT',
@@ -49,7 +55,7 @@ class WeightFormulaCalculatorTest extends TestCase
                 'GOAT_YOUNG_FALLBACK',
                 ['heart_girth_cm' => 60, 'body_length_cm' => 50],
                 ['heart_girth_cm', 'body_length_cm'],
-                16.6082,
+                16.6079,
             ],
             'Murrah carabao' => [
                 'CARABAO_MURRAH_REGRESSION',
@@ -61,7 +67,7 @@ class WeightFormulaCalculatorTest extends TestCase
                 'CARABAO_NATIVE_FALLBACK',
                 ['heart_girth_cm' => 150, 'body_length_cm' => 120],
                 ['heart_girth_cm', 'body_length_cm'],
-                249.0775,
+                249.1191,
             ],
         ];
     }

@@ -37,13 +37,24 @@ class ImportCebuBarangays extends Command
                 if (strcasecmp(trim($p['ADM2_EN'] ?? ''), 'Cebu') !== 0) {
                     throw new RuntimeException("Feature {$index} is not in Cebu.");
                 }
+                // Pilot scope: Barili only. Future municipalities can be added deliberately.
+                if (strcasecmp(trim($p['ADM3_EN'] ?? ''), 'Barili') !== 0) {
+                    continue;
+                }
                 $munCode = preg_replace('/^PH/i', '', trim((string) ($p['ADM3_PCODE'] ?? '')));
+
+                // Normalize 7-digit municipality codes to the official
+                // 10-digit PSGC representation.
+                if (preg_match('/^\d{7}$/', $munCode)) {
+                    $munCode .= '000';
+                }
+
                 $barCode = trim((string) ($p['psgc_code'] ?? ''));
                 $munName = trim((string) ($p['ADM3_EN'] ?? ''));
                 $barName = trim((string) ($p['ADM4_EN'] ?? ''));
                 $g = $feature['geometry'] ?? null;
                 if (
-                    !preg_match('/^\d{7,10}$/', $munCode) || !preg_match('/^\d{10}$/', $barCode)
+                    !preg_match('/^\d{10}$/', $munCode) || !preg_match('/^\d{10}$/', $barCode)
                     || $munName === '' || $barName === '' || !is_array($g)
                     || !in_array($g['type'] ?? null, ['Polygon', 'MultiPolygon'], true)
                     || empty($g['coordinates']) || !is_array($g['coordinates'])

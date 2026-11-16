@@ -112,7 +112,7 @@ class ForecastService
             'species_id' => $speciesId,
             'sale_purpose' => $salePurpose,
             'unit' => 'PHP/kg',
-            'model' => 'ARIMA',
+            'model' => $result['model'] ?? 'ARIMA',
             'order' => $result['order'],
             'historical' => $history,
             'forecast' => $forecast,

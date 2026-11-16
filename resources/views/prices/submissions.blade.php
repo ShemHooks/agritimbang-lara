@@ -19,7 +19,7 @@
                 </p>
             </div>
 
-            <a href="{{ route('prices.index') }}" class="price-history-secondary">
+            <a href="{{ route('prices.index') }}" id="history-back-link" class="price-history-secondary">
                 Back to Prices
             </a>
         </header>
@@ -66,7 +66,7 @@
                         Refresh
                     </button>
 
-                    <a href="{{ route('prices.create') }}" class="price-history-primary">
+                    <a href="{{ route('prices.create') }}" id="history-new-price" class="price-history-primary">
                         + New Price
                     </a>
                 </div>
@@ -124,6 +124,7 @@
                             <th>Price / kg</th>
                             <th>Submitted By</th>
                             <th>Submitted At</th>
+                            <th>Reviewed / Decided By</th>
                             <th>Status</th>
                             <th>Actions</th>
                         </tr>
@@ -131,7 +132,7 @@
 
                     <tbody id="history-table-body">
                         <tr>
-                            <td colspan="8" class="price-history-empty">
+                            <td colspan="9" class="price-history-empty">
                                 Loading submission history...
                             </td>
                         </tr>

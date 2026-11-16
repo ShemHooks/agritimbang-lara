@@ -442,6 +442,39 @@
 
 .lm-map-actions {
     justify-content: flex-end;
+    align-items: end;
+    gap: 10px;
+}
+
+.lm-map-filter {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 135px;
+    color: #607265;
+    font-size: 10px;
+    font-weight: 750;
+}
+
+.lm-map-filter select,
+.lm-map-filter input {
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+    padding: 8px 11px;
+    border: 1px solid #dce5dc;
+    border-radius: 9px;
+    background: #fff;
+    color: #354b3c;
+    font: inherit;
+    font-size: 12px;
+    box-sizing: border-box;
+}
+
+.lm-map-filter select:focus,
+.lm-map-filter input:focus {
+    outline: 2px solid #8dbd94;
+    outline-offset: 2px;
 }
 
 /* Main map container — 720px desktop */
@@ -582,6 +615,11 @@
 
 .lm-density-high {
     background: #347e4e;
+}
+
+.lm-density-none {
+    background: #edf2ed;
+    border: 1px solid #d5dfd6;
 }
 
 #lm-map-summary {

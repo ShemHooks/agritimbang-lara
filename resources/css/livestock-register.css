@@ -338,8 +338,9 @@
 
 .lr-assessment-result {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
+    grid-template-columns: minmax(150px, .8fr) minmax(180px, .9fr) minmax(320px, 1.6fr);
+    align-items: stretch;
+    gap: 18px;
     margin-top: 30px;
     padding: 25px;
     background: #f1f6ee;
@@ -363,12 +364,80 @@
     color: #6d806f;
 }
 
-@media (max-width: 768px) {
-    .lr-assessment-options {
-        grid-template-columns: 1fr;
-    }
-
+@media (max-width: 900px) {
     .lr-assessment-result {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
     }
+    .lr-assessment-legend { grid-column: 1 / -1; }
 }
+
+@media (max-width: 768px) {
+    .lr-assessment-options { grid-template-columns: 1fr; }
+    .lr-assessment-result { grid-template-columns: 1fr; }
+    .lr-assessment-legend { grid-column: auto; }
+}
+
+
+/* Body-condition checklist score legend */
+.lr-assessment-legend {
+    margin: 0;
+    padding: 14px;
+    border: 1px solid #dce8df;
+    border-radius: 12px;
+    background: #f8fbf8;
+}
+.lr-assessment-legend h4 {
+    margin: 0 0 12px;
+    color: #244d2d;
+    font-size: 14px;
+}
+.lr-assessment-legend-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+.lr-assessment-legend-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px;
+    border: 1px solid #e0e9e2;
+    border-radius: 9px;
+    background: #fff;
+}
+.lr-assessment-legend-grid strong {
+    color: #16845b;
+    font-size: 16px;
+}
+.lr-assessment-legend-grid span,
+.lr-assessment-legend small {
+    color: #66786b;
+    font-size: 12px;
+    line-height: 1.45;
+}
+.lr-assessment-legend small {
+    display: block;
+    margin-top: 11px;
+}
+@media (max-width: 760px) {
+    .lr-assessment-legend-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.lr-calculator-summary {
+    margin: 0 0 18px;
+    padding: 16px 18px;
+    border: 1px solid #d7e7d6;
+    border-radius: 14px;
+    background: #f5faf3;
+    color: #34523a;
+}
+.lr-calculator-summary[hidden] { display: none !important; }
+.lr-calculator-summary h3 { margin: 0 0 8px; font-size: 15px; }
+.lr-calculator-summary p { margin: 5px 0; font-weight: 600; }
+.lr-calculator-summary small { display: block; margin-top: 7px; color: #667b69; }
+
+.lr-calculator-estimated-weight-field { display: block; margin: 10px 0; max-width: 360px; }
+.lr-calculator-estimated-weight-field input[readonly] { background: #f1f5f2; font-weight: 700; }
+
+#lr-valuation-estimate-field[hidden] { display: none !important; }
+#lr-estimated-weight, #lr-valuation-estimated-value { background: #f3f7f3; font-weight: 700; }

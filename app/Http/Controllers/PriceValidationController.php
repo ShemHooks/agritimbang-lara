@@ -23,7 +23,6 @@ class PriceValidationController extends BaseController
                 $request->only([
                     'species_id',
                     'breed_id',
-                    'barangay_id',
                     'sale_purpose',
                 ])
             );

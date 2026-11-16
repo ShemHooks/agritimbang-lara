@@ -45,6 +45,26 @@ class LguTransactionVerificationService
 
             $this->authorizeOfficer($officer, $transaction);
 
+            // Older confirmed farmer transactions may still carry the legacy
+            // "pending" status. Normalize them at decision time only after a
+            // confirmed buyer acknowledgement exists.
+            if (
+                $transaction->status === 'pending' &&
+                $transaction->buyerConfirmations()
+                    ->where('status', 'confirmed')
+                    ->exists()
+            ) {
+                $transaction->update(['status' => 'pending_lgu_verification']);
+                $transaction->statusLogs()->create([
+                    'from_status' => 'pending',
+                    'to_status' => 'pending_lgu_verification',
+                    'actor_type' => 'system',
+                    'actor_user_id' => null,
+                    'remarks' => 'Legacy confirmed transaction moved into the LGU review queue.',
+                ]);
+                $transaction->refresh();
+            }
+
             $hasActiveDispute = $transaction->disputes()
                 ->whereIn('status', ['open', 'under_review'])
                 ->exists();
@@ -154,8 +174,21 @@ class LguTransactionVerificationService
             'An active, verified LGU officer is required.'
         );
 
+        $transactionMunicipalityId = $transaction->municipality_id;
+        $farmerMunicipalityId = $transaction->farmer?->municipality_id;
+
+        // Some older farmer-created records relied on the farmer profile for
+        // municipality scope. Safely backfill a missing transaction municipality
+        // from that profile before applying the same municipality boundary.
+        if (!$transactionMunicipalityId && $farmerMunicipalityId) {
+            $transaction->forceFill([
+                'municipality_id' => $farmerMunicipalityId,
+            ])->save();
+            $transactionMunicipalityId = $farmerMunicipalityId;
+        }
+
         abort_unless(
-            $profile->municipality_id === $transaction->municipality_id,
+            (string) $profile->municipality_id === (string) $transactionMunicipalityId,
             403,
             'Transaction is outside your municipality.'
         );

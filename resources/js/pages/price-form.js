@@ -68,6 +68,41 @@ function localDateString() {
     ].join("-");
 }
 
+// Return the Sunday that closes the Monday-Sunday week containing dateValue.
+function weeklyEffectiveTo(dateValue) {
+    if (!dateValue) return "";
+
+    const [year, month, day] = dateValue.split("-").map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    const daysUntilSunday = (7 - date.getUTCDay()) % 7;
+    date.setUTCDate(date.getUTCDate() + daysUntilSunday);
+
+    return [
+        date.getUTCFullYear(),
+        String(date.getUTCMonth() + 1).padStart(2, "0"),
+        String(date.getUTCDate()).padStart(2, "0"),
+    ].join("-");
+}
+
+function addDateDays(dateValue, days) {
+    if (!dateValue) return "";
+    const [year, month, day] = dateValue.split("-").map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    date.setUTCDate(date.getUTCDate() + days);
+    return [
+        date.getUTCFullYear(),
+        String(date.getUTCMonth() + 1).padStart(2, "0"),
+        String(date.getUTCDate()).padStart(2, "0"),
+    ].join("-");
+}
+
+function syncWeeklyEffectiveTo() {
+    const start = $("price-effective-from").value;
+    const end = $("price-effective-to");
+    end.value = weeklyEffectiveTo(start);
+    end.min = start || "";
+}
+
 function resolveRoles(payload) {
     const user = payload?.user ?? payload;
 
@@ -155,6 +190,12 @@ function setFormDisabled(disabled) {
 function populateSelect(id, records, placeholder) {
     const select = $(id);
 
+    // Optional controls may be absent on municipality-wide price forms.
+    if (!select) {
+        console.warn(`[AgriTimbang] Skipping missing optional select: #${id}`);
+        return false;
+    }
+
     select.replaceChildren(new Option(placeholder, ""));
 
     records.forEach((record) => {
@@ -196,24 +237,6 @@ async function loadBreeds(speciesId, selectedBreedId = "") {
     $("price-breed").disabled = false;
 }
 
-async function loadBarangays() {
-    if (!state.municipalityId) {
-        throw new Error("Your LGU account has no assigned municipality.");
-    }
-
-    const response = await api.get(
-        `/reference/municipalities/${encodeURIComponent(
-            state.municipalityId,
-        )}/barangays`,
-    );
-
-    populateSelect(
-        "price-barangay",
-        normalizeRecords(unwrap(response)),
-        "Municipality-wide",
-    );
-}
-
 // ---------------------------------------------------------------------
 // Existing draft
 // ---------------------------------------------------------------------
@@ -248,9 +271,9 @@ async function loadExistingPrice() {
 
     $("price-effective-from").value = normalizeDate(record.effective_from);
 
-    $("price-effective-to").value = normalizeDate(record.effective_to);
-
-    $("price-effective-to").min = $("price-effective-from").value;
+    // Recalculate from the selected start date so old drafts also follow
+    // the Monday-Sunday weekly rule.
+    syncWeeklyEffectiveTo();
 
     $("price-source").value = record.source ?? "";
     $("price-remarks").value = record.remarks ?? "";
@@ -270,9 +293,10 @@ function collectPayload() {
         sale_purpose: data.get("sale_purpose") || null,
         price_per_kg: data.get("price_per_kg") || null,
         effective_from: data.get("effective_from") || null,
-        effective_to: data.get("effective_to") || null,
+        effective_to: weeklyEffectiveTo(data.get("effective_from") || "") || null,
         source: String(data.get("source") || "").trim(),
         remarks: String(data.get("remarks") || "").trim() || null,
+        recommendation_id: data.get("recommendation_id") || null,
     };
 }
 
@@ -328,6 +352,8 @@ async function savePrice(event) {
     clearNotice();
     clearFieldErrors();
 
+    const action = event.submitter?.dataset?.priceAction || "draft";
+    const shouldSubmit = action === "submit";
     const payload = collectPayload();
     const errors = validatePayload(payload);
 
@@ -339,20 +365,44 @@ async function savePrice(event) {
 
     state.saving = true;
 
-    const button = $("price-form-submit");
-    const originalText = button.textContent;
+    const form = $("price-reference-form");
+    const actionButtons = Array.from(form.querySelectorAll('button[type="submit"]'));
+    const originalLabels = actionButtons.map((button) => button.textContent);
 
-    button.disabled = true;
-    button.textContent = "Saving...";
+    actionButtons.forEach((button) => {
+        button.disabled = true;
+        if (button.dataset.priceAction === action) {
+            button.textContent = shouldSubmit ? "Submitting..." : "Saving...";
+        }
+    });
 
     try {
+        let savedRecord = null;
+
         if (isEditing()) {
-            await api.patch(
+            const response = await api.patch(
                 `/lgu/price-references/${encodeURIComponent(state.priceId)}`,
                 payload,
             );
+            savedRecord = unwrap(response);
         } else {
-            await api.post("/lgu/price-references", payload);
+            const response = await api.post("/lgu/price-references", payload);
+            savedRecord = unwrap(response);
+            state.priceId = savedRecord?.id ?? savedRecord?.price_reference?.id ?? null;
+        }
+
+        if (shouldSubmit) {
+            const priceId = state.priceId ?? savedRecord?.id ?? savedRecord?.price_reference?.id;
+
+            if (!priceId) {
+                throw new Error(
+                    "The draft was saved, but its ID was not returned. Open Drafts and submit it from there.",
+                );
+            }
+
+            await api.post(
+                `/lgu/price-references/${encodeURIComponent(priceId)}/submit`,
+            );
         }
 
         window.location.assign("/prices");
@@ -364,8 +414,10 @@ async function savePrice(event) {
         notify(errorMessage(error));
     } finally {
         state.saving = false;
-        button.disabled = false;
-        button.textContent = originalText;
+        actionButtons.forEach((button, index) => {
+            button.disabled = false;
+            button.textContent = originalLabels[index];
+        });
     }
 }
 
@@ -415,37 +467,97 @@ function createTextElement(tag, className, text) {
     return element;
 }
 
-function useRecommendedPrice(record) {
-    if (!record.available) return;
-
-    const price = Number(record.average_price_per_kg);
-
-    if (!Number.isFinite(price) || price <= 0) return;
-
-    const species = $("price-species");
-
-    if (
-        !Array.from(species.options).some(
-            (option) => option.value === record.species_id,
-        )
-    ) {
-        notify("The selected species is not available in the form.");
-        closePriceRecommendations();
+async function useRecommendedPrice(record) {
+    // Validate the complete form target BEFORE reserving the recommendation.
+    // This prevents a recommendation from being marked used when the UI cannot
+    // populate the corresponding price-reference fields.
+    const fields = {
+        species: $("price-species"),
+        purpose: $("price-purpose"),
+        effectiveFrom: $("price-effective-from"),
+        effectiveTo: $("price-effective-to"),
+        recommendationId: $("recommendation-id"),
+        source: $("price-source"),
+        remarks: $("price-remarks"),
+        amount: $("price-amount"),
+    };
+    const missingField = Object.entries(fields).find(([, element]) => !element);
+    if (missingField) {
+        notify(`Cannot use this recommendation because the price form is missing its ${missingField[0]} field. Refresh the page and try again.`);
         return;
     }
 
-    const speciesChanged = species.value !== record.species_id;
+    const recommendationId = String(record.id ?? "");
+    const speciesId = String(record.species_id ?? "");
+    const price = Number(record.recommended_price ?? record.average_price_per_kg);
 
-    species.value = record.species_id;
-
-    $("price-amount").value = price.toFixed(2);
-
-    if (speciesChanged) {
-        species.dispatchEvent(new Event("change", { bubbles: true }));
+    if (!recommendationId || !speciesId) {
+        notify("This recommendation is missing its ID or species. Refresh the recommendations and try again.");
+        return;
+    }
+    if (record.status !== "available" || record.used_at || record.price_reference_id) {
+        notify("This recommendation is no longer available. It may already have been used by another encoder.");
+        return;
+    }
+    if (!Number.isFinite(price) || price <= 0) {
+        notify("The recommended price is invalid.");
+        return;
     }
 
-    clearFieldErrors();
-    closePriceRecommendations();
+    const speciesOption = Array.from(fields.species.options).find(
+        (option) => String(option.value) === speciesId,
+    );
+    if (!speciesOption) {
+        notify("The selected species is not available in the price-reference form. Refresh the page and try again.");
+        return;
+    }
+
+    const button = document.activeElement instanceof HTMLButtonElement
+        ? document.activeElement
+        : null;
+    const originalLabel = button?.textContent ?? "Use this price";
+    if (button) {
+        button.disabled = true;
+        button.textContent = "Reserving...";
+    }
+
+    try {
+        const response = await api.post(
+            `/weekly-price-recommendations/${encodeURIComponent(recommendationId)}/use`,
+            {},
+        );
+        const reserved = unwrap(response);
+
+        if (reserved?.status !== "used" || !reserved?.used_at) {
+            throw new Error(
+                reserved?.message || "The recommendation could not be reserved. Refresh and try again.",
+            );
+        }
+
+        // Populate the form only after the server confirms the reservation.
+        fields.species.value = speciesId;
+        fields.purpose.value = record.sale_purpose;
+        // Sales observations belong to the completed week. The new official
+        // reference takes effect in the immediately following Monday-Sunday week.
+        fields.effectiveFrom.value = addDateDays(normalizeDate(record.week_start), 7);
+        fields.effectiveTo.value = addDateDays(normalizeDate(record.week_end), 7);
+        fields.recommendationId.value = recommendationId;
+        fields.source.value = "AgriTimbang Automatic Price Recommendation Engine";
+        fields.remarks.value = `Automatically generated from verified sales dated ${normalizeDate(record.week_start)} to ${normalizeDate(record.week_end)}. Effective period: ${fields.effectiveFrom.value} to ${fields.effectiveTo.value}. Recommendation ID: ${recommendationId}`;
+        fields.amount.value = price.toFixed(2);
+
+        fields.species.dispatchEvent(new Event("change", { bubbles: true }));
+        clearFieldErrors();
+        closePriceRecommendations();
+        notify("Recommended price reserved and added to your price-reference form. Save the draft or submit it for review to link the reservation.", "success");
+    } catch (error) {
+        notify(errorMessage(error));
+    } finally {
+        if (button?.isConnected) {
+            button.disabled = false;
+            button.textContent = originalLabel;
+        }
+    }
 }
 
 function createRecommendationRow(record) {
@@ -456,22 +568,22 @@ function createRecommendationRow(record) {
     info.className = "price-modal-item-info";
 
     info.append(
-        createTextElement("strong", "", record.species_name),
+        createTextElement("strong", "", `${record.species?.name ?? record.species_name ?? "Livestock"} · ${String(record.sale_purpose ?? "").replace(/\b\w/g, (letter) => letter.toUpperCase())}`),
         createTextElement(
             "span",
             "",
-            record.available
-                ? `${record.record_count} livestock sold`
-                : "No verified sales for this period",
+            record.status === "available"
+                ? `${record.included_count} included observations · ${record.excluded_count} excluded · ${record.sale_purpose}`
+                : `Insufficient data · ${record.included_count ?? 0} valid observations · ${record.sale_purpose}`,
         ),
     );
 
     const priceContainer = document.createElement("div");
     priceContainer.className = "price-modal-item-price";
 
-    const price = Number(record.average_price_per_kg);
+    const price = Number(record.recommended_price ?? record.average_price_per_kg);
 
-    const available = record.available && Number.isFinite(price) && price > 0;
+    const available = record.status === "available" && !record.used_at && !record.price_reference_id && Number.isFinite(price) && price > 0;
 
     priceContainer.append(
         createTextElement(
@@ -489,11 +601,64 @@ function createRecommendationRow(record) {
         button.textContent = "Use this price";
 
         button.addEventListener("click", () => {
-            useRecommendedPrice(record);
+            useRecommendedPrice(record).catch((error) => notify(errorMessage(error)));
         });
 
         priceContainer.append(button);
     }
+    const detailButton = document.createElement("button");
+    detailButton.type = "button";
+    detailButton.className = "price-modal-use";
+    detailButton.textContent = "View calculation";
+    detailButton.addEventListener("click", async () => {
+        try {
+            const response = await api.get(`/weekly-price-recommendations/${encodeURIComponent(record.id)}`);
+            const detail = unwrap(response);
+            const panel = document.createElement("div");
+            panel.className = "price-modal-calculation-detail";
+
+            const unit = "/kg";
+            const amount = (value) => value === null || value === undefined || value === ""
+                ? "—"
+                : `${currency.format(Number(value))}${unit}`;
+
+            const addCalculationRow = (label, value) => {
+                const line = document.createElement("div");
+                line.className = "price-modal-calculation-row";
+                line.append(
+                    createTextElement("span", "price-modal-calculation-label", label),
+                    createTextElement("strong", "price-modal-calculation-value", amount(value)),
+                );
+                panel.append(line);
+            };
+
+            addCalculationRow("IQR = Q3 − Q1", detail.iqr);
+            addCalculationRow("Lower bound = Q1 − 1.5 × IQR", detail.lower_bound);
+            addCalculationRow("Upper bound = Q3 + 1.5 × IQR", detail.upper_bound);
+            panel.append(
+                createTextElement("p", "price-modal-calculation-note", "Minimum required: 4 included observations."),
+                createTextElement(
+                    "p",
+                    "price-modal-calculation-note",
+                    `Current result: ${Number(detail.included_count ?? 0)} included, ${Number(detail.excluded_count ?? 0)} excluded;`,
+                ),
+                createTextElement(
+                    "p",
+                    "price-modal-calculation-formula",
+                    `Recommended price = sum of included observed prices ${unit} ÷ included observations.`,
+                ),
+                createTextElement(
+                    "p",
+                    "price-modal-calculation-recommended",
+                    `Recommended price: ${amount(detail.recommended_price ?? record.recommended_price)}.`,
+                ),
+            );
+            row.querySelector(".price-modal-calculation-detail")?.remove();
+            row.append(panel);
+            detailButton.disabled = false;
+        } catch (error) { notify(errorMessage(error)); }
+    });
+    priceContainer.append(detailButton);
 
     row.append(info, priceContainer);
 
@@ -502,11 +667,14 @@ function createRecommendationRow(record) {
 
 function renderRecommendations() {
     const container = $("price-modal-list");
+    const search = $("price-modal-search");
 
-    const query = $("price-modal-search").value.trim().toLowerCase();
+    if (!container || !search) return;
+
+    const query = search.value.trim().toLowerCase();
 
     const records = state.recommendations.filter((record) =>
-        String(record.species_name).toLowerCase().includes(query),
+        `${record.species?.name ?? record.species_name ?? ""} ${record.sale_purpose ?? ""}`.toLowerCase().includes(query),
     );
 
     container.replaceChildren();
@@ -517,8 +685,8 @@ function renderRecommendations() {
                 "p",
                 "price-modal-state",
                 state.recommendations.length
-                    ? "No matching livestock species."
-                    : "No active species available.",
+                    ? "No matching species or sale purpose."
+                    : "No recommendations are available for the previous completed week yet.",
             ),
         );
 
@@ -537,23 +705,17 @@ function renderRecommendations() {
 function updateRecommendationSummary(payload) {
     const records = state.recommendations;
 
-    const available = records.filter(
-        (record) => record.available && Number(record.average_price_per_kg) > 0,
-    );
-
-    const livestockCount = available.reduce(
-        (total, record) => total + Number(record.record_count || 0),
+    const includedCount = records.reduce(
+        (total, record) => total + Number(record.included_count || 0),
         0,
     );
 
-    $("price-modal-species-count").textContent =
-        `${available.length} / ${records.length}`;
+    $("price-modal-species-count").textContent = `${records.length} / 16`;
+    $("price-modal-livestock-count").textContent = String(includedCount);
 
-    $("price-modal-livestock-count").textContent = String(livestockCount);
-
-    if (payload.week_start && payload.week_end) {
+    if (records[0]?.week_start && records[0]?.week_end) {
         $("price-modal-period").textContent =
-            `Verified sales: ${payload.week_start} to ${payload.week_end}`;
+            `Verified sales: ${normalizeDate(records[0].week_start)} to ${normalizeDate(records[0].week_end)}`;
     }
 }
 
@@ -566,8 +728,10 @@ async function openPriceRecommendations() {
 
     state.recommendations = [];
 
-    $("price-modal-search").value = "";
-    $("price-modal-list").replaceChildren();
+    const search = $("price-modal-search");
+    const list = $("price-modal-list");
+    if (search) search.value = "";
+    if (list) list.replaceChildren();
 
     $("price-modal-error").hidden = true;
     $("price-modal-loading").hidden = false;
@@ -583,12 +747,7 @@ async function openPriceRecommendations() {
         const effectiveFrom =
             $("price-effective-from").value || localDateString();
 
-        const response = await api.get(
-            "/lgu/price-references/recommendations",
-            {
-                params: { effective_from: effectiveFrom },
-            },
-        );
+        const response = await api.get("/weekly-price-recommendations");
 
         if (requestId !== state.modalRequestId || !isModalOpen()) {
             return;
@@ -596,9 +755,7 @@ async function openPriceRecommendations() {
 
         const payload = unwrap(response);
 
-        state.recommendations = Array.isArray(payload.recommendations)
-            ? payload.recommendations
-            : [];
+        state.recommendations = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : []);
 
         updateRecommendationSummary(payload);
         renderRecommendations();
@@ -693,19 +850,11 @@ function bindEvents() {
         }
     });
 
-    $("price-effective-from").addEventListener("change", () => {
-        const start = $("price-effective-from").value;
-        const end = $("price-effective-to");
-
-        end.min = start;
-
-        if (end.value && end.value < start) {
-            end.value = "";
-        }
-    });
+    $("price-effective-from").addEventListener("change", syncWeeklyEffectiveTo);
 
     $("price-reference-form").addEventListener("submit", savePrice);
 
+    syncWeeklyEffectiveTo();
     bindRecommendationModal();
 }
 
@@ -747,11 +896,12 @@ async function init() {
             ? "Update this draft livestock price reference."
             : "Create a new livestock price reference for MAO review.";
 
-        $("price-form-submit").textContent = isEditing()
+        $("price-form-save-draft").textContent = isEditing()
             ? "Save Changes"
             : "Save Draft";
+        $("price-form-submit").textContent = "Submit for Review";
 
-        await Promise.all([loadSpecies(), loadBarangays()]);
+        await loadSpecies();
 
         if (isEditing()) {
             await loadExistingPrice();

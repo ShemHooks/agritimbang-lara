@@ -23,7 +23,8 @@ class StoreTransactionRequest extends FormRequest
             'buyer_phone' => [
                 'nullable',
                 'string',
-                'max:30',
+                \App\Support\ContactValidationRules::philippineMobile(),
+                'max:13',
             ],
 
             'transaction_date' => [

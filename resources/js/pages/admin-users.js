@@ -118,10 +118,13 @@ function closeModal() {
 }
 
 function formField(name, label, type = "text", required = false) {
+    const contactAttributes = type === "tel"
+        ? 'maxlength="13" pattern="(?:09[0-9]{9}|\\+639[0-9]{9})" title="Use 09XXXXXXXXX (11 digits) or +639XXXXXXXXX" placeholder="09XXXXXXXXX or +639XXXXXXXXX"'
+        : type === "email" ? 'maxlength="255" autocomplete="email"' : "";
     return `
         <label class="um-field">
-            <span>${escapeHtml(label)}</span>
-            <input name="${name}" type="${type}" ${required ? "required" : ""}>
+            <span>${label}${required ? " *" : ""}</span>
+            <input type="${type}" name="${name}" ${required ? "required" : ""} ${contactAttributes}>
         </label>
     `;
 }

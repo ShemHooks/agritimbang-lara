@@ -44,6 +44,26 @@ class DashboardTest extends AnalyticsTestCase
             ->assertJsonPath('data.verified_sales_total', 1200);
     }
 
+    public function test_dashboard_monthly_livestock_count_uses_created_at_not_all_time_total(): void
+    {
+        $municipality = $this->municipality();
+        $barangay = $this->barangay($municipality);
+        $farmer = $this->farmer($municipality, $barangay);
+        $species = $this->species();
+
+        $currentMonth = $this->livestock($farmer, $species, $municipality, $barangay, 'available');
+        $previousMonth = $this->livestock($farmer, $species, $municipality, $barangay, 'sold');
+        $previousMonth->forceFill([
+            'created_at' => now()->subMonth(),
+            'updated_at' => now()->subMonth(),
+        ])->save();
+
+        $this->authenticate('admin');
+        $this->getJson('/api/analytics/dashboard')->assertOk()
+            ->assertJsonPath('data.total_livestock', 2)
+            ->assertJsonPath('data.monthly_livestock_count', 1);
+    }
+
     public function test_lgu_dashboard_is_scoped_to_assigned_municipality(): void
     {
         $first = $this->municipality();

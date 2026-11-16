@@ -66,6 +66,8 @@ class UpdateLivestockRequest extends FormRequest
                 'between:1,5',
             ],
 
+            'photo' => ['sometimes', 'nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+
             'actual_weight_kg' => [
                 'sometimes',
                 'nullable',

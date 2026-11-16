@@ -228,6 +228,44 @@ class LguAuctionHouseService
             ->get();
     }
 
+
+    /**
+     * Return the active auction-house assignments for an encoder.
+     * An empty list is a valid state: municipality-level LGU work remains available.
+     */
+    public function encoderAssignmentStatus(User $encoder): array
+    {
+        $encoder->loadMissing(['roles', 'lguOfficerProfile']);
+
+        abort_unless(
+            $encoder->status === 'active' &&
+            $encoder->verification_status === 'verified' &&
+            $encoder->roles->contains('slug', 'lgu_encoder') &&
+            $encoder->lguOfficerProfile?->municipality_id,
+            403,
+            'An active, verified LGU Encoder with an assigned municipality is required.'
+        );
+
+        $houses = AuctionHouse::query()
+            ->join('auction_house_encoder_assignments as assignments', 'assignments.auction_house_id', '=', 'auction_houses.id')
+            ->where('assignments.user_id', $encoder->id)
+            ->where('assignments.is_active', true)
+            ->where('auction_houses.is_active', true)
+            ->where('auction_houses.municipality_id', $encoder->lguOfficerProfile->municipality_id)
+            ->orderBy('auction_houses.name')
+            ->get([
+                'auction_houses.id',
+                'auction_houses.name',
+                'auction_houses.municipality_id',
+            ]);
+
+        return [
+            'assigned' => $houses->isNotEmpty(),
+            'auction_houses' => $houses,
+            'municipality_id' => (string) $encoder->lguOfficerProfile->municipality_id,
+        ];
+    }
+
     public function eligibleEncoders(User $officer)
     {
         $municipalityId = $this->officerMunicipality($officer);

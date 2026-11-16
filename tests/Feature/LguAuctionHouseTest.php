@@ -33,8 +33,30 @@ class LguAuctionHouseTest extends TestCase
         ]);
 
         $role = Role::firstOrCreate(
-            ['slug' => 'lgu_officer'],
-            ['name' => 'LGU Officer']
+            ['slug' => 'lgu_authority'],
+            ['name' => 'LGU Authority']
+        );
+
+        $user->roles()->syncWithoutDetaching([$role->id]);
+
+        LguOfficerProfile::create([
+            'user_id' => $user->id,
+            'municipality_id' => $municipality->id,
+        ]);
+
+        return $user;
+    }
+
+    private function encoder(Municipality $municipality): User
+    {
+        $user = User::factory()->create([
+            'status' => 'active',
+            'verification_status' => 'verified',
+        ]);
+
+        $role = Role::firstOrCreate(
+            ['slug' => 'lgu_encoder'],
+            ['name' => 'LGU Encoder']
         );
 
         $user->roles()->syncWithoutDetaching([$role->id]);
@@ -145,7 +167,7 @@ class LguAuctionHouseTest extends TestCase
     {
         $municipality = $this->municipality();
         $officer = $this->officer($municipality);
-        $encoder = $this->officer($municipality);
+        $encoder = $this->encoder($municipality);
         $house = $this->house($municipality);
 
         $this->authenticate($officer);
@@ -169,7 +191,7 @@ class LguAuctionHouseTest extends TestCase
     {
         $municipality = $this->municipality();
         $officer = $this->officer($municipality);
-        $encoder = $this->officer($municipality);
+        $encoder = $this->encoder($municipality);
         $house = $this->house($municipality);
 
         $this->authenticate($officer);
@@ -190,6 +212,38 @@ class LguAuctionHouseTest extends TestCase
                 'is_active' => false,
             ]
         );
+    }
+
+    public function test_encoder_without_auction_house_assignment_has_valid_unassigned_status(): void
+    {
+        $municipality = $this->municipality();
+        $encoder = $this->encoder($municipality);
+
+        $this->authenticate($encoder);
+
+        $this->getJson('/api/lgu/encoder/auction-house-assignment')
+            ->assertOk()
+            ->assertJsonPath('data.assigned', false)
+            ->assertJsonCount(0, 'data.auction_houses');
+    }
+
+    public function test_encoder_assignment_status_lists_only_active_assigned_houses(): void
+    {
+        $municipality = $this->municipality();
+        $authority = $this->officer($municipality);
+        $encoder = $this->encoder($municipality);
+        $house = $this->house($municipality);
+
+        $this->authenticate($authority);
+        $this->postJson($this->assignUrl($house), [
+            'user_id' => $encoder->id,
+        ])->assertOk();
+
+        $this->authenticate($encoder);
+        $this->getJson('/api/lgu/encoder/auction-house-assignment')
+            ->assertOk()
+            ->assertJsonPath('data.assigned', true)
+            ->assertJsonPath('data.auction_houses.0.id', $house->id);
     }
 
     public function test_lgu_cannot_access_other_municipality_house(): void
@@ -214,7 +268,7 @@ class LguAuctionHouseTest extends TestCase
         $other = $this->municipality();
 
         $officer = $this->officer($own);
-        $encoder = $this->officer($other);
+        $encoder = $this->encoder($other);
         $house = $this->house($own);
 
         $this->authenticate($officer);
@@ -263,7 +317,7 @@ class LguAuctionHouseTest extends TestCase
     {
         $municipality = $this->municipality();
         $officer = $this->officer($municipality);
-        $encoder = $this->officer($municipality);
+        $encoder = $this->encoder($municipality);
         $house = $this->house($municipality, false);
 
         $this->authenticate($officer);
@@ -277,7 +331,7 @@ class LguAuctionHouseTest extends TestCase
     {
         $municipality = $this->municipality();
         $officer = $this->officer($municipality);
-        $encoder = $this->officer($municipality);
+        $encoder = $this->encoder($municipality);
         $house = $this->house($municipality);
 
         $this->authenticate($officer);

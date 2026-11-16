@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Barangay;
 use App\Models\LivestockRecord;
 use App\Models\Municipality;
+use App\Models\TransactionItem;
 use Illuminate\Support\Facades\DB;
 
 class GisService
@@ -44,7 +45,12 @@ class GisService
     public function geojson(
         ?string $municipalityId = null,
         ?string $speciesId = null,
-        bool $includeLivestock = false
+        bool $includeLivestock = false,
+        string $dataset = 'livestock',
+        ?string $status = null,
+        ?string $salePurpose = null,
+        ?string $dateFrom = null,
+        ?string $dateTo = null
     ): array {
         $barangays = Barangay::query()
             ->where('is_active', true)
@@ -75,16 +81,15 @@ class GisService
             ->orderBy('name')
             ->get();
 
-        $counts = $includeLivestock
-            ? $this->countsByBarangay(
-                $municipalityId,
-                $speciesId
-            )
-            : [];
-
-        $speciesCounts = $includeLivestock
-            ? $this->speciesCountsByBarangay($municipalityId, $speciesId)
-            : [];
+        $counts = [];
+        $speciesCounts = [];
+        if ($includeLivestock && $dataset === 'verified_sales') {
+            $counts = $this->verifiedSalesByBarangay($municipalityId, $speciesId, $salePurpose, $dateFrom, $dateTo);
+            $speciesCounts = $this->verifiedSalesSpeciesByBarangay($municipalityId, $speciesId, $salePurpose, $dateFrom, $dateTo);
+        } elseif ($includeLivestock) {
+            $counts = $this->countsByBarangay($municipalityId, $speciesId, $status);
+            $speciesCounts = $this->speciesCountsByBarangay($municipalityId, $speciesId, $status);
+        }
 
         $features = [];
 
@@ -115,15 +120,24 @@ class GisService
 
             if ($includeLivestock) {
                 $count = $counts[$barangay->id] ?? null;
-
-                $properties += [
-                    'total_livestock' => (int) ($count->total ?? 0),
-                    'available' => (int) ($count->available ?? 0),
-                    'in_transaction' => (int) ($count->in_transaction ?? 0),
-                    'sold' => (int) ($count->sold ?? 0),
-                    'archived' => (int) ($count->archived ?? 0),
-                    'by_species' => $speciesCounts[$barangay->id] ?? [],
-                ];
+                if ($dataset === 'verified_sales') {
+                    $properties += [
+                        'dataset' => 'verified_sales',
+                        'verified_transactions' => (int) ($count->transaction_count ?? 0),
+                        'verified_sales_total' => (float) ($count->sales_total ?? 0),
+                        'verified_items' => (int) ($count->item_count ?? 0),
+                        'by_species' => $speciesCounts[$barangay->id] ?? [],
+                    ];
+                } else {
+                    $properties += [
+                        'dataset' => 'livestock',
+                        'total_livestock' => (int) ($count->total ?? 0),
+                        'available' => (int) ($count->available ?? 0),
+                        'in_transaction' => (int) ($count->in_transaction ?? 0),
+                        'sold' => (int) ($count->sold ?? 0),
+                        'by_species' => $speciesCounts[$barangay->id] ?? [],
+                    ];
+                }
             }
 
             $features[] = [
@@ -178,7 +192,7 @@ class GisService
         ];
     }
 
-    private function countsByBarangay(?string $municipalityId, ?string $speciesId): array
+    private function countsByBarangay(?string $municipalityId, ?string $speciesId, ?string $status = null): array
     {
         return LivestockRecord::query()
             ->select('barangay_id')
@@ -186,13 +200,55 @@ class GisService
             ->selectRaw("SUM(CASE WHEN status = 'available' THEN 1 ELSE 0 END) as available")
             ->selectRaw("SUM(CASE WHEN status = 'in_transaction' THEN 1 ELSE 0 END) as in_transaction")
             ->selectRaw("SUM(CASE WHEN status = 'sold' THEN 1 ELSE 0 END) as sold")
-            ->selectRaw("SUM(CASE WHEN status = 'archived' THEN 1 ELSE 0 END) as archived")
             ->when($municipalityId, fn($query) => $query->where('municipality_id', $municipalityId))
             ->when($speciesId, fn($query) => $query->where('species_id', $speciesId))
+            ->when($status, fn($query) => $query->where('status', $status))
             ->groupBy('barangay_id')
             ->get()
             ->keyBy('barangay_id')
             ->all();
+    }
+
+    private function verifiedSalesBaseQuery(?string $municipalityId, ?string $speciesId, ?string $salePurpose, ?string $dateFrom, ?string $dateTo)
+    {
+        return TransactionItem::query()
+            ->join('transactions', 'transactions.id', '=', 'transaction_items.transaction_id')
+            ->join('livestock_records', 'livestock_records.id', '=', 'transaction_items.livestock_id')
+            ->where('transactions.status', 'verified')
+            ->whereNotNull('transactions.verified_at')
+            ->where('transaction_items.actual_selling_price', '>', 0)
+            ->when($municipalityId, fn($q) => $q->where('transactions.municipality_id', $municipalityId))
+            ->when($speciesId, fn($q) => $q->where('livestock_records.species_id', $speciesId))
+            ->when($salePurpose, fn($q) => $q->where('livestock_records.sale_purpose', $salePurpose))
+            ->when($dateFrom, fn($q) => $q->whereDate('transactions.transaction_date', '>=', $dateFrom))
+            ->when($dateTo, fn($q) => $q->whereDate('transactions.transaction_date', '<=', $dateTo));
+    }
+
+    private function verifiedSalesByBarangay(?string $municipalityId, ?string $speciesId, ?string $salePurpose, ?string $dateFrom, ?string $dateTo): array
+    {
+        return $this->verifiedSalesBaseQuery($municipalityId, $speciesId, $salePurpose, $dateFrom, $dateTo)
+            ->select('transactions.barangay_id')
+            ->selectRaw('COUNT(transaction_items.id) as item_count')
+            ->selectRaw('COUNT(DISTINCT transactions.id) as transaction_count')
+            ->selectRaw('COALESCE(SUM(transaction_items.actual_selling_price), 0) as sales_total')
+            ->groupBy('transactions.barangay_id')
+            ->get()->keyBy('barangay_id')->all();
+    }
+
+    private function verifiedSalesSpeciesByBarangay(?string $municipalityId, ?string $speciesId, ?string $salePurpose, ?string $dateFrom, ?string $dateTo): array
+    {
+        return $this->verifiedSalesBaseQuery($municipalityId, $speciesId, $salePurpose, $dateFrom, $dateTo)
+            ->join('species', 'species.id', '=', 'livestock_records.species_id')
+            ->select('transactions.barangay_id', 'species.id as species_id', 'species.name as species_name')
+            ->selectRaw('COUNT(transaction_items.id) as total')
+            ->groupBy('transactions.barangay_id', 'species.id', 'species.name')
+            ->orderBy('species.name')->get()
+            ->groupBy('barangay_id')
+            ->map(fn($rows) => $rows->map(fn($row) => [
+                'species_id' => $row->species_id,
+                'species_name' => $row->species_name,
+                'total' => (int) $row->total,
+            ])->values()->all())->all();
     }
 
     private function normalizeGeometry(?array $geometry, ?string $geometryType): ?array
@@ -233,7 +289,8 @@ class GisService
 
     private function speciesCountsByBarangay(
         ?string $municipalityId,
-        ?string $speciesId
+        ?string $speciesId,
+        ?string $status = null
     ): array {
         return LivestockRecord::query()
             ->join(
@@ -262,6 +319,7 @@ class GisService
                     $speciesId
                 )
             )
+            ->when($status, fn($query) => $query->where('livestock_records.status', $status))
             ->groupBy(
                 'livestock_records.barangay_id',
                 'species.id',

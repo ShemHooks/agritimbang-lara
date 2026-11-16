@@ -139,6 +139,62 @@ class LguTransactionVerificationTest extends TestCase
         return compact('municipality', 'farmerUser', 'livestock', 'transaction');
     }
 
+
+    public function test_authority_review_queue_includes_encoder_submitted_transactions(): void
+    {
+        $data = $this->makeTransaction();
+        $transaction = $data['transaction'];
+        $transaction->update([
+            'source' => 'lgu_encoder',
+            'status' => 'pending', // legacy rows may retain this status
+        ]);
+        $transaction->buyerConfirmations()->delete();
+
+        $authority = $this->makeUser();
+        $role = Role::firstOrCreate(
+            ['slug' => 'lgu_authority'],
+            ['name' => 'LGU Authority']
+        );
+        $authority->roles()->attach($role->id);
+        LguOfficerProfile::create([
+            'user_id' => $authority->id,
+            'municipality_id' => $data['municipality']->id,
+            'station' => 'Municipal Agriculture Office',
+            'designation' => 'Municipal Agriculture Officer',
+        ]);
+
+        Sanctum::actingAs($authority);
+
+        $this->getJson('/api/lgu/transactions?status=review_queue')
+            ->assertOk()
+            ->assertJsonPath('data.data.0.id', $transaction->id);
+    }
+
+    public function test_authority_review_queue_does_not_include_other_municipalities(): void
+    {
+        $data = $this->makeTransaction();
+        $otherMunicipality = $this->makeMunicipality();
+
+        $authority = $this->makeUser();
+        $role = Role::firstOrCreate(
+            ['slug' => 'lgu_authority'],
+            ['name' => 'LGU Authority']
+        );
+        $authority->roles()->attach($role->id);
+        LguOfficerProfile::create([
+            'user_id' => $authority->id,
+            'municipality_id' => $otherMunicipality->id,
+            'station' => 'Municipal Agriculture Office',
+            'designation' => 'Municipal Agriculture Officer',
+        ]);
+
+        Sanctum::actingAs($authority);
+
+        $this->getJson('/api/lgu/transactions?status=review_queue')
+            ->assertOk()
+            ->assertJsonPath('data.data', []);
+    }
+
     public function test_lgu_officer_can_approve_confirmed_transaction(): void
     {
         $data = $this->makeTransaction();

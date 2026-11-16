@@ -1,4 +1,5 @@
 import api from "../api";
+import { formatDateTime as sharedFormatDateTime } from "../utils/date-format";
 
 const $ = (id) => document.getElementById(id);
 
@@ -10,7 +11,16 @@ const state = {
     role: null,
     endpoint: null,
     livestock: [],
+    species: [],
+    manualBreeds: [],
     activeTab: "weight",
+    manualPreviewPayload: null,
+    manualPreviewResult: null,
+    manualValuationResult: null,
+    manualWeightManuallyEntered: false,
+    conditionAssessment: { answers: {}, complete: false, total: null, conditionScore: null, result: null },
+    livestockWithWeight: [],
+    livestockWithValuation: [],
 
     weight: {
         selectedId: null,
@@ -78,6 +88,7 @@ function showError(error) {
     element.textContent =
         typeof error === "string" ? error : errorMessage(error);
 
+    element.classList.remove("calc-success-message");
     element.hidden = false;
 }
 
@@ -87,6 +98,7 @@ function clearError() {
 
     element.hidden = true;
     element.textContent = "";
+    element.classList.remove("calc-success-message");
 }
 
 function readable(value) {
@@ -133,13 +145,7 @@ function money(value) {
     }).format(number);
 }
 
-function formatDate(value) {
-    if (!value) return "—";
-
-    const date = new Date(value);
-
-    return Number.isNaN(date.getTime()) ? "—" : date.toLocaleString("en-PH");
-}
+function formatDate(value) { return sharedFormatDateTime(value); }
 
 function parseSnapshot(value) {
     if (!value) return {};
@@ -167,12 +173,40 @@ function livestockName(animal) {
     return `${identifier} — ${species} / ${breed}`;
 }
 
+function normalizeLivestockSex(value) {
+    const sex = String(value ?? "").trim().toLowerCase();
+    if (["male", "m"].includes(sex)) return "male";
+    if (["female", "f"].includes(sex)) return "female";
+    return "unknown";
+}
+
+function isAvailableLivestock(animal) {
+    return String(animal?.status ?? "").trim().toLowerCase() === "available";
+}
+
 function findLivestock(id) {
     return state.livestock.find((animal) => String(animal.id) === String(id));
 }
 
 function addLivestock(animal) {
-    if (!animal?.id || findLivestock(animal.id)) return;
+    if (!animal?.id || !isAvailableLivestock(animal)) return;
+
+    const existingIndex = state.livestock.findIndex(
+        (item) => String(item.id) === String(animal.id),
+    );
+
+    if (existingIndex >= 0) {
+        // Replace the paginated/list representation with the full detail
+        // response so species, breed, age, sex and related profile fields
+        // are never lost when arriving from Livestock Details.
+        state.livestock[existingIndex] = {
+            ...state.livestock[existingIndex],
+            ...animal,
+            species: animal.species ?? state.livestock[existingIndex].species,
+            breed: animal.breed ?? state.livestock[existingIndex].breed,
+        };
+        return;
+    }
 
     state.livestock.push(animal);
 }
@@ -182,14 +216,24 @@ function fillLivestockSelect(selectId) {
     if (!select) return;
 
     const previousValue = select.value;
+    const isWeightCalculator = selectId === "calc-livestock";
+    const isFpcBreakdown = selectId === "calc-fpc-livestock";
+    const source = isFpcBreakdown
+        ? state.livestockWithValuation
+        : (selectId === "calc-valuation-livestock" ? state.livestock : state.livestock);
 
-    select.replaceChildren(new Option("Select livestock", ""));
+    select.replaceChildren(new Option(
+        isWeightCalculator || selectId === "calc-valuation-livestock"
+            ? "Calculate without a saved livestock record"
+            : "Select livestock with a saved valuation",
+        "",
+    ));
 
-    state.livestock.forEach((animal) => {
+    source.forEach((animal) => {
         select.add(new Option(livestockName(animal), animal.id));
     });
 
-    if (findLivestock(previousValue)) {
+    if (source.some((animal) => String(animal.id) === String(previousValue))) {
         select.value = previousValue;
     }
 }
@@ -293,18 +337,43 @@ async function loadLivestock() {
         params: { per_page: 100 },
     });
 
-    state.livestock = extractList(response);
+    const allRecords = extractList(response);
+    // The calculators operate on available animals; historical FPC breakdown
+    // remains accessible for records that already have saved valuations.
+    state.livestock = allRecords.filter(isAvailableLivestock);
+    state.livestockWithWeight = state.livestock.filter((animal) =>
+        Number(animal.actual_weight_kg) > 0 || Number(animal.weight_estimations_count) > 0
+    );
+    state.livestockWithValuation = allRecords.filter((animal) =>
+        Number(animal.valuations_count) > 0
+    );
 
     const preselected = new URLSearchParams(window.location.search).get(
         "livestock_id",
     );
 
-    if (preselected && !findLivestock(preselected)) {
-        const detailResponse = await api.get(
-            `${state.endpoint}/${encodeURIComponent(preselected)}`,
-        );
+    // Always fetch the selected record's detail endpoint, even when the
+    // index response already contained a lightweight representation. This
+    // guarantees the calculator receives the authoritative species, breed,
+    // sex, age, status and other saved profile attributes.
+    if (preselected) {
+        try {
+            const detailResponse = await api.get(
+                `${state.endpoint}/${encodeURIComponent(preselected)}`,
+            );
+            const detailedAnimal = unwrap(detailResponse);
 
-        addLivestock(unwrap(detailResponse));
+            if (!detailedAnimal?.id || String(detailedAnimal.id) !== String(preselected)) {
+                throw new Error("The selected livestock details could not be loaded.");
+            }
+
+            addLivestock(detailedAnimal);
+        } catch (error) {
+            state.livestock = state.livestock.filter(
+                (animal) => String(animal.id) !== String(preselected),
+            );
+            console.warn("Unable to load full livestock profile for weight estimation.", error);
+        }
     }
 
     [
@@ -322,7 +391,197 @@ async function loadLivestock() {
             selectWeightLivestock(preselected),
             selectValuationLivestock(preselected),
         ]);
+    } else if (preselected) {
+        showError(
+            "This livestock is no longer available. Only available livestock can be used in the calculators.",
+        );
     }
+}
+
+// ============================================================
+// MANUAL LIVESTOCK PROFILE
+// ============================================================
+
+function invalidateManualPreview() {
+    state.manualPreviewPayload = null;
+    state.manualPreviewResult = null;
+    state.manualValuationResult = null;
+    if ($("calc-valuation-farmer-actions")) $("calc-valuation-farmer-actions").hidden = true;
+    if ($("calc-result")) $("calc-result").hidden = true;
+    if ($("calc-empty")) $("calc-empty").hidden = false;
+    if ($("calc-farmer-actions")) $("calc-farmer-actions").hidden = true;
+}
+
+const measurementUnits = {
+    cm: { centimeters: 1, guide: "1 cm = 1 cm." },
+    dupa: { centimeters: 180, guide: "Usa ka dupa kay mga 6 feet, 1.8 meters o 180 cm." },
+    tiil: { centimeters: 30.48, guide: "Usa ka tiil kay mga 12 inches o 30.48 cm." },
+    bisig: { centimeters: 45.72, guide: "Usa ka bisig/bukton kay mga 18 inches o 45.72 cm." },
+    dangaw: { centimeters: 20.32, guide: "Usa ka dangaw kay mga 8 inches o mga 20.32 cm." },
+};
+
+async function loadManualSpecies() {
+    const response = await api.get("/reference/species");
+    state.species = extractList(response).filter((item) => item?.is_active !== false && item?.is_active !== 0 && item?.is_active !== "0");
+    const select = $("calc-species");
+    select.replaceChildren(new Option("Select species", ""));
+    state.species.forEach((item) => select.add(new Option(item.name, item.id)));
+
+    const valuationSpecies = $("calc-valuation-species");
+    if (valuationSpecies) {
+        valuationSpecies.replaceChildren(new Option("Select species", ""));
+        state.species.forEach((item) => valuationSpecies.add(new Option(item.name, item.id)));
+    }
+}
+
+async function loadManualBreeds(speciesId, selectedBreedId = "") {
+    const select = $("calc-breed");
+    select.replaceChildren(new Option(speciesId ? "Loading breeds..." : "Select species first", ""));
+    select.disabled = true;
+    state.manualBreeds = [];
+    if (!speciesId) return;
+
+    const response = await api.get(`/reference/species/${encodeURIComponent(speciesId)}/breeds`);
+    state.manualBreeds = extractList(response).filter((item) => item?.is_active !== false && item?.is_active !== 0 && item?.is_active !== "0");
+    select.replaceChildren(new Option("Select breed", ""));
+    state.manualBreeds.forEach((item) => select.add(new Option(item.name, item.id)));
+    select.disabled = false;
+    select.value = selectedBreedId || "";
+    updateBreedRequirement();
+}
+
+function selectedSpecies() {
+    return state.species.find((item) => String(item.id) === String($("calc-species")?.value));
+}
+
+function speciesDescriptor(speciesLike) {
+    return [
+        speciesLike?.code,
+        speciesLike?.name,
+        speciesLike?.species_code,
+        speciesLike?.species_name,
+        speciesLike?.species?.code,
+        speciesLike?.species?.name,
+    ].filter((value) => value !== null && value !== undefined)
+        .join(" ")
+        .toLowerCase()
+        .replace(/[_-]+/g, " ");
+}
+
+function isCarabaoSpecies(speciesLike) {
+    const value = speciesDescriptor(speciesLike);
+    return /carabao|kalabaw|\bcar\b/.test(value);
+}
+
+function isHogSpecies(speciesLike) {
+    const value = speciesDescriptor(speciesLike);
+    return /hog|pig|baboy|\bpig\b/.test(value);
+}
+
+function updateBreedRequirement() {
+    const species = selectedSpecies();
+    // Hogs have a general fallback formula, so breed must never block
+    // weight estimation when the record has no breed assigned.
+    const required = isCarabaoSpecies(species);
+    const select = $("calc-breed");
+    const help = $("calc-breed-help");
+    if (select) {
+        select.required = required;
+        select.disabled = !select.options.length || select.options.length <= 1;
+    }
+    if (help) {
+        help.textContent = required
+            ? "Required for this species so the system can select the correct formula."
+            : isHogSpecies(species)
+                ? "Optional for hogs. An appropriate fallback formula is used when no breed is recorded."
+                : "Optional for this species; available breeds are shown when selected.";
+    }
+}
+
+function isGoatSpecies(speciesLike) {
+    const values = [
+        speciesLike?.code,
+        speciesLike?.name,
+        speciesLike?.species_code,
+        speciesLike?.species_name,
+        speciesLike?.species?.code,
+        speciesLike?.species?.name,
+    ];
+    const descriptor = values
+        .filter((value) => value !== null && value !== undefined)
+        .join(" ")
+        .toLowerCase()
+        .replace(/[_-]+/g, " ");
+
+    // Some seeded/API species codes are abbreviated (for example, GOA)
+    // rather than the full word "GOAT". Check both code and display name.
+    return /goat|kanding|\bgoa\b/.test(descriptor);
+}
+
+function updateRumpHeightForSpecies() {
+    // When launched from Livestock Details, the manual species selector is
+    // hidden and empty. Prefer the selected saved livestock profile so this
+    // final page initialization cannot override the correct goat setting.
+    const selectedId = $("calc-livestock")?.value || state.weight?.selectedId;
+    const savedAnimal = selectedId ? findLivestock(selectedId) : null;
+    const speciesSource = savedAnimal ?? selectedSpecies();
+    const isGoat = isGoatSpecies(speciesSource);
+    const input = $("calc-height");
+    const unit = $("calc-height-unit");
+    const help = $("calc-height-help");
+
+    // Keep the control visible for all species; only goats can enter a value.
+    if (input) input.disabled = !isGoat;
+    if (unit) unit.disabled = !isGoat;
+    if (!isGoat && input) input.value = "";
+    if (help) {
+        help.textContent = isGoat
+            ? "Required for goats using the goat weight-estimation formula."
+            : "Not applicable to this species; the field is disabled.";
+    }
+}
+
+function updateMeasurementGuide(unitId, guideId) {
+    const unit = measurementUnits[$(unitId)?.value] ?? measurementUnits.cm;
+    const guide = $(guideId);
+    if (guide) guide.textContent = unit.guide;
+}
+
+function updateAllMeasurementGuides() {
+    updateMeasurementGuide("calc-girth-unit", "calc-girth-guide");
+    updateMeasurementGuide("calc-length-unit", "calc-length-guide");
+    updateMeasurementGuide("calc-height-unit", "calc-height-guide");
+}
+
+async function fillManualProfileFromLivestock(animal) {
+    if (!animal) return;
+    $("calc-species").value = animal.species_id ?? animal.species?.id ?? "";
+    await loadManualBreeds($("calc-species").value, animal.breed_id ?? animal.breed?.id ?? "");
+    $("calc-sex").value = animal.sex ?? "unknown";
+    $("calc-age-months").value = animal.age_months ?? "";
+    updateRumpHeightForSpecies();
+}
+
+function buildManualProfilePayload() {
+    const species = selectedSpecies();
+    if (!species?.id) throw new Error("Select the livestock species.");
+    const ageMonthsRaw = $("calc-age-months").value.trim();
+
+    if (isGoatSpecies(species) && ageMonthsRaw === "") {
+        throw new Error("Enter the goat's age in months so the correct formula can be selected.");
+    }
+    if (isCarabaoSpecies(species) && !$("calc-breed").value) {
+        throw new Error("Select the livestock breed so the correct formula can be selected.");
+    }
+    const sex = $("calc-sex").value;
+    if (!sex) throw new Error("Select the livestock's sex.");
+
+    return {
+        species_id: species.id,
+        breed_id: $("calc-breed").value || null,
+        sex,
+        age_months: ageMonthsRaw === "" ? null : Number(ageMonthsRaw),
+    };
 }
 
 // ============================================================
@@ -370,12 +629,26 @@ async function switchToValuation() {
 
     const id = state.valuation.selectedId ?? state.weight.selectedId;
 
-    if (!id) return;
+    if (!id) {
+        $("calc-valuation-livestock").value = "";
+        await selectValuationLivestock("");
+        if (state.manualPreviewResult?.estimated_weight_kg) {
+            $("calc-manual-valuation-weight").value = Number(state.manualPreviewResult.estimated_weight_kg).toFixed(2);
+            state.manualWeightManuallyEntered = false;
+        }
+        $("calc-valuation-submit").textContent = "Calculate Valuation Preview";
+        return;
+    }
 
     $("calc-valuation-livestock").value = id;
+    $("calc-valuation-submit").textContent = "Calculate & Save Valuation";
 
     if (state.valuation.selectedId !== id) {
         await selectValuationLivestock(id);
+    }
+    if (state.manualPreviewResult?.estimated_weight_kg) {
+        $("calc-manual-valuation-weight").value = Number(state.manualPreviewResult.estimated_weight_kg).toFixed(2);
+        state.manualWeightManuallyEntered = false;
     }
 }
 
@@ -383,12 +656,19 @@ async function switchToFpc() {
     clearError();
     setTab("fpc");
 
-    const id =
+    const preferredId =
         state.fpc.selectedId ??
         state.valuation.selectedId ??
         state.weight.selectedId;
+    const id = state.livestockWithValuation.some(
+        (animal) => String(animal.id) === String(preferredId),
+    ) ? preferredId : null;
 
-    if (!id) return;
+    if (!id) {
+        $("calc-fpc-livestock").value = "";
+        await selectFpcLivestock("");
+        return;
+    }
 
     $("calc-fpc-livestock").value = id;
 
@@ -413,24 +693,112 @@ function renderWeightAnimal(animal) {
         animal.species?.name ?? "Unknown species",
         animal.breed?.name ?? "Unspecified breed",
         readable(animal.sex),
+        animal.age_months !== null && animal.age_months !== undefined
+            ? `Age: ${animal.age_months} months`
+            : "Age: Not recorded",
         `Status: ${readable(animal.status)}`,
     ].join(" • ");
 
     element.hidden = false;
 }
 
+function syncRumpHeightField(animal) {
+    const input = $("calc-height");
+    const unit = $("calc-height-unit");
+    const selectedLabel = $("calc-livestock")?.selectedOptions?.[0]?.textContent ?? "";
+    const isGoat = isGoatSpecies(animal) ||
+        isGoatSpecies({ name: selectedLabel });
+
+    // Do not hide the control: keep the layout stable and disable it for
+    // non-goat species (including carabao).
+    if (input) {
+        input.disabled = !isGoat;
+        if (!isGoat) input.value = "";
+    }
+    if (unit) unit.disabled = !isGoat;
+    const help = $("calc-height-help");
+    if (help) {
+        help.textContent = isGoat
+            ? "Required for goats using the goat weight-estimation formula."
+            : "Not applicable to this species; the field is disabled.";
+    }
+}
+
+function clearWeightMeasurementInputs() {
+    ["calc-girth", "calc-length", "calc-height"].forEach((id) => {
+        const input = $(id);
+        if (input) input.value = "";
+    });
+    ["calc-girth-unit", "calc-length-unit", "calc-height-unit"].forEach((id) => {
+        const select = $(id);
+        if (select) select.value = "cm";
+    });
+    updateAllMeasurementGuides();
+}
+
 async function selectWeightLivestock(id) {
     const weight = state.weight;
+    const nextId = id || null;
+    const changedRecord = String(weight.selectedId || "") !== String(nextId || "");
+    if (changedRecord) {
+        clearWeightMeasurementInputs();
+        state.manualWeightManuallyEntered = false;
+        if ($("calc-manual-valuation-weight")) $("calc-manual-valuation-weight").value = "";
+    }
 
-    weight.selectedId = id || null;
+    weight.selectedId = nextId;
+
+    if (nextId) {
+        const currentRecord = findLivestock(nextId);
+        try {
+            const detailResponse = await api.get(
+                `${state.endpoint}/${encodeURIComponent(nextId)}`,
+            );
+            const detailedAnimal = unwrap(detailResponse);
+
+            if (
+                !detailedAnimal?.id ||
+                String(detailedAnimal.id) !== String(nextId) ||
+                !isAvailableLivestock(detailedAnimal)
+            ) {
+                throw new Error("The selected livestock is no longer available for weight estimation.");
+            }
+
+            addLivestock(detailedAnimal);
+        } catch (error) {
+            if (!currentRecord) throw error;
+            console.warn("Could not refresh livestock details; using the available saved profile.", error);
+        }
+    }
+
+    const manualEntry = $("calc-manual-entry-fields");
+    if (manualEntry) manualEntry.hidden = Boolean(id);
+
+    // Species and sex are required only for manual calculations. When an
+    // existing record is selected, those controls are hidden and their values
+    // come from the record; leaving them required would cause the browser to
+    // block form submission before calculateWeight() can run.
+    const speciesInput = $("calc-species");
+    const sexInput = $("calc-sex");
+    if (speciesInput) speciesInput.required = !id;
+    if (sexInput) sexInput.required = !id;
+    // Keep measurement inputs and the Calculate button available for existing records.
     weight.page = 1;
     weight.lastPage = 1;
     weight.historyRequest++;
 
     $("calc-result").hidden = true;
     $("calc-empty").hidden = false;
+    const farmerActions = $("calc-farmer-actions");
+    if (farmerActions) {
+        farmerActions.hidden = !(id && state.role === "farmer");
+        if ($("calc-save-livestock")) $("calc-save-livestock").hidden = true;
+        if ($("calc-register-auction")) $("calc-register-auction").hidden = !id || state.role !== "farmer";
+    }
 
-    renderWeightAnimal(findLivestock(id));
+    const selectedAnimal = findLivestock(id);
+    renderWeightAnimal(selectedAnimal);
+    syncRumpHeightField(selectedAnimal);
 
     if (!id) {
         renderWeightHistory([]);
@@ -438,6 +806,9 @@ async function selectWeightLivestock(id) {
     }
 
     await loadWeightHistory();
+    // Re-apply after the asynchronous history request so a preselected
+    // livestock record always keeps its species-specific measurement fields.
+    syncRumpHeightField(findLivestock(weight.selectedId));
 }
 
 function renderWeightResult(estimation) {
@@ -534,7 +905,20 @@ async function loadWeightHistory() {
 
         weight.lastPage = Number(paginator.last_page ?? 1);
 
-        renderWeightHistory(paginator.data ?? []);
+        const records = paginator.data ?? [];
+        renderWeightHistory(records);
+        const latest = records[0];
+        if (!latest) clearWeightMeasurementInputs();
+        if (latest) {
+            // Reuse the latest saved measurement inputs when recalculating an existing animal.
+            $("calc-girth").value = latest.heart_girth_cm ?? "";
+            $("calc-length").value = latest.body_length_cm ?? "";
+            $("calc-height").value = latest.rump_height_cm ?? "";
+            $("calc-girth-unit").value = "cm";
+            $("calc-length-unit").value = "cm";
+            $("calc-height-unit").value = "cm";
+            updateAllMeasurementGuides();
+        }
     } catch (error) {
         if (requestId === weight.historyRequest) {
             showError(error);
@@ -542,66 +926,139 @@ async function loadWeightHistory() {
     }
 }
 
-function measurement(id, label, maximum) {
+function measurement(id, unitId, label, maximumCm) {
     const raw = $(id).value.trim();
-
     if (raw === "") return null;
 
     const number = Number(raw);
+    const unit = measurementUnits[$(unitId)?.value] ?? measurementUnits.cm;
+    const centimeters = number * unit.centimeters;
 
-    if (!Number.isFinite(number) || number <= 0 || number > maximum) {
-        throw new Error(
-            `${label} must be greater than zero and at most ${maximum} cm.`,
-        );
+    if (!Number.isFinite(number) || number <= 0 || !Number.isFinite(centimeters) || centimeters > maximumCm) {
+        throw new Error(`${label} must convert to a value greater than zero and at most ${maximumCm} cm.`);
     }
+    return Number(centimeters.toFixed(2));
+}
 
-    return number;
+const calculatorConditionQuestions = [
+    { id: "currently_sick", category: "Kahimsog sa Hayop (Animal Health)", question: "Maysakit ba karon ang hayop?", translation: "Is the animal currently sick?", options: [["No / Wala", 2], ["Not sure / Dili sigurado", 1], ["Yes / Oo", 0]] },
+    { id: "recently_sick", question: "Nakasakit ba ang hayop bag-o lang?", translation: "Has the animal been sick recently?", options: [["No / Wala", 2], ["Yes, but recovered / Oo, pero naayo na", 1], ["Yes, still recovering / Oo, nagpaayo pa", 0]] },
+    { id: "eating_normally", question: "Normal ba ang pagkaon sa hayop?", translation: "Is the animal eating normally?", options: [["Yes / Oo", 2], ["Less than usual / Gamay ra kaysa naandan", 1], ["Not eating / Dili mokaon", 0]] },
+    { id: "visible_injuries", question: "Aduna bay samad o pilas ang hayop?", translation: "Does the animal have visible wounds or injuries?", options: [["None / Wala", 2], ["Minor wounds / Gamay nga samad", 1], ["Serious wounds / Grabe nga samad", 0]] },
+    { id: "prominent_bones", category: "Kahimtang sa Lawas (Body Condition)", question: "Klaro kaayo ba ang buto-buto sa hayop?", translation: "Are the animal's bones visibly prominent?", options: [["Very prominent / Klaro kaayo ang buto-buto", 0], ["Somewhat prominent / Medyo klaro", 1], ["Not prominent / Dili kaayo klaro", 2]] },
+    { id: "overall_body", question: "Unsa ang kinatibuk-ang hitsura sa lawas sa hayop?", translation: "How does the animal's overall body look?", options: [["Very thin / Niwang kaayo", 0], ["Moderately filled / Sakto-sakto ang lawas", 1], ["Well-filled / Puno ug maayong pagkabuo", 2]] },
+    { id: "tail_base", question: "Lubog ba ang dapit sa punoan sa ikog?", translation: "Does the area around the base of the tail look sunken?", options: [["Deep hollow / Lawom ug lubog", 0], ["Slight hollow / Medyo lubog", 1], ["Filled / Puno ang hitsura", 2]] },
+];
+
+function mapAssessmentScore(total) {
+    if (total <= 4) return 1;
+    if (total <= 8) return 2;
+    if (total <= 11) return 3;
+    if (total <= 13) return 4;
+    return 5;
+}
+
+function renderCalculatorConditionChecklist() {
+    const container = $("calc-condition-questions");
+    if (!container || container.dataset.rendered === "1") return;
+    container.innerHTML = calculatorConditionQuestions.map((question, index) => `
+        ${question.category ? `<h4 class="lr-assessment-category">${question.category}</h4>` : ""}
+        <fieldset class="lr-assessment-question">
+            <legend><strong>${index + 1}. ${question.question}</strong><small>${question.translation}</small></legend>
+            <div class="lr-assessment-options">${question.options.map(([label, points]) => `
+                <label class="lr-assessment-option"><input type="radio" name="calc_assessment_${question.id}" value="${points}"><span>${label}</span></label>
+            `).join("")}</div>
+        </fieldset>
+    `).join("");
+    container.dataset.rendered = "1";
+}
+
+function calculateCalculatorCondition() {
+    const answers = {};
+    let total = 0;
+    for (const question of calculatorConditionQuestions) {
+        const selected = document.querySelector(`input[name="calc_assessment_${question.id}"]:checked`);
+        if (!selected) continue;
+        answers[question.id] = Number(selected.value);
+        total += Number(selected.value);
+    }
+    const complete = Object.keys(answers).length === calculatorConditionQuestions.length;
+    state.conditionAssessment = {
+        answers,
+        complete,
+        total: complete ? total : null,
+        result: complete ? (total <= 4 ? "Poor condition" : total <= 8 ? "Needs attention" : total <= 11 ? "Fair condition" : "Good condition") : null,
+        conditionScore: complete ? mapAssessmentScore(total) : null,
+    };
+    $("calc-condition-assessment-score").textContent = complete ? `${total} / 14` : `${Object.keys(answers).length}/7 answered`;
+    $("calc-condition-score").textContent = complete ? `${state.conditionAssessment.conditionScore} / 5 — ${state.conditionAssessment.result}` : "Awaiting assessment";
+    $("calc-condition-result").textContent = complete
+        ? `Assessment: ${total}/14 · Condition score: ${state.conditionAssessment.conditionScore}/5 (${state.conditionAssessment.result})`
+        : "Not yet assessed. Complete all seven questions.";
+    return state.conditionAssessment;
+}
+
+function openConditionChecklist() {
+    renderCalculatorConditionChecklist();
+    $("calc-condition-modal").hidden = false;
+    document.body.classList.add("calc-condition-open");
+}
+
+function closeConditionChecklist() {
+    $("calc-condition-modal").hidden = true;
+    document.body.classList.remove("calc-condition-open");
 }
 
 function weightPayload() {
-    const fields = [
-        ["calc-girth", "heart_girth_cm", "Heart girth", 500],
-        ["calc-length", "body_length_cm", "Body length", 500],
-        ["calc-height", "rump_height_cm", "Rump height", 300],
-    ];
+    const selectedId = $("calc-livestock")?.value;
+    const selectedAnimal = selectedId ? findLivestock(selectedId) : null;
+    let payload;
 
-    const payload = {};
-
-    fields.forEach(([id, field, label, maximum]) => {
-        const value = measurement(id, label, maximum);
-
-        if (value !== null) {
-            payload[field] = value;
-        }
-    });
-
-    if (!Object.keys(payload).length) {
-        throw new Error(
-            "Enter at least one measurement. The selected formula may require additional measurements.",
-        );
+    if (selectedAnimal) {
+        // Existing-record calculations must use the saved profile, not the
+        // hidden manual profile controls. Older records may legitimately have
+        // no breed or age value, so do not apply new-registration requirements.
+        payload = {
+            species_id: selectedAnimal.species_id ?? selectedAnimal.species?.id ?? null,
+            breed_id: selectedAnimal.breed_id ?? selectedAnimal.breed?.id ?? null,
+            sex: normalizeLivestockSex(selectedAnimal.sex),
+            age_months: selectedAnimal.age_months ?? null,
+            age_group: selectedAnimal.age_group ?? null,
+        };
+        if (!payload.species_id) throw new Error("The selected livestock record has no species assigned.");
+    } else {
+        payload = buildManualProfilePayload();
     }
 
+    const fields = [
+        ["calc-girth", "calc-girth-unit", "heart_girth_cm", "Heart girth", 500],
+        ["calc-length", "calc-length-unit", "body_length_cm", "Body length", 500],
+        ["calc-height", "calc-height-unit", "rump_height_cm", "Rump height", 300],
+    ];
+
+    fields.forEach(([id, unitId, field, label, maximum]) => {
+        const input = $(id);
+        if (input?.disabled) {
+            delete payload[field];
+            return;
+        }
+        const value = measurement(id, unitId, label, maximum);
+        if (value !== null) payload[field] = value;
+    });
+
+    if (!payload.heart_girth_cm && !payload.body_length_cm && !payload.rump_height_cm) {
+        throw new Error("Enter the required livestock measurements.");
+    }
     return payload;
 }
 
 async function calculateWeight(event) {
     event.preventDefault();
-
     const weight = state.weight;
-
     if (weight.loading) return;
-
     clearError();
 
-    const livestockId = weight.selectedId;
-
-    if (!livestockId) {
-        showError("Please select a livestock record.");
-        return;
-    }
-
     let payload;
-
     try {
         payload = weightPayload();
     } catch (error) {
@@ -610,43 +1067,188 @@ async function calculateWeight(event) {
     }
 
     const button = $("calc-submit");
-
     weight.loading = true;
-
-    setButtonLoading(
-        button,
-        true,
-        "Calculating...",
-        "Calculate & Save Estimation",
-    );
+    setButtonLoading(button, true, "Calculating...", "Calculate Estimated Weight");
 
     try {
-        const response = await api.post(estimationUrl(livestockId), payload);
-
+        const response = await api.post("/calculator/weight-estimation/preview", payload);
         const estimation = unwrap(response);
-
-        if (weight.selectedId !== livestockId) return;
-
+        state.manualPreviewPayload = payload;
+        state.manualPreviewResult = estimation;
         renderWeightResult(estimation);
 
-        weight.page = 1;
-        await loadWeightHistory();
+        const selectedId = $("calc-livestock").value;
+        if (!selectedId) {
+            state.weight.selectedId = null;
+            renderWeightHistory([]);
+        }
+        // Do not reload history here: doing so would replace the user's newly
+        // entered measurements with the previous saved estimation before they
+        // have a chance to save this calculation.
 
-        if (state.valuation.selectedId === livestockId) {
-            await loadValuationEstimations(livestockId);
+        if ($("calc-farmer-actions")) {
+            $("calc-farmer-actions").hidden = state.role !== "farmer";
+            if ($("calc-save-livestock")) $("calc-save-livestock").hidden = false;
+            if ($("calc-register-auction")) $("calc-register-auction").hidden = state.role !== "farmer";
+        }
+        if ($("calc-valuation-farmer-actions")) $("calc-valuation-farmer-actions").hidden = true;
+        renderCalculatorConditionChecklist();
+        if ($("calc-save-livestock")) {
+            $("calc-save-livestock").textContent = selectedId
+                ? "Save Estimation to Existing Livestock"
+                : "Save to Livestock";
         }
     } catch (error) {
         showError(error);
     } finally {
         weight.loading = false;
-
-        setButtonLoading(
-            button,
-            false,
-            "Calculating...",
-            "Calculate & Save Estimation",
-        );
+        setButtonLoading(button, false, "Calculating...", "Calculate Estimated Weight");
     }
+}
+
+async function saveManualCalculation(action = "save") {
+    if (state.role !== "farmer") {
+        showError("Only Farmers can save livestock or continue to auction registration.");
+        return;
+    }
+
+    const selectedId = state.activeTab === "valuation"
+        ? ($("calc-valuation-livestock")?.value || "")
+        : ($("calc-livestock")?.value || "");
+    const selectedAnimal = selectedId ? findLivestock(selectedId) : null;
+    let payload = state.manualPreviewPayload;
+
+    if (!payload && selectedAnimal) {
+        payload = {
+            species_id: selectedAnimal.species_id ?? selectedAnimal.species?.id,
+            breed_id: selectedAnimal.breed_id ?? selectedAnimal.breed?.id ?? null,
+            sex: selectedAnimal.sex ?? "unknown",
+            age_months: selectedAnimal.age_months ?? null,
+        };
+    }
+    if (!payload) {
+        const speciesId = $("calc-valuation-species")?.value || $("calc-species")?.value;
+        if (!speciesId) {
+            showError("Select the livestock species before saving the valuation.");
+            return;
+        }
+        // Calculator-only fair-market valuation can start directly from the
+        // valuation tab; do not require the hidden Weight Estimation profile.
+        payload = {
+            species_id: speciesId,
+            breed_id: null,
+            sex: "unknown",
+            age_months: null,
+        };
+    }
+
+    const manualWeightValue = Number($("calc-manual-valuation-weight")?.value || 0);
+    const manualWeight = state.manualWeightManuallyEntered && manualWeightValue > 0
+        ? Number(manualWeightValue.toFixed(2))
+        : (state.manualValuationResult?.weight_type === "manual" && manualWeightValue > 0 ? Number(manualWeightValue.toFixed(2)) : null);
+    const hasEstimate = Boolean(state.manualPreviewResult?.estimated_weight_kg && state.manualPreviewPayload);
+    if (!hasEstimate && !manualWeight && !state.manualValuationResult) {
+        showError("Calculate an estimated weight or enter a weight before saving.");
+        return;
+    }
+
+    const measurements = hasEstimate ? {
+        heart_girth_cm: payload.heart_girth_cm ?? null,
+        body_length_cm: payload.body_length_cm ?? null,
+        rump_height_cm: payload.rump_height_cm ?? null,
+    } : null;
+
+    if (selectedId) {
+        if (action === "auction") {
+            showError("Auction schedule registration is not available in this project yet. The existing livestock record has not been changed.");
+            return;
+        }
+
+        const fromValuation = state.activeTab === "valuation";
+        const button = fromValuation ? $("calc-valuation-save-livestock") : $("calc-save-livestock");
+        if (button) { button.disabled = true; button.textContent = fromValuation ? "Saving fair price calculation..." : "Saving estimation..."; }
+        try {
+            let weightEstimationId = null;
+            if (measurements && hasEstimate) {
+                const estimateResponse = await api.post(estimationUrl(selectedId), measurements);
+                const savedEstimation = unwrap(estimateResponse);
+                weightEstimationId = savedEstimation?.id ?? null;
+                await loadWeightHistory();
+            } else if (fromValuation && manualWeight && !(Number(selectedAnimal?.actual_weight_kg) > 0)) {
+                // A manually entered scale weight belongs in actual_weight_kg,
+                // never in the estimated-weight history.
+                await api.patch(`${state.endpoint}/${encodeURIComponent(selectedId)}`, {
+                    actual_weight_kg: manualWeight,
+                });
+            }
+
+            if (!fromValuation) {
+                const message = $("calc-error");
+                message.textContent = "Estimated weight was saved to the selected livestock record.";
+                message.hidden = false;
+                message.classList.add("calc-success-message");
+                return;
+            }
+
+            const valuationPayload = weightEstimationId
+                ? { weight_estimation_id: weightEstimationId }
+                : {};
+            const valuationResponse = await api.post(valuationUrl(selectedId), valuationPayload);
+            renderValuationResult(unwrap(valuationResponse));
+            state.manualValuationResult = unwrap(valuationResponse);
+            await loadValuationHistory();
+            if (state.fpc.selectedId === selectedId) await selectFpcLivestock(selectedId);
+            const message = $("calc-error");
+            message.textContent = "Fair Price Calculation was saved to the selected livestock record.";
+            message.hidden = false;
+            message.classList.add("calc-success-message");
+        } catch (error) {
+            showError(error);
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.textContent = fromValuation
+                    ? "Save Fair Price Calculation to Existing Livestock"
+                    : "Save Estimation to Existing Livestock";
+            }
+        }
+        return;
+    }
+
+    const prefill = {
+        action,
+        species_id: payload.species_id,
+        breed_id: payload.breed_id ?? null,
+        sex: payload.sex ?? "unknown",
+        age_months: payload.age_months ?? null,
+        measurements,
+        estimated_weight_kg: hasEstimate ? state.manualPreviewResult.estimated_weight_kg : null,
+        formula_code: hasEstimate ? state.manualPreviewResult.formula_code : null,
+        formula_version: hasEstimate ? state.manualPreviewResult.formula_version : null,
+        frame_category: hasEstimate ? state.manualPreviewResult.frame_category : null,
+        estimate_confidence: hasEstimate ? state.manualPreviewResult.estimate_confidence : null,
+        condition_answers: state.conditionAssessment.answers,
+        condition_score: state.conditionAssessment.conditionScore,
+        condition_assessment_total: state.conditionAssessment.total,
+        sale_purpose: $("calc-manual-sale-purpose")?.value || null,
+        reproductive_status: $("calc-manual-reproductive-status")?.value || "unknown",
+        parity: $("calc-manual-parity")?.value === "" ? null : Number($("calc-manual-parity")?.value),
+        // Only an explicitly entered manual scale weight is copied to Actual Weight.
+        // An auto-filled calculator estimate stays in the estimated-weight field.
+        manual_weight_kg: manualWeight,
+        estimated_value: state.manualValuationResult?.estimated_value ?? null,
+        final_price_per_kg: state.manualValuationResult?.final_price_per_kg ?? null,
+        weight_used_kg: state.manualValuationResult?.weight_used_kg ?? state.manualValuationResult?.estimated_weight_kg ?? null,
+        valuation_requested: Boolean(state.manualValuationResult),
+    };
+
+    try {
+        sessionStorage.setItem("agritimbang_calculator_prefill", JSON.stringify(prefill));
+    } catch {
+        showError("Your browser could not keep the calculation. Please allow session storage and try again.");
+        return;
+    }
+    window.location.assign("/livestock/register?from_calculator=1");
 }
 
 // ============================================================
@@ -675,8 +1277,24 @@ function renderValuationAnimal(animal) {
 
 async function selectValuationLivestock(id) {
     const valuation = state.valuation;
+    const nextId = id || null;
+    const keepCurrentWeightPreview = Boolean(
+        nextId &&
+        String(nextId) === String(state.weight.selectedId || "") &&
+        state.manualPreviewPayload &&
+        state.manualPreviewResult
+    );
+    if (nextId && String(nextId) !== String(valuation.selectedId || "") && !keepCurrentWeightPreview) {
+        state.manualPreviewPayload = null;
+        state.manualPreviewResult = null;
+        state.manualValuationResult = null;
+        if ($("calc-valuation-farmer-actions")) $("calc-valuation-farmer-actions").hidden = true;
+        state.conditionAssessment = { answers: {}, complete: false, total: null, conditionScore: null, result: null };
+        $("calc-condition-questions")?.querySelectorAll('input[type="radio"]').forEach((radio) => { radio.checked = false; });
+        $("calc-condition-result").textContent = "Not yet assessed. Complete all seven questions.";
+    }
 
-    valuation.selectedId = id || null;
+    valuation.selectedId = nextId;
     valuation.page = 1;
     valuation.lastPage = 1;
 
@@ -692,8 +1310,51 @@ async function selectValuationLivestock(id) {
         new Option("Automatic — use latest estimation", ""),
     );
 
+    const animal = id ? findLivestock(id) : null;
+    state.manualWeightManuallyEntered = false;
+    if ($("calc-manual-valuation-weight")) $("calc-manual-valuation-weight").value = "";
+    const hasStoredWeight = Boolean(animal && (Number(animal.actual_weight_kg) > 0 || Number(animal.weight_estimations_count) > 0));
+    if ($("calc-valuation-save-livestock")) {
+        $("calc-valuation-save-livestock").textContent = id
+            ? "Save Fair Price Calculation to Existing Livestock"
+            : "Save Livestock";
+        $("calc-valuation-save-livestock").disabled = false;
+    }
+    if ($("calc-valuation-register-auction")) {
+        $("calc-valuation-register-auction").textContent = id
+            ? "Register Existing Livestock for Auction"
+            : "Save Livestock & Join Auction";
+    }
+    if ($("calc-valuation-farmer-actions")) $("calc-valuation-farmer-actions").hidden = true;
+    const manualFields = $("calc-manual-valuation-fields");
+    if (manualFields) manualFields.hidden = Boolean(id && hasStoredWeight);
+    const savedNote = $("calc-saved-valuation-note");
+    if (savedNote) savedNote.hidden = !id || !hasStoredWeight;
+    const estimationField = document.querySelector(".calc-valuation-estimation-field");
+    if (estimationField) estimationField.hidden = !id || !hasStoredWeight;
+    if (manualFields && id && !hasStoredWeight && animal) {
+        $("calc-manual-valuation-weight").value = "";
+        $("calc-manual-sale-purpose").value = animal.sale_purpose || "";
+        $("calc-manual-reproductive-status").value = animal.reproductive_status || "unknown";
+        $("calc-manual-parity").value = animal.parity ?? "";
+        if (Number(animal.condition_score) > 0 && !state.conditionAssessment.complete) {
+            $("calc-condition-result").textContent = `Saved condition score: ${animal.condition_score}/5. Complete the checklist to recalculate it.`;
+        }
+    }
+    if (manualFields && !id && state.manualPreviewResult?.estimated_weight_kg) {
+        $("calc-manual-valuation-weight").value = Number(state.manualPreviewResult.estimated_weight_kg).toFixed(2);
+    }
+    if (manualFields && !id && state.manualPreviewPayload?.species_id) {
+        $("calc-valuation-species").value = state.manualPreviewPayload.species_id;
+    }
+    if (manualFields && id && animal) {
+        $("calc-valuation-species").value = animal.species_id || animal.species?.id || "";
+    }
+
     if (!id) {
         renderValuationHistory([]);
+        $("calc-valuation-result").hidden = true;
+        $("calc-valuation-empty").hidden = false;
         return;
     }
 
@@ -859,9 +1520,94 @@ async function calculateValuation(event) {
     clearError();
 
     const livestockId = valuation.selectedId;
+    const selectedAnimal = livestockId ? findLivestock(livestockId) : null;
+    const selectedHasStoredWeight = Boolean(selectedAnimal && (
+        Number(selectedAnimal.actual_weight_kg) > 0 || Number(selectedAnimal.weight_estimations_count) > 0
+    ));
 
-    if (!livestockId) {
-        showError("Please select a livestock record.");
+    if (!livestockId || !selectedHasStoredWeight) {
+        let profile = selectedAnimal ? {
+            species_id: selectedAnimal.species_id || selectedAnimal.species?.id,
+            breed_id: selectedAnimal.breed_id || selectedAnimal.breed?.id || null,
+            sex: selectedAnimal.sex,
+            age_months: selectedAnimal.age_months ?? null,
+        } : state.manualPreviewPayload;
+        if (!profile) {
+            const speciesId = $("calc-valuation-species")?.value;
+            if (!speciesId) {
+                showError("Select the livestock species for fair market valuation.");
+                return;
+            }
+            profile = { species_id: speciesId, breed_id: null, sex: "unknown", age_months: null };
+        }
+        const animal = selectedAnimal;
+        const manualWeight = Number($("calc-manual-valuation-weight")?.value || 0);
+        const previewMatchesAnimal = !selectedAnimal || String(state.manualPreviewPayload?.species_id || "") === String(selectedAnimal.species_id || selectedAnimal.species?.id || "");
+        const calculatedWeight = previewMatchesAnimal && !state.manualWeightManuallyEntered
+            ? Number(state.manualPreviewResult?.estimated_weight_kg || 0)
+            : 0;
+        const rawWeightToUse = calculatedWeight > 0 ? calculatedWeight : manualWeight;
+        const weightToUse = Number(rawWeightToUse.toFixed(2));
+        if (!(weightToUse > 0)) {
+            showError("No weight is available. Enter a manual weight in kilograms or calculate the weight first.");
+            return;
+        }
+        const assessment = calculateCalculatorCondition();
+        if (!assessment.complete) {
+            showError("Complete all seven condition checklist questions before calculating valuation.");
+            openConditionChecklist();
+            return;
+        }
+        const payload = {
+            ...profile,
+            species_id: profile.species_id || $("calc-valuation-species")?.value || animal?.species_id || animal?.species?.id,
+            breed_id: profile.breed_id || animal?.breed_id || animal?.breed?.id || null,
+            sex: profile.sex || animal?.sex,
+            age_months: profile.age_months ?? animal?.age_months ?? null,
+            estimated_weight_kg: weightToUse,
+            weight_source: calculatedWeight > 0 ? "estimated" : "manual",
+            frame_category: state.manualPreviewResult?.frame_category ?? null,
+            sale_purpose: $("calc-manual-sale-purpose").value || animal?.sale_purpose,
+            condition_score: assessment.conditionScore,
+            reproductive_status: $("calc-manual-reproductive-status").value || animal?.reproductive_status || "unknown",
+            parity: $("calc-manual-parity").value === "" ? (animal?.parity ?? null) : Number($("calc-manual-parity").value),
+        };
+        if (!payload.sale_purpose) {
+            showError("Select the animal's sale purpose for valuation.");
+            return;
+        }
+        const button = $("calc-valuation-submit");
+        valuation.loading = true;
+        setButtonLoading(button, true, "Calculating preview...", "Calculate Valuation Preview");
+        try {
+            const response = await api.post("/calculator/valuation/preview", payload);
+            const result = unwrap(response);
+            renderValuationResult(result);
+            state.manualValuationResult = result;
+            if ($("calc-valuation-farmer-actions")) $("calc-valuation-farmer-actions").hidden = state.role !== "farmer";
+            if ($("calc-valuation-register-auction")) {
+                $("calc-valuation-register-auction").textContent = livestockId
+                    ? "Register Existing Livestock for Auction"
+                    : "Save Livestock & Join Auction";
+            }
+            const snapshot = result.calculation_snapshot ?? {};
+            if (snapshot && typeof snapshot === "object") {
+                snapshot.preview_only = true;
+                snapshot.notice = "Preview only — no livestock record or valuation history was saved.";
+                $("calc-snapshot-json").textContent = JSON.stringify(snapshot, null, 2);
+            }
+            $("calc-valuation-history").replaceChildren();
+            const row = $("calc-valuation-history").insertRow();
+            const cell = row.insertCell();
+            cell.colSpan = 5;
+            cell.textContent = "Calculator-only preview is not saved in valuation history.";
+            return;
+        } catch (error) {
+            showError(error);
+        } finally {
+            valuation.loading = false;
+            setButtonLoading(button, false, "Calculating preview...", "Calculate Valuation Preview");
+        }
         return;
     }
 
@@ -888,6 +1634,16 @@ async function calculateValuation(event) {
         if (valuation.selectedId !== livestockId) return;
 
         renderValuationResult(result);
+        if ($("calc-valuation-register-auction")) {
+            $("calc-valuation-register-auction").textContent = "Register Existing Livestock for Auction";
+        }
+        if ($("calc-valuation-farmer-actions")) {
+            $("calc-valuation-farmer-actions").hidden = state.role !== "farmer";
+            if (livestockId) {
+                $("calc-valuation-save-livestock").textContent = "Fair Price Calculation Saved to This Livestock";
+                $("calc-valuation-save-livestock").disabled = true;
+            }
+        }
 
         valuation.page = 1;
         await loadValuationHistory();
@@ -1179,11 +1935,91 @@ function selectFpcValuation(id) {
 function bindWeightEvents() {
     $("calc-form").addEventListener("submit", calculateWeight);
 
-    $("calc-livestock").addEventListener("change", (event) => {
+    $("calc-livestock").addEventListener("change", async (event) => {
         clearError();
-
-        selectWeightLivestock(event.target.value).catch(showError);
+        invalidateManualPreview();
+        const animal = findLivestock(event.target.value);
+        if (animal) {
+            try {
+                await selectWeightLivestock(event.target.value);
+            } catch (error) {
+                showError(error);
+            }
+        } else {
+            await selectWeightLivestock("");
+            $("calc-animal-info").hidden = true;
+            renderWeightHistory([]);
+        }
     });
+
+    $("calc-form").addEventListener("input", (event) => {
+        if (event.target.id !== "calc-submit") invalidateManualPreview();
+    });
+    $("calc-form").addEventListener("change", (event) => {
+        if (event.target.id !== "calc-submit") invalidateManualPreview();
+    });
+
+    const detachExistingRecord = () => {
+        if (!$("calc-livestock").value) return;
+        $("calc-livestock").value = "";
+        state.weight.selectedId = null;
+        renderWeightHistory([]);
+    };
+
+    $("calc-species").addEventListener("change", async (event) => {
+        clearError();
+        detachExistingRecord();
+        try {
+            await loadManualBreeds(event.target.value);
+            updateBreedRequirement();
+            updateRumpHeightForSpecies();
+        } catch (error) {
+            showError(error);
+        }
+    });
+
+    ["calc-breed", "calc-sex"].forEach((id) => {
+        $(id)?.addEventListener("change", detachExistingRecord);
+    });
+    $("calc-age-months")?.addEventListener("change", () => {
+        detachExistingRecord();
+        updateRumpHeightForSpecies();
+    });
+
+    ["calc-girth-unit", "calc-length-unit", "calc-height-unit"].forEach((id) => {
+        $(id)?.addEventListener("change", updateAllMeasurementGuides);
+    });
+
+    $("calc-save-livestock")?.addEventListener("click", () => saveManualCalculation("save"));
+    $("calc-register-auction")?.addEventListener("click", () => saveManualCalculation("auction"));
+    $("calc-go-valuation")?.addEventListener("click", () => {
+        if (!state.manualPreviewPayload || !state.manualPreviewResult) {
+            showError("Calculate the estimated weight first.");
+            return;
+        }
+        switchToValuation().catch(showError);
+    });
+    $("calc-condition-open")?.addEventListener("click", openConditionChecklist);
+    $("calc-condition-close")?.addEventListener("click", closeConditionChecklist);
+    $("calc-condition-modal")?.addEventListener("click", (event) => {
+        if (event.target?.hasAttribute("data-condition-close")) closeConditionChecklist();
+    });
+    $("calc-condition-questions")?.addEventListener("change", () => {
+        calculateCalculatorCondition();
+        state.manualValuationResult = null;
+        if ($("calc-valuation-farmer-actions")) $("calc-valuation-farmer-actions").hidden = true;
+    });
+    $("calc-condition-apply")?.addEventListener("click", () => {
+        const assessment = calculateCalculatorCondition();
+        if (!assessment.complete) {
+            showError("Please answer all seven condition assessment questions.");
+            return;
+        }
+        clearError();
+        closeConditionChecklist();
+    });
+    $("calc-valuation-save-livestock")?.addEventListener("click", () => saveManualCalculation("save"));
+    $("calc-valuation-register-auction")?.addEventListener("click", () => saveManualCalculation("auction"));
 
     $("calc-prev").addEventListener("click", async () => {
         if (state.weight.page <= 1) return;
@@ -1203,6 +2039,21 @@ function bindWeightEvents() {
 }
 
 function bindValuationEvents() {
+    const manualWeightInput = $("calc-manual-valuation-weight");
+    if (manualWeightInput) {
+        manualWeightInput.addEventListener("input", () => {
+            state.manualWeightManuallyEntered = true;
+            let value = String(manualWeightInput.value ?? "").replace(/[^0-9.]/g, "");
+            const dot = value.indexOf(".");
+            if (dot !== -1) {
+                value = value.slice(0, dot + 1) + value.slice(dot + 1).replace(/\./g, "");
+                const [whole, decimals = ""] = value.split(".");
+                value = `${whole}.${decimals.slice(0, 2)}`;
+            }
+            if (manualWeightInput.value !== value) manualWeightInput.value = value;
+        });
+    }
+
     $("calc-tab-weight").addEventListener("click", () => {
         clearError();
         setTab("weight");
@@ -1214,11 +2065,30 @@ function bindValuationEvents() {
 
     $("calc-valuation-livestock").addEventListener("change", (event) => {
         clearError();
-
+        const selected = findLivestock(event.target.value);
+        const hasWeight = Boolean(selected && (Number(selected.actual_weight_kg) > 0 || Number(selected.weight_estimations_count) > 0));
+        $("calc-valuation-submit").textContent = !event.target.value || !hasWeight ? "Calculate Valuation Preview" : "Calculate & Save Valuation";
+        state.manualValuationResult = null;
+        if ($("calc-valuation-farmer-actions")) $("calc-valuation-farmer-actions").hidden = true;
         selectValuationLivestock(event.target.value).catch(showError);
     });
 
+    $("calc-valuation-species")?.addEventListener("change", () => {
+        state.manualValuationResult = null;
+        if ($("calc-valuation-farmer-actions")) $("calc-valuation-farmer-actions").hidden = true;
+    });
+
     $("calc-valuation-form").addEventListener("submit", calculateValuation);
+    $("calc-valuation-form").addEventListener("input", (event) => {
+        if (event.target.id === "calc-valuation-submit") return;
+        state.manualValuationResult = null;
+        if ($("calc-valuation-farmer-actions")) $("calc-valuation-farmer-actions").hidden = true;
+    });
+    $("calc-valuation-form").addEventListener("change", (event) => {
+        if (event.target.id === "calc-valuation-submit") return;
+        state.manualValuationResult = null;
+        if ($("calc-valuation-farmer-actions")) $("calc-valuation-farmer-actions").hidden = true;
+    });
 
     $("calc-valuation-prev").addEventListener("click", async () => {
         if (state.valuation.page <= 1) return;
@@ -1293,7 +2163,21 @@ async function init() {
 
     try {
         await resolveRole();
+        await loadManualSpecies();
+        updateBreedRequirement();
+        updateRumpHeightForSpecies();
         await loadLivestock();
+        updateAllMeasurementGuides();
+        updateRumpHeightForSpecies();
+        const requestedTab = new URLSearchParams(window.location.search).get("tab");
+        if (requestedTab === "valuation") setTab("valuation");
+        if ($("calc-farmer-actions")) {
+            $("calc-farmer-actions").hidden = state.role !== "farmer";
+        }
+        if (!state.valuation.selectedId) {
+            await selectValuationLivestock("");
+            $("calc-valuation-submit").textContent = "Calculate Valuation Preview";
+        }
     } catch (error) {
         showError(error);
 
@@ -1373,6 +2257,9 @@ function initializeCalculatorHelp() {
         openHelp();
     });
 
+    // Wire every close control, including the top-right X button.
+    closeButton?.addEventListener("click", closeHelp);
+
     modal.querySelectorAll("[data-help-close]").forEach((button) => {
         button.addEventListener("click", closeHelp);
     });
@@ -1429,4 +2316,68 @@ if (document.readyState === "loading") {
     });
 } else {
     initializeCalculatorHelp();
+}
+
+
+// ==========================================================
+// MEASUREMENT INSTRUCTIONS MODAL
+// ==========================================================
+function initializeMeasurementInstructions() {
+    const modal = document.getElementById("calc-measure-modal");
+    const openButton = document.getElementById("calc-measure-open");
+    const closeButton = document.getElementById("calc-measure-close");
+    const dialog = modal?.querySelector(".calc-measure-dialog");
+    if (!modal || !openButton || !dialog) return;
+
+    let previousFocus = null;
+    const backdrop = modal.querySelector(".calc-measure-backdrop");
+
+    function openModal() {
+        previousFocus = document.activeElement;
+        modal.hidden = false;
+        document.body.classList.add("calc-help-open");
+        closeButton?.focus();
+    }
+
+    function closeModal() {
+        modal.hidden = true;
+        document.body.classList.remove("calc-help-open");
+        if (previousFocus instanceof HTMLElement) previousFocus.focus();
+    }
+
+    openButton.addEventListener("click", openModal);
+    // The top-right X is the primary close control. The backdrop also dismisses the modal.
+    closeButton?.addEventListener("click", closeModal);
+    backdrop?.addEventListener("click", closeModal);
+    document.addEventListener("keydown", (event) => {
+        if (modal.hidden) return;
+        if (event.key === "Escape") {
+            closeModal();
+            return;
+        }
+        if (event.key === "Tab") {
+            const focusable = [...modal.querySelectorAll("button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])")]
+                .filter((element) => element.getClientRects().length > 0);
+            if (!focusable.length) {
+                event.preventDefault();
+                dialog.focus();
+                return;
+            }
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+    });
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializeMeasurementInstructions, { once: true });
+} else {
+    initializeMeasurementInstructions();
 }

@@ -16,6 +16,7 @@ class StorePriceReferenceRequest extends FormRequest
     {
         return [
             'barangay_id' => ['nullable', 'uuid', 'exists:barangays,id'],
+            'recommendation_id' => ['nullable', 'uuid', 'exists:weekly_price_recommendations,id'],
 
             'species_id' => [
                 'required',
@@ -133,11 +134,26 @@ class StorePriceReferenceRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $effectiveFrom = $this->input('effective_from');
+
+        // Price references always run through the Sunday of the selected
+        // Monday-Sunday calendar week. The client cannot override this date.
+        if ($effectiveFrom) {
+            try {
+                $this->merge([
+                    'effective_to' => \Carbon\CarbonImmutable::parse($effectiveFrom)
+                        ->endOfWeek(\Carbon\Carbon::SUNDAY)
+                        ->toDateString(),
+                ]);
+            } catch (\Throwable) {
+                // Let the date validation rule report malformed input.
+            }
+        }
+
         $this->merge([
             'source' => $this->filled('source')
                 ? trim($this->source)
                 : null,
-
             'remarks' => $this->filled('remarks')
                 ? trim($this->remarks)
                 : null,

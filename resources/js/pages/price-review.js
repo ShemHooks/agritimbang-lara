@@ -1,4 +1,5 @@
 import api from "../api";
+import { formatDate as sharedFormatDate, formatDateTime as sharedFormatDateTime } from "../utils/date-format";
 
 const $ = (id) => document.getElementById(id);
 
@@ -88,41 +89,13 @@ function money(value) {
     }).format(number);
 }
 
-function date(value) {
-    if (!value) return "—";
+function date(value) { return sharedFormatDate(value); }
 
-    const match = String(value).match(/^\d{4}-\d{2}-\d{2}/);
-
-    return match ? match[0] : String(value);
-}
-
-function dateTime(value) {
-    if (!value) return "—";
-
-    const parsed = new Date(value);
-
-    if (Number.isNaN(parsed.getTime())) {
-        return String(value);
-    }
-
-    return new Intl.DateTimeFormat("en-PH", {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "Asia/Manila",
-    }).format(parsed);
-}
+function dateTime(value) { return sharedFormatDateTime(value); }
 
 function personName(person) {
     if (!person) return "—";
-
-    if (person.full_name) return person.full_name;
-    if (person.name) return person.name;
-
-    const name = [person.first_name, person.middle_name, person.last_name]
-        .filter(Boolean)
-        .join(" ");
-
-    return name || "—";
+    return [person.first_name, person.middle_name, person.last_name].filter(Boolean).join(" ") || person.name || person.email || "—";
 }
 
 function addField(container, label, value) {
@@ -198,7 +171,6 @@ function renderRecord(record) {
         ["Species", record.species?.name],
         ["Breed", record.breed?.name ?? "All breeds"],
         ["Municipality", record.municipality?.name],
-        ["Barangay", record.barangay?.name ?? "Municipality-wide"],
         ["Sale Purpose", readable(record.sale_purpose)],
         ["Price / kg", money(record.price_per_kg)],
         ["Effective From", date(record.effective_from)],

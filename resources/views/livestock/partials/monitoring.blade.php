@@ -127,16 +127,47 @@ Analytics & GIS Module
                     </option>
                 </select>
 
-                {{-- Species Filter --}}
-                <select id="lm-map-species" aria-label="Filter map by species">
-                    <option value="">
-                        All Species
-                    </option>
-                </select>
-
-                <button type="button" id="lm-map-reset" class="lm-button-secondary">
-                    Reset View
-                </button>
+                <label class="lm-map-filter">
+                    <span>Map layer</span>
+                    <select id="lm-map-dataset" aria-label="Map layer">
+                        <option value="livestock">Livestock inventory</option>
+                        <option value="verified_sales">Verified sales</option>
+                    </select>
+                </label>
+                <label class="lm-map-filter">
+                    <span>Species</span>
+                    <select id="lm-map-species" aria-label="Filter map by species">
+                        <option value="">All species</option>
+                    </select>
+                </label>
+                <label class="lm-map-filter" id="lm-map-status-wrap">
+                    <span>Status</span>
+                    <select id="lm-map-status" aria-label="Filter livestock status">
+                        <option value="">All statuses</option>
+                        <option value="available">Available</option>
+                        <option value="in_transaction">In transaction</option>
+                        <option value="sold">Sold</option>
+                    </select>
+                </label>
+                <label class="lm-map-filter" id="lm-map-purpose-wrap" hidden>
+                    <span>Sale purpose</span>
+                    <select id="lm-map-sale-purpose" aria-label="Filter verified sales by purpose">
+                        <option value="">All sale purposes</option>
+                        <option value="slaughter">Slaughter</option>
+                        <option value="breeding">Breeding</option>
+                        <option value="fattening">Fattening</option>
+                        <option value="work">Work</option>
+                    </select>
+                </label>
+                <label class="lm-map-filter" id="lm-map-from-wrap" hidden>
+                    <span>From</span>
+                    <input id="lm-map-date-from" type="date" aria-label="Sales from date">
+                </label>
+                <label class="lm-map-filter" id="lm-map-to-wrap" hidden>
+                    <span>To</span>
+                    <input id="lm-map-date-to" type="date" aria-label="Sales to date">
+                </label>
+                <button type="button" id="lm-map-reset" class="lm-button-secondary">Reset Filters</button>
 
             </div>
         </div>
@@ -166,24 +197,11 @@ Analytics & GIS Module
             {{-- Population Density Legend --}}
             <div class="lm-map-legend">
 
-                <span>
-                    Livestock Population
-                </span>
-
-                <span class="lm-legend-item">
-                    <i class="lm-legend-dot lm-density-low"></i>
-                    Low
-                </span>
-
-                <span class="lm-legend-item">
-                    <i class="lm-legend-dot lm-density-medium"></i>
-                    Medium
-                </span>
-
-                <span class="lm-legend-item">
-                    <i class="lm-legend-dot lm-density-high"></i>
-                    High
-                </span>
+                <span id="lm-map-legend-title">Activity intensity</span>
+                <span class="lm-legend-item"><i class="lm-legend-dot lm-density-low"></i> 1–9</span>
+                <span class="lm-legend-item"><i class="lm-legend-dot lm-density-medium"></i> 10–39</span>
+                <span class="lm-legend-item"><i class="lm-legend-dot lm-density-high"></i> 40+</span>
+                <span class="lm-legend-item"><i class="lm-legend-dot lm-density-none"></i> No records</span>
 
             </div>
 

@@ -916,55 +916,549 @@ body.calc-help-open {
     }
 }
 
-.calc-how-to-grid {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin: 18px 0;
+calc-field[hidden] {
+    display: none !important;
 }
 
-.calc-help-definitions > .calc-how-to-grid {
-    grid-column: 1 / -1;
-    padding: 0;
-    border: 0;
-    background: transparent;
-}
-
-.calc-how-to-grid article {
-    border: 1px solid #dce8df;
-    border-radius: 12px;
+.calc-help-illustration {
+    margin: 14px 0 20px;
     padding: 12px;
-    min-width: 0;
+    border: 1px solid #dce8df;
+    border-radius: 13px;
+    background: #f8fbf8;
+    text-align: center;
 }
 
-.measure-guide-image {
+.calc-help-illustration img {
     display: block;
     width: 100%;
-    max-width: 100%;
-    height: 220px;
+    max-width: 560px;
+    max-height: 230px;
     object-fit: contain;
+    margin: 0 auto;
 }
 
-.calc-how-to-grid h3 {
-    font-size: 1rem;
-    margin: 10px 0 5px;
+.calc-help-illustration figcaption {
+    margin-top: 8px;
+    color: #617469;
+    font-size: 12px;
 }
 
-.calc-how-to-grid p {
-    font-size: .9rem;
-    color: #475569;
+.calc-measure-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 12px;
+    padding: 10px 14px;
+    border: 1px solid #cfe1d4;
+    border-radius: 10px;
+    background: #f4faf5;
+    color: #176342;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 750;
+    cursor: pointer;
 }
 
-@media (max-width: 700px) {
-    .calc-how-to-grid {
+.calc-measure-trigger:hover {
+    background: #e8f5eb;
+    border-color: #86b99a;
+}
+
+.calc-measure-modal[hidden] {
+    display: none !important;
+}
+
+.calc-measure-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10010;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+}
+
+.calc-measure-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(10, 25, 18, 0.66);
+    backdrop-filter: blur(4px);
+}
+
+.calc-measure-dialog {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: min(100%, 1120px);
+    max-height: min(92dvh, 900px);
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #dce8df;
+    border-radius: 18px;
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.25);
+    outline: none;
+}
+
+.calc-measure-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 22px 26px;
+    border-bottom: 1px solid #e5eee7;
+}
+
+.calc-measure-header h2 {
+    margin: 4px 0 8px;
+    color: #1d4931;
+    font-size: clamp(20px, 3vw, 27px);
+}
+
+.calc-measure-header p:last-child {
+    margin: 0;
+    color: #63746a;
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.calc-measure-body {
+    padding: 20px 24px;
+    overflow: auto;
+}
+
+.calc-measure-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.calc-measure-step {
+    min-width: 0;
+    padding: 17px;
+    border: 1px solid #dfeae1;
+    border-radius: 14px;
+    background: #fbfdfb;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.calc-measure-step h3 {
+    margin: 0;
+    color: #205638;
+    font-size: 17px;
+}
+
+.calc-measure-step .calc-measure-subtitle {
+    margin: 3px 0 12px;
+    color: #718077;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.calc-measure-step img {
+    display: block;
+    width: 100%;
+    height: 190px;
+    object-fit: contain;
+    background: #f2f8f3;
+    border: 1px solid #e1ece3;
+    border-radius: 11px;
+    padding: 8px;
+}
+
+.calc-measure-step .calc-measure-label {
+    margin: 13px 0 4px;
+    color: #176342;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.calc-measure-step p:last-child {
+    margin: 0;
+    color: #5e6e64;
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.calc-measure-note {
+    margin: 18px 0 0;
+    padding: 13px 15px;
+    background: #f1f8f2;
+    border: 1px solid #dcebdd;
+    border-radius: 11px;
+    color: #52685a;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.calc-measure-header .calc-help-close {
+    flex: 0 0 auto;
+    cursor: pointer;
+}
+
+.calc-measure-header .calc-help-close:hover {
+    background: #e8f5eb;
+    color: #176342;
+}
+
+@media (max-width: 860px) {
+    .calc-measure-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .calc-measure-step {
+        min-width: 0;
+    }
+}
+
+@media (max-width: 600px) {
+    .calc-measure-grid {
         grid-template-columns: 1fr;
     }
 
-    .measure-guide-image {
-        height: 200px;
+    .calc-measure-step {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
     }
 
-    .calc-how-to-dialog {
+    .calc-measure-step img {
+        height: 180px;
+    }
+}
+
+@media (max-width: 480px) {
+    .calc-measure-modal {
+        padding: 9px;
+    }
+
+    .calc-measure-header,
+    .calc-measure-body {
+        padding: 15px;
+    }
+
+    .calc-measure-step img {
+        height: 165px;
+    }
+}
+
+/* Manual calculator profile, familiar units, and farmer actions */
+.calc-profile-grid {
+    margin-top: 18px;
+}
+.calc-profile-grid small {
+    color: #718477;
+    font-size: 11px;
+    line-height: 1.45;
+    font-weight: 400;
+}
+.calc-measure-input {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(130px, .9fr);
+    gap: 8px;
+}
+.calc-measure-input input,
+.calc-measure-input select {
+    min-width: 0;
+}
+.calc-measure-guide {
+    display: block;
+    min-height: 16px;
+    color: #16845b;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.45;
+}
+.calc-measure-warning {
+    margin-top: 18px;
+    padding: 14px 16px;
+    border: 1px solid #ead9a8;
+    border-radius: 10px;
+    background: #fffaf0;
+    color: #705a20;
+    font-size: 12px;
+    line-height: 1.6;
+}
+.calc-measure-warning strong {
+    display: block;
+    margin-bottom: 4px;
+}
+.calc-measure-warning p {
+    margin: 0;
+}
+.calc-farmer-actions {
+    display: grid;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid #e1eae4;
+}
+.calc-farmer-actions p,
+.calc-farmer-actions small {
+    margin: 0;
+    color: #718477;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.calc-secondary {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid #16845b;
+    border-radius: 10px;
+    background: #fff;
+    color: #16845b;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.calc-secondary:hover {
+    background: #eff8f2;
+}
+.calc-secondary:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+@media (max-width: 760px) {
+    .calc-measure-input {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.calc-error.calc-success-message {
+    display: block;
+    border-color: #b8dfc4;
+    background: #eff8f2;
+    color: #23613e;
+}
+
+/* Calculator-only valuation preview controls */
+.calc-manual-valuation-fields {
+    display: grid;
+    gap: 12px;
+    margin: 14px 0;
+    padding: 14px;
+    border: 1px solid #dce8df;
+    border-radius: 12px;
+    background: #f8fbf8;
+}
+
+.calc-manual-valuation-fields[hidden] {
+    display: none !important;
+}
+
+/* Calculator-to-valuation flow and condition checklist modal */
+
+.calc-next-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.calc-next-action small {
+    color: var(--muted, #64748b);
+    flex: 1 1 220px;
+}
+
+.calc-condition-modal[hidden] {
+    display: none !important;
+}
+
+.calc-condition-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1200;
+    display: grid;
+    place-items: center;
+    padding: 18px;
+}
+
+.calc-condition-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, .58);
+}
+
+.calc-condition-dialog {
+    position: relative;
+    z-index: 1;
+    width: min(900px, 100%);
+    max-height: min(88vh, 900px);
+    overflow: auto;
+    background: var(--surface, #fff);
+    color: var(--text, #17212b);
+    border-radius: 16px;
+    padding: 22px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .25);
+}
+
+.calc-condition-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.calc-condition-summary > div {
+    padding: 12px;
+    border: 1px solid var(--border, #dbe3e8);
+    border-radius: 10px;
+}
+
+.calc-condition-summary span,
+.calc-condition-summary strong {
+    display: block;
+}
+
+.calc-condition-summary strong {
+    margin-top: 5px;
+}
+
+.calc-condition-legend {
+    grid-column: 1 / -1;
+}
+
+.calc-condition-legend span {
+    margin-top: 6px;
+    line-height: 1.5;
+}
+
+.calc-condition-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+body.calc-condition-open {
+    overflow: hidden;
+}
+
+@media (max-width: 640px) {
+    .calc-condition-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .calc-condition-dialog {
         padding: 16px;
     }
+}
+
+.calc-condition-dialog .lr-assessment-category {
+    margin: 24px 0 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e4e9e0;
+    color: #264b30;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.calc-condition-dialog .lr-assessment-question {
+    border: 0;
+    padding: 0;
+    margin: 0 0 22px;
+    min-width: 0;
+}
+
+.calc-condition-dialog .lr-assessment-question legend {
+    display: block;
+    width: 100%;
+    margin-bottom: 12px;
+    color: #243e2b;
+}
+
+.calc-condition-dialog .lr-assessment-question legend strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 650;
+}
+
+.calc-condition-dialog .lr-assessment-question legend small {
+    display: block;
+    margin-top: 5px;
+    color: #849185;
+    font-size: 12px;
+}
+
+.calc-condition-dialog .lr-assessment-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.calc-condition-dialog .lr-assessment-option {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 12px;
+    border: 1px solid #dfe7dc;
+    border-radius: 10px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 12px;
+    color: #425346;
+}
+
+.calc-condition-dialog .lr-assessment-option:has(input:checked) {
+    border-color: #38643e;
+    background: #edf5e9;
+    color: #244a2b;
+    font-weight: 600;
+}
+
+.calc-condition-dialog .lr-assessment-option input {
+    accent-color: #315c38;
+    flex-shrink: 0;
+}
+
+@media (max-width: 700px) {
+    .calc-condition-dialog .lr-assessment-options {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Layout support for the restored calculator page */
+
+.calc-result-card {
+    min-width: 0;
+}
+
+.calc-measure-field {
+    min-width: 0;
+}
+
+.calc-fpc-stat {
+    min-width: 0;
+}
+
+/* Keep the goat-specific rump-height control visible when selected from a saved record. */
+.calc-page #calc-height-field:not([hidden]) {
+    display: flex !important;
+}
+.calc-page #calc-height-field[hidden] {
+    display: none !important;
+}
+
+
+/* More spacing for the measurement reminder and primary calculation action. */
+.calc-measure-warning {
+    margin-top: 22px;
+    margin-bottom: 16px;
+    padding: 18px 20px;
+}
+.calc-measure-warning strong {
+    margin-bottom: 8px;
+}
+.calc-measure-warning p {
+    line-height: 1.75;
+}
+.calc-measure-warning + .calc-primary {
+    margin-top: 4px;
+    padding: 17px 18px;
 }

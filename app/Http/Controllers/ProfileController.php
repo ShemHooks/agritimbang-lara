@@ -23,6 +23,10 @@ class ProfileController extends BaseController
     public function update(Request $request): JsonResponse
     {
         $user = $request->user();
+        $request->merge([
+            'email' => strtolower(trim((string) $request->input('email', ''))),
+            'phone_number' => $request->filled('phone_number') ? trim((string) $request->input('phone_number')) : null,
+        ]);
 
         $data = $request->validate([
             'first_name' => [
@@ -42,14 +46,15 @@ class ProfileController extends BaseController
             ],
             'email' => [
                 'required',
-                'email',
+                'email:rfc',
                 'max:255',
                 Rule::unique('users', 'email')->ignore($user->id),
             ],
             'phone_number' => [
                 'nullable',
                 'string',
-                'max:30'
+                \App\Support\ContactValidationRules::philippineMobile(),
+                'max:13'
             ],
         ]);
 

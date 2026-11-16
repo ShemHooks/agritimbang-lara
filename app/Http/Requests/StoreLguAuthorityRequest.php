@@ -35,7 +35,7 @@ class StoreLguAuthorityRequest extends FormRequest
 
             'email' => [
                 'required',
-                'email',
+                'email:rfc',
                 'max:255',
                 'unique:users,email',
             ],
@@ -43,7 +43,8 @@ class StoreLguAuthorityRequest extends FormRequest
             'phone_number' => [
                 'nullable',
                 'string',
-                'max:20',
+                \App\Support\ContactValidationRules::philippineMobile(),
+                'max:13',
             ],
 
             'municipality_id' => [

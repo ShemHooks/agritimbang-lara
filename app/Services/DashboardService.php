@@ -15,7 +15,21 @@ class DashboardService
         $scope = fn($query) => $query->when($municipalityId, fn($q) => $q->where('municipality_id', $municipalityId));
         $livestock = $scope(LivestockRecord::query());
         $status = (clone $livestock)->select('status')->selectRaw('COUNT(*) AS total')->groupBy('status')->pluck('total', 'status');
-        $verified = $scope(Transaction::query())->where('status', 'verified');
+        $monthStart = now()->startOfMonth();
+        $nextMonth = now()->copy()->startOfMonth()->addMonth();
+        $verified = $scope(Transaction::query())->where('status', 'verified')
+            ->whereNotNull('transaction_date')
+            ->where('transaction_date', '>=', $monthStart)
+            ->where('transaction_date', '<', $nextMonth);
+
+        $yearStart = now()->startOfYear();
+        $nextYear = now()->copy()->startOfYear()->addYear();
+        $verifiedYearlySales = (float) $scope(Transaction::query())
+            ->where('status', 'verified')
+            ->whereNotNull('transaction_date')
+            ->where('transaction_date', '>=', $yearStart)
+            ->where('transaction_date', '<', $nextYear)
+            ->sum('total_selling_price');
 
         // Select only the newest valuation for each livestock record to avoid double-counting.
         $latestValuationIds = Valuation::query()->select('id')
@@ -30,11 +44,26 @@ class DashboardService
 
         return [
             'registered_farmers' => $scope(FarmerProfile::query())->count(),
+            // Keep the all-time total for analytics, and expose a separate
+            // current-month registration count for the dashboard card.
             'total_livestock' => (int) $status->sum(),
+            'monthly_livestock_count' => (int) LivestockRecord::query()
+                ->when(
+                    $municipalityId,
+                    fn ($query) => $query->where('municipality_id', $municipalityId)
+                )
+                // Count every record created in this calendar month, regardless
+                // of current livestock status; do not use the all-time status sum.
+                ->where('created_at', '>=', $monthStart->toDateTimeString())
+                ->where('created_at', '<', $nextMonth->toDateTimeString())
+                ->count(),
             'livestock_by_status' => collect(['available', 'in_transaction', 'sold', 'archived'])
                 ->mapWithKeys(fn($key) => [$key => (int) ($status[$key] ?? 0)])->all(),
             'verified_transactions' => (clone $verified)->count(),
             'verified_sales_total' => round((float) (clone $verified)->sum('total_selling_price'), 2),
+            'yearly_verified_sales_total' => round($verifiedYearlySales, 2),
+            'monthly_period_label' => now()->translatedFormat('F Y'),
+            'yearly_period_label' => now()->format('Y'),
             'current_estimated_inventory_value' => round($inventoryValue, 2),
         ];
     }
@@ -57,11 +86,18 @@ class DashboardService
         $base = Transaction::query()->when($municipalityId, fn($q) => $q->where('municipality_id', $municipalityId));
         return [
             'by_status' => (clone $base)->select('status')->selectRaw('COUNT(*) AS total')->groupBy('status')->get(),
+            'by_status_year' => (clone $base)
+                ->whereNotNull('transaction_date')
+                ->selectRaw('YEAR(transaction_date) AS year')
+                ->addSelect('status')
+                ->selectRaw('COUNT(*) AS total')
+                ->groupBy('year', 'status')->orderBy('year')->get(),
             'verified_monthly' => (clone $base)->where('status', 'verified')
-                ->selectRaw("DATE_FORMAT(verified_at, '%Y-%m') AS month")
+                ->whereNotNull('transaction_date')
+                ->selectRaw("DATE_FORMAT(transaction_date, '%Y-%m') AS month")
                 ->selectRaw('COUNT(*) AS transaction_count')
                 ->selectRaw('SUM(total_selling_price) AS selling_total')
-                ->whereNotNull('verified_at')->groupBy('month')->orderBy('month')->get(),
+                ->groupBy('month')->orderBy('month')->get(),
         ];
     }
 
@@ -169,6 +205,37 @@ class DashboardService
             ->orderBy('species.name')
             ->get();
 
+        // Year-based summaries drive the Reporting Year filter across the page.
+        $byYear = (clone $base)
+            ->selectRaw('YEAR(valuations.created_at) AS year')
+            ->selectRaw('COUNT(*) AS calculation_count')
+            ->selectRaw('AVG(valuations.estimated_value) AS average_value')
+            ->selectRaw("SUM(CASE WHEN valuations.weight_type = 'actual' THEN 1 ELSE 0 END) AS actual_count")
+            ->groupBy('year')->orderBy('year')->get();
+
+        $byWeightTypeYear = (clone $base)
+            ->selectRaw('YEAR(valuations.created_at) AS year')
+            ->addSelect('valuations.weight_type')
+            ->selectRaw('COUNT(*) AS total')
+            ->groupBy('year', 'valuations.weight_type')->orderBy('year')->get();
+
+        $bySpeciesYear = (clone $base)
+            ->join('species', 'species.id', '=', 'livestock_records.species_id')
+            ->selectRaw('YEAR(valuations.created_at) AS year')
+            ->addSelect('species.id', 'species.name')
+            ->selectRaw('COUNT(*) AS calculation_count')
+            ->selectRaw('AVG(valuations.estimated_value) AS average_value')
+            ->groupBy('year', 'species.id', 'species.name')->orderBy('year')->orderBy('species.name')->get();
+
+        $adjustmentsByYear = (clone $base)
+            ->selectRaw('YEAR(valuations.created_at) AS year')
+            ->selectRaw('AVG(valuations.breed_factor) AS breed_factor')
+            ->selectRaw('AVG(valuations.age_factor) AS age_factor')
+            ->selectRaw('AVG(valuations.reproductive_factor) AS reproductive_factor')
+            ->selectRaw('AVG(valuations.frame_factor) AS frame_factor')
+            ->selectRaw('AVG(valuations.condition_factor) AS condition_factor')
+            ->groupBy('year')->orderBy('year')->get();
+
         // Average FPC adjustment factors.
         $adjustments = (clone $base)
             ->selectRaw(
@@ -202,6 +269,10 @@ class DashboardService
             ),
 
             'by_weight_type' => $byWeightType,
+            'by_year' => $byYear,
+            'by_weight_type_year' => $byWeightTypeYear,
+            'by_species_year' => $bySpeciesYear,
+            'adjustments_by_year' => $adjustmentsByYear,
 
             'monthly' => $monthly,
 

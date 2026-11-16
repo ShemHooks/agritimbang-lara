@@ -646,3 +646,73 @@
     justify-content: center;
     text-decoration: none;
 }
+
+
+/* Farmer-friendly, compact centered row actions */
+
+.ld-actions-column,
+.ld-actions-cell {
+    text-align: center !important;
+}
+
+.ld-action-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.ld-action-group .ld-view-button,
+.ld-action-group .ld-edit-button,
+.ld-action-group .ld-delete-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 54px;
+    min-height: 30px;
+    padding: 5px 9px;
+    border-radius: 8px;
+    font-size: 11px;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.ld-edit-button {
+    border: 1px solid #d9e9de;
+    background: #f7faf7;
+    color: #365743;
+    text-decoration: none;
+}
+
+.ld-delete-button {
+    border: 1px solid #f0d8d5;
+    background: #fff8f7;
+    color: #a33f36;
+    cursor: pointer;
+}
+
+
+/* One-time confirmation shown after a farmer successfully registers livestock. */
+.ld-registration-feedback {
+    margin: 0 0 18px;
+    padding: 14px 17px;
+    border: 1px solid #b9dfc2;
+    border-left: 4px solid #23834b;
+    border-radius: 10px;
+    background: #eff9f1;
+    color: #205d35;
+    font-size: 14px;
+    font-weight: 650;
+    line-height: 1.55;
+}
+.ld-registration-feedback[hidden] {
+    display: none !important;
+}
+
+.ld-registration-feedback-warning {
+    border-color: #ead9a8;
+    border-left-color: #c28a20;
+    background: #fffaf0;
+    color: #705a20;
+}

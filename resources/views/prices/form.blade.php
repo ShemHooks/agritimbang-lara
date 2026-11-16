@@ -27,46 +27,36 @@
             <div class="price-form-card-header">
                 <h2>Price Information</h2>
                 <p>
-                    The reference will be saved as a draft.
-                    You can submit it for review afterward.
+                    Save your work as a draft, or submit it directly to the LGU Authority for review.
                 </p>
             </div>
 
             <form id="price-reference-form" novalidate>
+                <input type="hidden" id="recommendation-id" name="recommendation_id" value="">
                 <div class="price-form-grid">
 
-                    <!-- Weekly Price Recommendation -->
+                    <!-- Municipality-wide weekly price: one species selector only -->
                     <div class="price-form-full price-species-heading">
+                        <label for="price-species">Species <em>*</em></label>
                         <button type="button" id="open-price-recommendations" class="price-view-recommendations">
                             <span aria-hidden="true">↗</span>
                             View Recommended Prices
                         </button>
                     </div>
-                    
-                    <label class="price-form-field">
-                        <span>Species <em>*</em></span>
 
+                    <div class="price-form-field price-form-full">
                         <select id="price-species" name="species_id" required>
                             <option value="">Select species</option>
                         </select>
-
                         <small data-error-for="species_id"></small>
-                    </label>
-                    
+                    </div>
+
                     <label class="price-form-field">
                         <span>Breed</span>
                         <select id="price-breed" name="breed_id" disabled>
                             <option value="">All breeds</option>
                         </select>
                         <small data-error-for="breed_id"></small>
-                    </label>
-
-                    <label class="price-form-field">
-                        <span>Barangay</span>
-                        <select id="price-barangay" name="barangay_id">
-                            <option value="">Municipality-wide</option>
-                        </select>
-                        <small data-error-for="barangay_id"></small>
                     </label>
 
                     <label class="price-form-field">
@@ -96,7 +86,8 @@
 
                     <label class="price-form-field">
                         <span>Effective To</span>
-                        <input id="price-effective-to" name="effective_to" type="date">
+                        <input id="price-effective-to" name="effective_to" type="date" readonly aria-readonly="true">
+                        <small class="price-form-hint">Automatically set to Sunday of the selected week (Monday–Sunday).</small>
                         <small data-error-for="effective_to"></small>
                     </label>
 
@@ -121,8 +112,12 @@
                         Cancel
                     </a>
 
-                    <button type="submit" id="price-form-submit" class="price-form-primary">
+                    <button type="submit" id="price-form-save-draft" class="price-form-secondary" data-price-action="draft">
                         Save Draft
+                    </button>
+
+                    <button type="submit" id="price-form-submit" class="price-form-primary" data-price-action="submit">
+                        Submit for Review
                     </button>
                 </footer>
             </form>
@@ -151,18 +146,18 @@
                 <div class="price-modal-body">
                     <div class="price-modal-summary">
                         <div>
-                            <span>Species with data</span>
+                            <span>Species × purpose combinations</span>
                             <strong id="price-modal-species-count">—</strong>
                         </div>
 
                         <div>
-                            <span>Livestock sold</span>
+                            <span>Included observations</span>
                             <strong id="price-modal-livestock-count">—</strong>
                         </div>
                     </div>
 
                     <div class="price-modal-search">
-                        <input type="search" id="price-modal-search" placeholder="Search livestock species..."
+                        <input type="search" id="price-modal-search" placeholder="Search species or sale purpose..."
                             autocomplete="off">
                     </div>
 

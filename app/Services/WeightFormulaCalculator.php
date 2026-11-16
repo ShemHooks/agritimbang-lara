@@ -80,7 +80,9 @@ class WeightFormulaCalculator
         $hg = (float) $measurements['heart_girth_cm'];
         $bl = (float) $measurements['body_length_cm'];
 
-        return (($hg ** 2) * $bl) / 10840;
+        // Standard livestock tape formula: pounds = HG(in)^2 × BL(in) / 300.
+        // Convert the centimeter inputs to inches and the result to kilograms.
+        return $this->tapeFormulaToKilograms($hg, $bl, 300);
     }
 
     private function calculateNativeHog(array $measurements): float
@@ -93,17 +95,19 @@ class WeightFormulaCalculator
 
     private function calculateCommercialHog(array $measurements): float
     {
-        /*
-         * Measurements enter AgriTimbang in centimeters,
-         * but this formula requires meters.
-         */
-        $hgMeters =
-            (float) $measurements['heart_girth_cm'] / 100;
+        // Hog fallback: pounds = HG(in)^2 × BL(in) / 400.
+        $hgInches = (float) $measurements['heart_girth_cm'] / 2.54;
+        $blInches = (float) $measurements['body_length_cm'] / 2.54;
+        $weightLb = (($hgInches ** 2) * $blInches) / 400;
 
-        $blMeters =
-            (float) $measurements['body_length_cm'] / 100;
+        // Add 7 lb only when the unadjusted estimate is below 150 lb.
+        // The 150–400 lb range receives no adjustment; no adjustment is
+        // specified for estimates above 400 lb either.
+        if ($weightLb < 150) {
+            $weightLb += 7;
+        }
 
-        return ($hgMeters ** 2) * $blMeters * 69.3;
+        return $weightLb / 2.2046226218;
     }
 
     private function calculateAdultGoat(array $measurements): float
@@ -124,7 +128,8 @@ class WeightFormulaCalculator
         $hg = (float) $measurements['heart_girth_cm'];
         $bl = (float) $measurements['body_length_cm'];
 
-        return (($hg ** 2) * $bl) / 10838;
+        // General/unspecified-breed goat fallback: pounds = HG(in)^2 × BL(in) / 300.
+        return $this->tapeFormulaToKilograms($hg, $bl, 300);
     }
 
     private function calculateCarabaoMurrah(array $measurements): float
@@ -139,6 +144,19 @@ class WeightFormulaCalculator
         $hg = (float) $measurements['heart_girth_cm'];
         $bl = (float) $measurements['body_length_cm'];
 
-        return (($hg ** 2) * $bl) / 10840;
+        // Carabao/buffalo fallback uses the same /300 tape formula as cattle.
+        return $this->tapeFormulaToKilograms($hg, $bl, 300);
+    }
+
+    private function tapeFormulaToKilograms(
+        float $heartGirthCm,
+        float $bodyLengthCm,
+        float $divisor
+    ): float {
+        $heartGirthIn = $heartGirthCm / 2.54;
+        $bodyLengthIn = $bodyLengthCm / 2.54;
+        $weightLb = (($heartGirthIn ** 2) * $bodyLengthIn) / $divisor;
+
+        return $weightLb / 2.2046226218;
     }
 }

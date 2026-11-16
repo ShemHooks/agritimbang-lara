@@ -18,12 +18,101 @@ class WeightEstimationService
     ) {
     }
 
+    /**
+     * Calculate a temporary/manual estimate without creating a livestock
+     * record or a weight_estimation row.
+     */
+    public function preview(
+        LivestockRecord $livestock,
+        array $measurements
+    ): array {
+        $livestock->loadMissing(['species', 'breed']);
+
+        // Older goat records may have age_months but no age_group. Resolve the
+        // stage from the saved age before choosing the goat formula.
+        if (
+            strtoupper((string) $livestock->species?->code) === 'GOAT' &&
+            empty($livestock->age_group)
+        ) {
+            $livestock->age_group = $this->ageGroupService->resolve(
+                $livestock->species,
+                $livestock->age_months !== null ? (int) $livestock->age_months : null,
+            );
+        }
+
+        $profile = $this->formulaResolver->resolve($livestock);
+
+        $estimatedWeight = $this->calculator->calculate(
+            $profile,
+            $measurements
+        );
+
+        [$confidence, $warnings] = $this->evaluateConfidence(
+            $profile->formula_code,
+            $estimatedWeight
+        );
+
+        $effectiveAgeGroup = $livestock->age_group;
+
+        if (strtoupper((string) $livestock->species?->code) === 'HOG') {
+            $effectiveAgeGroup = $this->ageGroupService->resolve(
+                $livestock->species,
+                $livestock->age_months !== null ? (int) $livestock->age_months : null,
+                $estimatedWeight,
+            );
+        }
+
+        $classificationLivestock = clone $livestock;
+        $classificationLivestock->age_group = $effectiveAgeGroup;
+
+        $frame = $this->frameClassifier->classify(
+            $classificationLivestock,
+            isset($measurements['body_length_cm'])
+                ? (float) $measurements['body_length_cm']
+                : null
+        );
+
+        return [
+            'livestock_id' => null,
+            'formula_profile_id' => $profile->id,
+            'heart_girth_cm' => $measurements['heart_girth_cm'] ?? null,
+            'body_length_cm' => $measurements['body_length_cm'] ?? null,
+            'rump_height_cm' => $measurements['rump_height_cm'] ?? null,
+            'estimated_weight_kg' => $estimatedWeight,
+            'formula_code' => $profile->formula_code,
+            'formula_version' => $profile->version,
+            'estimate_confidence' => $confidence,
+            'warnings' => empty($warnings) ? [] : $warnings,
+            'frame_category' => $frame['frame_category'],
+            'frame_z' => $frame['frame_z'],
+            'reference_mean_body_length_cm' => $frame['reference_mean_body_length_cm'],
+            'reference_sd_body_length_cm' => $frame['reference_sd_body_length_cm'],
+            'reference_n' => $frame['reference_n'],
+            'reference_group' => $frame['reference_group'],
+            'frame_stats_version' => $frame['frame_stats_version'],
+            'age_group' => $effectiveAgeGroup,
+            'preview_only' => true,
+        ];
+    }
+
     public function estimate(
         LivestockRecord $livestock,
         array $measurements,
         User $user
     ): WeightEstimation {
         $livestock->loadMissing(['species', 'breed']);
+
+        // Legacy goat records can have a valid age in months but a missing
+        // age_group. Resolve the formula stage from the saved age.
+        if (
+            strtoupper((string) $livestock->species?->code) === 'GOAT' &&
+            empty($livestock->age_group)
+        ) {
+            $livestock->age_group = $this->ageGroupService->resolve(
+                $livestock->species,
+                $livestock->age_months !== null ? (int) $livestock->age_months : null,
+            );
+        }
 
         // 1. Select the applicable WET formula.
         $profile = $this->formulaResolver->resolve($livestock);
@@ -169,7 +258,7 @@ class WeightEstimationService
 
             $warnings[] = match ($formulaCode) {
                 'GOAT_YOUNG_FALLBACK' =>
-                    'A lower-confidence fallback formula was used for the young goat.',
+                    'A lower-confidence general goat fallback formula was used because the breed is unspecified or the animal is in a young age group.',
 
                 'CARABAO_NATIVE_FALLBACK' =>
                     'A provisional lower-confidence bovine fallback formula was used for the native/swamp carabao.',

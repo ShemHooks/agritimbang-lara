@@ -445,15 +445,19 @@ function barangayName(feature) {
     return p.barangay_name ?? p.name ?? "Unknown barangay";
 }
 
+function mapMetricValue(feature) {
+    const p = feature.properties ?? {};
+    const raw = p.dataset === "verified_sales"
+        ? p.verified_sales_total
+        : p.total_livestock;
+    const value = Number(raw ?? 0);
+    return Number.isFinite(value) && value >= 0 ? value : 0;
+}
+
 function livestockCount(feature) {
     const raw = feature.properties?.total_livestock;
-
-    if (raw === null || raw === undefined || raw === "") {
-        return null;
-    }
-
+    if (raw === null || raw === undefined || raw === "") return null;
     const value = Number(raw);
-
     return Number.isFinite(value) && value >= 0 ? value : null;
 }
 
@@ -468,23 +472,11 @@ function municipalityHue(key) {
 }
 
 function barangayColor(feature, maximum) {
-    const hue = municipalityHue(municipalityKey(feature));
-
-    const count = livestockCount(feature);
-
-    if (count === null) {
-        return `hsl(${hue}, 12%, 83%)`;
-    }
-
-    if (count === 0) {
-        return `hsl(${hue}, 45%, 89%)`;
-    }
-
-    const ratio = maximum > 0 ? count / maximum : 0;
-
-    const lightness = 82 - ratio * 39;
-
-    return `hsl(${hue}, 58%, ${lightness}%)`;
+    const value = mapMetricValue(feature);
+    if (value <= 0) return "#edf2ed";
+    const ratio = maximum > 0 ? value / maximum : 0;
+    const lightness = 88 - ratio * 48;
+    return `hsl(133, ${34 + ratio * 30}%, ${lightness}%)`;
 }
 
 function isActiveFeature(feature) {
@@ -518,8 +510,7 @@ function getMaximumByMunicipality(features) {
 
     for (const feature of features) {
         const key = municipalityKey(feature);
-        const count = livestockCount(feature) ?? 0;
-
+        const count = mapMetricValue(feature);
         maximums.set(key, Math.max(maximums.get(key) ?? 0, count));
     }
 
@@ -546,6 +537,7 @@ function unwrapGeojson(response) {
 
 function createPopup(feature) {
     const p = feature.properties ?? {};
+    const sales = p.dataset === "verified_sales";
     const count = livestockCount(feature);
 
     const species = Array.isArray(p.by_species) ? p.by_species : [];
@@ -583,33 +575,19 @@ function createPopup(feature) {
                 <b>${escapeHtml(p.province_name ?? "N/A")}</b>
             </p>
 
-            <p>
-                Total livestock:
-                <b>${count === null ? "Not available" : formatNumber(count)}</b>
-            </p>
-
-            <p>
-                Available:
-                <b>${formatNumber(p.available)}</b>
-            </p>
-
-            <p>
-                In transaction:
-                <b>${formatNumber(p.in_transaction)}</b>
-            </p>
-
-            <p>
-                Sold:
-                <b>${formatNumber(p.sold)}</b>
-            </p>
-
-            <p>
-                Archived:
-                <b>${formatNumber(p.archived)}</b>
-            </p>
+            ${sales ? `
+                <p>Verified sales value: <b>${new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(p.verified_sales_total) || 0)}</b></p>
+                <p>Verified transactions: <b>${formatNumber(p.verified_transactions)}</b></p>
+                <p>Livestock items: <b>${formatNumber(p.verified_items)}</b></p>
+            ` : `
+                <p>Total livestock: <b>${formatNumber(count ?? 0)}</b></p>
+                <p>Available: <b>${formatNumber(p.available)}</b></p>
+                <p>In transaction: <b>${formatNumber(p.in_transaction)}</b></p>
+                <p>Sold: <b>${formatNumber(p.sold)}</b></p>
+            `}
 
             <div class="lm-popup-species">
-                <h4>Livestock by Species</h4>
+                <h4>${sales ? "Verified sales by species" : "Livestock by species"}</h4>
                 ${speciesRows}
             </div>
         </div>
@@ -645,8 +623,6 @@ function initializeMap() {
     }).addTo(mapState.map);
 
     mapState.map.fitBounds(INITIAL_BOUNDS);
-
-    mapState.map.on("zoomend", updateBarangayLabels);
 
     requestAnimationFrame(() => {
         mapState.map.invalidateSize();
@@ -704,24 +680,10 @@ function renderMunicipalityLegend(municipalities) {
     container.append(heading, items);
 }
 
-const MIN_LABEL_ZOOM = 11;
-
+// Barangay names and counts are intentionally not rendered permanently.
+// Details are revealed only on hover (tooltip) or click (popup).
 function updateBarangayLabels() {
-    if (!mapState.map || !mapState.layer) return;
-
-    const show = mapState.map.getZoom() >= MIN_LABEL_ZOOM;
-
-    mapState.layer.eachLayer((layer) => {
-        const tooltip = layer.getTooltip();
-
-        if (!tooltip) return;
-
-        if (show) {
-            layer.openTooltip();
-        } else {
-            layer.closeTooltip();
-        }
-    });
+    return;
 }
 
 function renderGeojson(collection) {
@@ -755,68 +717,34 @@ function renderGeojson(collection) {
         {
             style(feature) {
                 const key = municipalityKey(feature);
-
-                const hue = municipalityHue(key);
-
                 return {
-                    color: `hsl(${hue}, 55%, 29%)`,
-                    weight: 0.9,
+                    color: "#ffffff",
+                    weight: 1.1,
                     opacity: 0.95,
                     fillColor: barangayColor(feature, maximums.get(key) ?? 0),
-                    fillOpacity: 0.75,
+                    fillOpacity: 0.78,
                 };
             },
 
             onEachFeature(feature, layer) {
-                const name = barangayName(feature);
-                const municipality = municipalityName(feature);
-                const count = livestockCount(feature);
-
-                const label = document.createElement("div");
-                label.className = "lm-barangay-count-label";
-
-                const nameElement = document.createElement("strong");
-                nameElement.textContent = name;
-
-                const countElement = document.createElement("span");
-                countElement.textContent =
-                    count === null
-                        ? "Count unavailable"
-                        : `${formatNumber(count)} livestock`;
-
-                label.append(nameElement, countElement);
-
-                layer.bindTooltip(label, {
+                const p = feature.properties ?? {};
+                const sales = p.dataset === "verified_sales";
+                const hoverDetail = document.createElement("div");
+                hoverDetail.innerHTML = `<strong>${escapeHtml(barangayName(feature))}</strong><br>${sales ? `${new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(mapMetricValue(feature))} verified sales` : `${formatNumber(mapMetricValue(feature))} livestock`}`;
+                layer.bindTooltip(hoverDetail, {
                     permanent: false,
-                    direction: "center",
+                    sticky: true,
+                    direction: "top",
                     className: "lm-count-tooltip",
                     opacity: 1,
                 });
-
                 layer.bindPopup(createPopup(feature));
-
                 layer.on("mouseover", () => {
-                    layer.setStyle({
-                        color: "#263a1b",
-                        weight: 2.5,
-                        fillOpacity: 0.95,
-                    });
-
+                    layer.setStyle({ color: "#244b31", weight: 2.2, fillOpacity: 0.96 });
                     layer.bringToFront?.();
-
-                    if (mapState.map.getZoom() < MIN_LABEL_ZOOM) {
-                        layer.openTooltip();
-                    }
                 });
-
                 layer.on("mouseout", () => {
-                    if (mapState.layer === group) {
-                        group.resetStyle(layer);
-                    }
-
-                    if (mapState.map.getZoom() < MIN_LABEL_ZOOM) {
-                        layer.closeTooltip();
-                    }
+                    if (mapState.layer === group) group.resetStyle(layer);
                 });
             },
         },
@@ -845,18 +773,15 @@ function renderGeojson(collection) {
         map.fitBounds(INITIAL_BOUNDS);
     }
 
-    renderMunicipalityLegend(municipalityNames);
-
-    const counted = features.filter(
-        (feature) => livestockCount(feature) !== null,
-    ).length;
-
+    const dataset = $("lm-map-dataset")?.value ?? "livestock";
+    const total = features.reduce((sum, feature) => sum + mapMetricValue(feature), 0);
     setText(
         "lm-map-summary",
-        `${formatNumber(municipalityNames.size)} active municipalities · ` +
-            `${formatNumber(features.length)} barangay polygons · ` +
-            `${formatNumber(counted)} with livestock counts`,
+        dataset === "verified_sales"
+            ? `${formatNumber(features.length)} barangays · ${new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(total)} verified sales`
+            : `${formatNumber(features.length)} barangays · ${formatNumber(total)} livestock records`,
     );
+    setText("lm-map-legend-title", dataset === "verified_sales" ? "Verified sales intensity" : "Livestock inventory intensity");
 
     requestAnimationFrame(() => {
         map.invalidateSize();
@@ -864,11 +789,21 @@ function renderGeojson(collection) {
 }
 
 function resetMapView() {
-    if (!mapState.map) return;
+    if ($("lm-map-dataset")) $("lm-map-dataset").value = "livestock";
+    ["lm-map-species", "lm-map-status", "lm-map-sale-purpose", "lm-map-date-from", "lm-map-date-to"].forEach((id) => {
+        const element = $(id);
+        if (element) element.value = "";
+    });
+    syncMapFilterVisibility();
+    loadMap();
+    if (mapState.map) mapState.map.fitBounds(mapState.bounds ?? INITIAL_BOUNDS, { padding: [25, 25], maxZoom: 12 });
+}
 
-    mapState.map.fitBounds(mapState.bounds ?? INITIAL_BOUNDS, {
-        padding: [25, 25],
-        maxZoom: 12,
+function syncMapFilterVisibility() {
+    const sales = $("lm-map-dataset")?.value === "verified_sales";
+    if ($("lm-map-status-wrap")) $("lm-map-status-wrap").hidden = sales;
+    ["lm-map-purpose-wrap", "lm-map-from-wrap", "lm-map-to-wrap"].forEach((id) => {
+        if ($(id)) $(id).hidden = !sales;
     });
 }
 
@@ -886,15 +821,15 @@ async function loadMap() {
     const municipalityId = $("lm-map-municipality")?.value ?? "";
 
     const speciesId = $("lm-map-species")?.value ?? "";
-
-    const params = {};
-
-    if (state.role === "admin" && municipalityId) {
-        params.municipality_id = municipalityId;
-    }
-
-    if (speciesId) {
-        params.species_id = speciesId;
+    const dataset = $("lm-map-dataset")?.value ?? "livestock";
+    const params = { dataset };
+    if (state.role === "admin" && municipalityId) params.municipality_id = municipalityId;
+    if (speciesId) params.species_id = speciesId;
+    if (dataset === "livestock" && $("lm-map-status")?.value) params.status = $("lm-map-status").value;
+    if (dataset === "verified_sales") {
+        if ($("lm-map-sale-purpose")?.value) params.sale_purpose = $("lm-map-sale-purpose").value;
+        if ($("lm-map-date-from")?.value) params.date_from = $("lm-map-date-from").value;
+        if ($("lm-map-date-to")?.value) params.date_to = $("lm-map-date-to").value;
     }
 
     setText("lm-map-summary", "Loading geographic monitoring data...");
@@ -1003,6 +938,7 @@ async function initializeMapModule() {
     }
 
     $("lm-map-panel").hidden = false;
+    syncMapFilterVisibility();
 
     initializeMap();
 
@@ -1170,6 +1106,11 @@ $("lm-next-page")?.addEventListener("click", () => {
 $("lm-map-municipality")?.addEventListener("change", loadMap);
 
 $("lm-map-species")?.addEventListener("change", loadMap);
+$("lm-map-status")?.addEventListener("change", loadMap);
+$("lm-map-sale-purpose")?.addEventListener("change", loadMap);
+$("lm-map-date-from")?.addEventListener("change", loadMap);
+$("lm-map-date-to")?.addEventListener("change", loadMap);
+$("lm-map-dataset")?.addEventListener("change", () => { syncMapFilterVisibility(); loadMap(); });
 
 $("lm-map-reset")?.addEventListener("click", resetMapView);
 

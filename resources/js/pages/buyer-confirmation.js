@@ -1,4 +1,5 @@
 import axios from "axios";
+import { formatDateTime as sharedFormatDateTime } from "../utils/date-format";
 
 const root = document.getElementById("buyer-confirmation");
 
@@ -44,19 +45,7 @@ if (root) {
         }).format(number);
     }
 
-    function formatDate(value) {
-        if (!value) return "—";
-
-        const date = new Date(value);
-
-        if (Number.isNaN(date.getTime())) return "—";
-
-        return date.toLocaleString("en-PH", {
-            dateStyle: "medium",
-            timeStyle: "short",
-            timeZone: "Asia/Manila",
-        });
-    }
+    function formatDate(value) { return sharedFormatDateTime(value); }
 
     function getError(error) {
         const data = error.response?.data;

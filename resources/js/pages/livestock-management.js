@@ -111,7 +111,29 @@ async function switchTab(view) {
         }
     }
 }
+function showLivestockRegistrationFlash() {
+    const target = $("ld-registration-feedback");
+    if (!target) return;
+
+    try {
+        const raw = sessionStorage.getItem("agritimbang_livestock_registration_flash");
+        if (!raw) return;
+
+        sessionStorage.removeItem("agritimbang_livestock_registration_flash");
+        const flash = JSON.parse(raw);
+        if (!["success", "warning"].includes(flash?.type) || !flash.message) return;
+
+        target.classList.toggle("ld-registration-feedback-warning", flash.type === "warning");
+        target.textContent = flash.message;
+        target.hidden = false;
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (error) {
+        console.warn("Unable to display livestock registration confirmation.", error);
+    }
+}
+
 async function init() {
+    showLivestockRegistrationFlash();
     document.querySelectorAll("[data-livestock-tab]").forEach((tab) => {
         tab.addEventListener("click", () => {
             if (!tab.hidden) switchTab(tab.dataset.livestockTab);

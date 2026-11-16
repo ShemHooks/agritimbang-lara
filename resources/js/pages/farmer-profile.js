@@ -1,4 +1,5 @@
 import api from "../api";
+import { formatDate as sharedFormatDate } from "../utils/date-format";
 
 /* ============================================================
    AGRITIMBANG — FARMER PROFILE DETAILS
@@ -28,19 +29,7 @@ function setText(id, value) {
     element.textContent = text || "—";
 }
 
-function formatDate(value) {
-    if (!value) return "—";
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return "—";
-
-    return new Intl.DateTimeFormat("en-PH", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-    }).format(date);
-}
+function formatDate(value) { return sharedFormatDate(value); }
 
 function formatName(user) {
     if (!user) return "Unknown Farmer";

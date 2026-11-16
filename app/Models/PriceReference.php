@@ -30,6 +30,10 @@ class PriceReference extends Model
         'remarks',
         'status',
         'sale_purpose',
+        'reference_category',
+        'price_min_per_unit',
+        'price_max_per_unit',
+        'price_unit',
         'submitted_by',
         'submitted_at',
         'reviewed_by',
@@ -42,6 +46,8 @@ class PriceReference extends Model
     {
         return [
             'price_per_kg' => 'decimal:2',
+            'price_min_per_unit' => 'decimal:2',
+            'price_max_per_unit' => 'decimal:2',
             'effective_from' => 'date',
             'effective_to' => 'date',
             'submitted_at' => 'datetime',

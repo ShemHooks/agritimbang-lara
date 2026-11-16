@@ -8,6 +8,18 @@ import {
     showError,
     detail,
 } from "./livestock-common";
+import { formatDateTime as sharedFormatDateTime } from "../utils/date-format";
+
+function reproductiveStatusLabel(value) {
+    const labels = {
+        has_given_birth: "Nakapanganak na",
+        never_given_birth: "Wala pa makapanganak",
+        not_applicable: "Dili magamit",
+        unknown: "Wala mahibal-i",
+    };
+
+    return labels[value] ?? "Wala mahibal-i";
+}
 
 async function init() {
     const root = $("l55-show");
@@ -30,21 +42,57 @@ async function init() {
 
         // Animal information
         const animal = $("l55-animal");
+        if (record.photo_path) {
+            const photoUrl = `/storage/${String(record.photo_path).split("/").map(encodeURIComponent).join("/")}`;
+            const photoLink = document.createElement("a");
+            photoLink.href = photoUrl;
+            photoLink.target = "_blank";
+            photoLink.rel = "noopener noreferrer";
+            photoLink.className = "l55-photo-link";
+            photoLink.setAttribute("aria-label", "Open livestock photo in a new tab");
+            const photo = document.createElement("img");
+            photo.src = photoUrl;
+            photo.alt = "Registered livestock — click to view full image";
+            photo.className = "l55-photo-preview";
+            photoLink.append(photo);
+            animal.parentElement.prepend(photoLink);
+        }
+
+        const actualWeight = Number(record.actual_weight_kg);
+        const estimatedWeight = Number(record.latest_weight_estimation?.estimated_weight_kg);
+        const weightDisplay = record.actual_weight_kg !== null && record.actual_weight_kg !== undefined && record.actual_weight_kg !== "" && Number.isFinite(actualWeight) && actualWeight > 0
+            ? `${actualWeight.toFixed(2)} kg (Actual)`
+            : record.latest_weight_estimation?.estimated_weight_kg !== null && record.latest_weight_estimation?.estimated_weight_kg !== undefined && record.latest_weight_estimation?.estimated_weight_kg !== "" && Number.isFinite(estimatedWeight) && estimatedWeight > 0
+                ? `${estimatedWeight.toFixed(2)} kg (Estimated)`
+                : "Not recorded";
 
         [
             ["Species", record.species?.name],
             ["Breed", record.breed?.name],
             ["Sex", label(record.sex)],
             ["Age (months)", record.age_months],
-            ["Reproductive status", label(record.reproductive_status)],
-            ["Parity", record.parity],
+            ["Kahimtang sa pagpanganak", reproductiveStatusLabel(record.reproductive_status)],
+            ["Kadaghan sa pagpanganak", record.parity],
             ["Sale purpose", label(record.sale_purpose)],
             ["Condition score", record.condition_score],
+            ["Weight", weightDisplay],
             [
-                "Actual weight",
-                record.actual_weight_kg == null
+                "Measured heart girth",
+                record.latest_weight_estimation?.heart_girth_cm == null ? null : `${record.latest_weight_estimation.heart_girth_cm} cm`,
+            ],
+            [
+                "Measured body length",
+                record.latest_weight_estimation?.body_length_cm == null ? null : `${record.latest_weight_estimation.body_length_cm} cm`,
+            ],
+            [
+                "Measured rump height",
+                record.latest_weight_estimation?.rump_height_cm == null ? null : `${record.latest_weight_estimation.rump_height_cm} cm`,
+            ],
+            [
+                "Latest estimated livestock value (FPC)",
+                record.latest_valuation?.estimated_value == null
                     ? null
-                    : `${record.actual_weight_kg} kg`,
+                    : new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(record.latest_valuation.estimated_value)),
             ],
         ].forEach(([name, value]) => detail(animal, name, value));
 
@@ -72,19 +120,19 @@ async function init() {
             [
                 "Created",
                 record.created_at
-                    ? new Date(record.created_at).toLocaleString("en-PH")
+                    ? sharedFormatDateTime(record.created_at)
                     : null,
             ],
             [
                 "Last updated",
                 record.updated_at
-                    ? new Date(record.updated_at).toLocaleString("en-PH")
+                    ? sharedFormatDateTime(record.updated_at)
                     : null,
             ],
         ].forEach(([name, value]) => detail($("l55-record"), name, value));
 
         // Edit button
-        if (!readonly(record)) {
+        if (role === 'farmer' && !readonly(record)) {
             const editLink = $("l55-edit-link");
 
             if (editLink) {
@@ -94,13 +142,16 @@ async function init() {
             }
         }
 
-        // Phase 5.6: Weight Estimation shortcut
+        // Calculator shortcuts for the selected existing livestock.
         const estimateLink = $("l55-estimate-link");
-
         if (estimateLink && ["farmer", "lgu_encoder"].includes(role)) {
             estimateLink.href = `/calculator?livestock_id=${encodeURIComponent(record.id)}`;
-
             estimateLink.hidden = false;
+        }
+        const valuationLink = $("l55-valuation-link");
+        if (valuationLink && ["farmer", "lgu_encoder"].includes(role)) {
+            valuationLink.href = `/calculator?livestock_id=${encodeURIComponent(record.id)}&tab=valuation`;
+            valuationLink.hidden = false;
         }
 
         // Show details

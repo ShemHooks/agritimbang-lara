@@ -1,5 +1,6 @@
 import api from "../api";
 import Chart from "chart.js/auto";
+import { formatDate as sharedFormatDate } from "../utils/date-format";
 
 const $ = (id) => document.getElementById(id);
 const form = $("forecast-form");
@@ -14,12 +15,7 @@ if (form) {
             currency: "PHP",
             minimumFractionDigits: 2,
         }).format(value);
-    const dateLabel = (value) =>
-        new Date(`${value}T00:00:00`).toLocaleDateString("en-PH", {
-            month: "short",
-            day: "numeric",
-            year: "numeric",
-        });
+    const dateLabel = (value) => sharedFormatDate(value);
     const showMessage = (text, type = "info") => {
         message.textContent = text;
         message.dataset.type = type;
@@ -232,6 +228,11 @@ if (form) {
             );
         const latest = historical.at(-1);
         const final = forecast.at(-1);
+        const modelTag = $("forecast-page")?.querySelector(".forecast-model-tag");
+        if (modelTag) {
+            const order = Array.isArray(data.order) ? ` (${data.order.join(",")})` : "";
+            modelTag.textContent = `${data.model || "ARIMA"}${order}`;
+        }
         $("forecast-latest").textContent = peso(latest.price);
         $("forecast-latest-date").textContent =
             `Week of ${dateLabel(latest.week)}`;

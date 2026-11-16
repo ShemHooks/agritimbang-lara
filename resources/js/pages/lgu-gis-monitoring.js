@@ -70,24 +70,22 @@ function municipalityColor(id) {
 }
 
 function featureCount(feature) {
-    return Number(feature.properties?.total_livestock) || 0;
+    const properties = feature.properties ?? {};
+    return properties.dataset === "verified_sales"
+        ? Number(properties.verified_sales_total) || 0
+        : Number(properties.total_livestock) || 0;
 }
 
 function featureStyle(feature, maximum) {
-    const hue = municipalityColor(feature.properties?.municipality_id);
-
     const count = featureCount(feature);
     const ratio = maximum > 0 ? count / maximum : 0;
 
     return {
-        color: `hsl(${hue}, 55%, 30%)`,
+        color: count === 0 ? "#cbd8cc" : "#39734a",
         weight: 1,
         opacity: 0.95,
-        fillColor:
-            count === 0
-                ? `hsl(${hue}, 45%, 90%)`
-                : `hsl(${hue}, 60%, ${82 - ratio * 38}%)`,
-        fillOpacity: 0.76,
+        fillColor: count === 0 ? "#edf2ed" : `hsl(132, ${28 + ratio * 28}%, ${91 - ratio * 48}%)`,
+        fillOpacity: 0.82,
     };
 }
 
@@ -133,6 +131,41 @@ function speciesMarkup(items) {
 
 function popupMarkup(feature) {
     const p = feature.properties ?? {};
+    const sales = p.dataset === "verified_sales";
+
+    const overview = sales
+        ? `
+            <div class="gis-popup-total">
+                <span>Verified sales</span>
+                <strong>${peso(p.verified_sales_total)}</strong>
+            </div>
+            <div class="gis-popup-row">
+                <span>Verified transactions</span>
+                <strong>${number(p.verified_transactions)}</strong>
+            </div>
+            <div class="gis-popup-row">
+                <span>Livestock items sold</span>
+                <strong>${number(p.verified_items)}</strong>
+            </div>
+        `
+        : `
+            <div class="gis-popup-total">
+                <span>Total livestock</span>
+                <strong>${number(p.total_livestock)}</strong>
+            </div>
+            <div class="gis-popup-row">
+                <span>Available</span>
+                <strong>${number(p.available)}</strong>
+            </div>
+            <div class="gis-popup-row">
+                <span>In transaction</span>
+                <strong>${number(p.in_transaction)}</strong>
+            </div>
+            <div class="gis-popup-row">
+                <span>Sold</span>
+                <strong>${number(p.sold)}</strong>
+            </div>
+        `;
 
     return `
         <div class="gis-popup">
@@ -143,135 +176,93 @@ function popupMarkup(feature) {
             </div>
 
             <div class="gis-popup-section">
-                <div class="gis-popup-total">
-                    <span>Total livestock</span>
-                    <strong>${number(p.total_livestock)}</strong>
-                </div>
-
-                <div class="gis-popup-row">
-                    <span>Available</span>
-                    <strong>${number(p.available)}</strong>
-                </div>
-                <div class="gis-popup-row">
-                    <span>In transaction</span>
-                    <strong>${number(p.in_transaction)}</strong>
-                </div>
-                <div class="gis-popup-row">
-                    <span>Sold</span>
-                    <strong>${number(p.sold)}</strong>
-                </div>
-                <div class="gis-popup-row">
-                    <span>Archived</span>
-                    <strong>${number(p.archived)}</strong>
-                </div>
+                ${overview}
             </div>
 
             <div class="gis-popup-section">
-                <h4>Livestock by Species</h4>
+                <h4>${sales ? "Verified sales by species" : "Livestock by species"}</h4>
                 ${speciesMarkup(p.by_species)}
-            </div>
-
-            <div class="gis-popup-section">
-                <h4>Official Livestock Prices</h4>
-                <div data-gis-prices>
-                    <p class="gis-empty">Loading official prices...</p>
-                </div>
             </div>
         </div>
     `;
 }
 
-function priceMarkup(prices) {
-    if (!Array.isArray(prices) || !prices.length) {
-        return `<p class="gis-empty">No official price available</p>`;
-    }
-
-    return prices
-        .map(
-            (price) => `
-        <div class="gis-price-row">
-            <div class="gis-price-details">
-                <strong>${escapeHtml(price.species_name ?? "Species")}</strong>
-                <span>
-                    ${escapeHtml(price.sale_purpose ?? "Unspecified purpose")}
-                    · ${escapeHtml(price.breed_name ?? "All breeds")}
-                </span>
-                <small>
-                    Effective ${escapeHtml(price.effective_from ?? "N/A")}
-                    ${
-                        price.effective_to
-                            ? ` to ${escapeHtml(price.effective_to)}`
-                            : ""
-                    }
-                </small>
-            </div>
-
-            <strong class="gis-price-value">
-                ${peso(price.price_per_kg)}/kg
-            </strong>
-        </div>
-    `,
-        )
-        .join("");
+function openBarangay(feature, layer) {
+    layer.bindPopup(popupMarkup(feature), {
+        minWidth: 250,
+        maxWidth: 340,
+        maxHeight: 440,
+        autoPan: true,
+    }).openPopup();
 }
 
-async function openBarangay(feature, layer) {
-    const barangayId = feature.properties?.barangay_id;
-    if (!barangayId) return;
+function renderSummary(features) {
+    const sales = $("gis-dataset").value === "verified_sales";
 
-    const requestId = ++state.popupRequestId;
-    state.currentBarangayId = barangayId;
+    const total = features.reduce(
+        (sum, feature) => sum + featureCount(feature),
+        0,
+    );
 
-    layer
-        .bindPopup(popupMarkup(feature), {
-            minWidth: 270,
-            maxWidth: 360,
-            maxHeight: 440,
-            autoPan: true,
-        })
-        .openPopup();
+    const available = features.reduce(
+        (sum, feature) => sum + (Number(feature.properties?.available) || 0),
+        0,
+    );
 
-    try {
-        const response = await api.get(
-            `/lgu/gis-monitoring/barangays/${encodeURIComponent(barangayId)}/prices`,
-        );
+    const transactions = features.reduce(
+        (sum, feature) =>
+            sum + (Number(feature.properties?.verified_transactions) || 0),
+        0,
+    );
 
-        if (
-            requestId !== state.popupRequestId ||
-            state.currentBarangayId !== barangayId ||
-            !layer.isPopupOpen()
-        ) {
-            return;
+    const speciesTotals = new Map();
+    let leading = null;
+
+    for (const feature of features) {
+        const properties = feature.properties ?? {};
+        const value = featureCount(feature);
+
+        if (!leading || value > leading.value) {
+            leading = {
+                name: properties.name ?? "—",
+                value,
+            };
         }
 
-        const container = layer
-            .getPopup()
-            ?.getElement()
-            ?.querySelector("[data-gis-prices]");
+        for (const item of properties.by_species ?? []) {
+            const name = item.species_name ?? "Unknown";
 
-        if (container) {
-            container.innerHTML = priceMarkup(
-                response.data?.data?.prices ?? [],
+            speciesTotals.set(
+                name,
+                (speciesTotals.get(name) ?? 0) + (Number(item.total) || 0),
             );
-
-            layer.getPopup().update();
         }
-    } catch (error) {
-        if (requestId !== state.popupRequestId || !layer.isPopupOpen()) {
-            return;
-        }
-
-        const container = layer
-            .getPopup()
-            ?.getElement()
-            ?.querySelector("[data-gis-prices]");
-
-        if (container) {
-            container.textContent = "Unable to load official prices.";
-        }
-
-        console.error("GIS price error:", error);
     }
+
+    const topSpecies =
+        [...speciesTotals.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "—";
+
+    $("gis-stat-one-label").textContent = sales
+        ? "Verified sales value"
+        : "Total livestock";
+
+    $("gis-stat-one").textContent = sales ? peso(total) : number(total);
+
+    $("gis-stat-two-label").textContent = sales
+        ? "Verified transactions"
+        : "Available";
+
+    $("gis-stat-two").textContent = number(sales ? transactions : available);
+
+    $("gis-stat-three-label").textContent = "Top species";
+    $("gis-stat-three").textContent = topSpecies;
+
+    $("gis-stat-four-label").textContent = "Leading barangay";
+    $("gis-stat-four").textContent = leading?.value > 0 ? leading.name : "—";
+
+    $("gis-map-caption").textContent = sales
+        ? "Verified sales are grouped by the recorded transaction barangay."
+        : "Livestock inventory is grouped by the barangay of record.";
 }
 
 function renderGeojson(collection) {
@@ -283,6 +274,8 @@ function renderGeojson(collection) {
     const features = (collection.features ?? []).filter(
         (feature) => feature.properties?.municipality_is_active !== false,
     );
+
+    renderSummary(features);
 
     const maximums = new Map();
 
@@ -310,8 +303,14 @@ function renderGeojson(collection) {
             onEachFeature(feature, layer) {
                 const p = feature.properties ?? {};
 
+                const isSales = p.dataset === "verified_sales";
+
+                const hoverValue = isSales
+                    ? `${peso(p.verified_sales_total)} verified sales`
+                    : `${number(p.total_livestock)} livestock`;
+
                 layer.bindTooltip(
-                    `${escapeHtml(p.name ?? "Barangay")} · ${number(p.total_livestock)} livestock`,
+                    `<strong>${escapeHtml(p.name ?? "Barangay")}</strong><br>${hoverValue}`,
                     {
                         sticky: true,
                         direction: "top",
@@ -323,6 +322,7 @@ function renderGeojson(collection) {
                         weight: 2.5,
                         fillOpacity: 0.94,
                     });
+
                     layer.bringToFront?.();
                 });
 
@@ -342,6 +342,7 @@ function renderGeojson(collection) {
 
         if (bounds.isValid()) {
             state.bounds = bounds;
+
             state.map.fitBounds(bounds, {
                 padding: [24, 24],
                 maxZoom: 12,
@@ -357,8 +358,8 @@ function renderGeojson(collection) {
     );
 
     $("gis-map-summary").textContent =
-        `${number(municipalities.size)} municipalities · ` +
-        `${number(features.length)} barangay polygons`;
+        `${$("gis-dataset").value === "verified_sales" ? "Verified transactions" : "Livestock inventory"} · ` +
+        `${number(municipalities.size)} municipalities · ${number(features.length)} barangays`;
 
     requestAnimationFrame(() => {
         state.map.invalidateSize();
@@ -367,6 +368,7 @@ function renderGeojson(collection) {
 
 async function loadMap() {
     const requestId = ++state.requestId;
+
     ++state.popupRequestId;
     state.currentBarangayId = null;
 
@@ -378,6 +380,26 @@ async function loadMap() {
 
     if ($("gis-species").value) {
         params.species_id = $("gis-species").value;
+    }
+
+    params.dataset = $("gis-dataset").value || "livestock";
+
+    if (params.dataset === "livestock" && $("gis-status").value) {
+        params.status = $("gis-status").value;
+    }
+
+    if (params.dataset === "verified_sales") {
+        if ($("gis-sale-purpose").value) {
+            params.sale_purpose = $("gis-sale-purpose").value;
+        }
+
+        if ($("gis-date-from").value) {
+            params.date_from = $("gis-date-from").value;
+        }
+
+        if ($("gis-date-to").value) {
+            params.date_to = $("gis-date-to").value;
+        }
     }
 
     $("gis-map-loading").hidden = false;
@@ -405,12 +427,25 @@ async function loadMap() {
 
         $("gis-error").textContent = getError(error);
         $("gis-error").hidden = false;
+
         $("gis-map-summary").textContent = "Unable to load geographic data.";
     } finally {
         if (requestId === state.requestId) {
             $("gis-map-loading").hidden = true;
         }
     }
+}
+
+function syncDatasetFilters() {
+    const sales = $("gis-dataset").value === "verified_sales";
+
+    $("gis-status-filter").hidden = sales;
+
+    ["gis-purpose-filter", "gis-date-from-wrap", "gis-date-to-wrap"].forEach(
+        (id) => {
+            $(id).hidden = !sales;
+        },
+    );
 }
 
 async function loadFilters() {
@@ -422,9 +457,13 @@ async function loadFilters() {
     const municipalitySelect = $("gis-municipality");
     const speciesSelect = $("gis-species");
 
-    municipalitySelect.replaceChildren(new Option("All municipalities", ""));
+    municipalitySelect.replaceChildren(
+        new Option("All municipalities", ""),
+    );
 
-    speciesSelect.replaceChildren(new Option("All species", ""));
+    speciesSelect.replaceChildren(
+        new Option("All species", ""),
+    );
 
     for (const municipality of unwrapList(municipalities)) {
         municipalitySelect.add(
@@ -441,16 +480,27 @@ async function loadFilters() {
 }
 
 function resetView() {
-    if (!state.map) return;
+    $("gis-municipality").value = "";
+    $("gis-species").value = "";
+    $("gis-dataset").value = "livestock";
+    $("gis-status").value = "";
+    $("gis-sale-purpose").value = "";
+    $("gis-date-from").value = "";
+    $("gis-date-to").value = "";
 
-    state.map.fitBounds(state.bounds ?? INITIAL_BOUNDS, {
-        padding: [24, 24],
-        maxZoom: 12,
-    });
+    syncDatasetFilters();
+    loadMap();
+
+    if (state.map) {
+        state.map.fitBounds(state.bounds ?? INITIAL_BOUNDS, {
+            padding: [24, 24],
+            maxZoom: 12,
+        });
+    }
 }
 
 async function toggleFullscreen() {
-    const wrapper = $("gis-map-wrapper");
+    const wrapper = $("gis-map-stage") || $("gis-map").parentElement;
 
     try {
         if (document.fullscreenElement === wrapper) {
@@ -483,10 +533,14 @@ async function initialize() {
         }
 
         initializeMap();
+
         setTimeout(() => {
             state.map?.invalidateSize();
         }, 150);
+
         await loadFilters();
+
+        syncDatasetFilters();
         await loadMap();
     } catch (error) {
         $("gis-error").textContent = getError(error);
@@ -496,11 +550,32 @@ async function initialize() {
 
 $("gis-municipality")?.addEventListener("change", loadMap);
 $("gis-species")?.addEventListener("change", loadMap);
+
+$("gis-dataset")?.addEventListener("change", () => {
+    syncDatasetFilters();
+
+    if ($("gis-dataset").value === "verified_sales") {
+        $("gis-status").value = "";
+    } else {
+        $("gis-sale-purpose").value = "";
+        $("gis-date-from").value = "";
+        $("gis-date-to").value = "";
+    }
+
+    loadMap();
+});
+
+$("gis-status")?.addEventListener("change", loadMap);
+$("gis-sale-purpose")?.addEventListener("change", loadMap);
+$("gis-date-from")?.addEventListener("change", loadMap);
+$("gis-date-to")?.addEventListener("change", loadMap);
+
 $("gis-reset")?.addEventListener("click", resetView);
 $("gis-fullscreen")?.addEventListener("click", toggleFullscreen);
 
 document.addEventListener("fullscreenchange", () => {
-    const fullscreen = document.fullscreenElement === $("gis-map-wrapper");
+    const fullscreen =
+        document.fullscreenElement === $("gis-map").parentElement;
 
     $("gis-fullscreen").textContent = fullscreen
         ? "Exit fullscreen"

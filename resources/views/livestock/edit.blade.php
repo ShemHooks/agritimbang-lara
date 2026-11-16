@@ -50,18 +50,20 @@
                 </label>
 
                 <label>
-                    Reproductive status
+                    <strong>Kahimtang sa pagpanganak</strong>
                     <select name="reproductive_status" id="l55-reproductive">
-                        <option value="has_given_birth">Has given birth</option>
-                        <option value="never_given_birth">Never given birth</option>
-                        <option value="not_applicable">Not applicable</option>
-                        <option value="unknown">Unknown</option>
+                        <option value="unknown">Wala mahibal-i</option>
+                        <option value="has_given_birth">Nakapanganak na</option>
+                        <option value="never_given_birth">Wala pa makapanganak</option>
+                        <option value="not_applicable">Dili magamit</option>
                     </select>
+                    <small>Pagpili sa kahimtang sa pagpanganak sa hayop.</small>
                 </label>
 
                 <label>
-                    Parity
-                    <input type="number" name="parity" id="l55-parity" min="0" step="1" placeholder="Not applicable">
+                    <strong>Kadaghan sa pagpanganak</strong>
+                    <input type="number" name="parity" id="l55-parity" min="0" step="1" placeholder="Pila na ka beses nanganak">
+                    <small id="l55-parity-hint">Para lamang kini sa baye nga hayop.</small>
                 </label>
 
                 <label>
@@ -74,21 +76,22 @@
                     </select>
                 </label>
 
-                <label>
-                    Condition score (1–5)
-                    <select name="condition_score">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                    </select>
-                </label>
+                <div class="l55-condition-launch">
+                    <span><strong>Body condition / Kahimtang sa lawas</strong><small id="l55-condition-result">No new checklist assessment yet.</small></span>
+                    <input type="hidden" name="condition_score" id="l55-condition-score" value="">
+                    <button type="button" class="l55-primary" id="l55-condition-open">Open Body Condition Checklist</button>
+                </div>
 
                 <label>
                     Actual weight (kg)
                     <input type="number" name="actual_weight_kg" min="0.01" step="0.01" placeholder="Not recorded">
                 </label>
+
+                <div class="l55-photo-field">
+                    <label for="l55-photo"><strong>Livestock photo</strong><small>Upload a clear photo of this animal (JPG, PNG, or WEBP; maximum 5 MB).</small></label>
+                    <img id="l55-photo-preview" class="l55-photo-preview" alt="Livestock photo preview" hidden>
+                    <input type="file" name="photo" id="l55-photo" accept="image/jpeg,image/png,image/webp">
+                </div>
             </div>
 
             <p class="l55-hint">
@@ -103,6 +106,26 @@
                 </button>
             </div>
         </form>
+
+        <div id="l55-condition-modal" class="l55-condition-modal" hidden>
+            <button type="button" class="l55-condition-backdrop" data-l55-condition-close aria-label="Close checklist"></button>
+            <section class="l55-condition-dialog" role="dialog" aria-modal="true" aria-labelledby="l55-condition-title">
+                <header>
+                    <h2 id="l55-condition-title">Livestock Condition Checklist</h2>
+                    <p>Answer all seven questions. The assessment score and 1–5 condition score are calculated automatically.</p>
+                </header>
+                <div id="l55-condition-questions"></div>
+                <div class="l55-condition-summary">
+                    <div><span>Assessment Score</span><strong id="l55-condition-total">0/7 answered</strong></div>
+                    <div><span>Condition Score</span><strong id="l55-condition-mapped">Awaiting assessment</strong></div>
+                    <div class="l55-condition-legend"><strong>Legend · Total Points / Result</strong><span>0–4: Poor condition · 5–8: Needs attention · 9–11: Fair condition · 12–14: Good condition</span></div>
+                </div>
+                <footer>
+                    <button type="button" class="l55-secondary" id="l55-condition-close">Close</button>
+                    <button type="button" class="l55-primary" id="l55-condition-apply" disabled>Use Condition Score</button>
+                </footer>
+            </section>
+        </div>
     </main>
 @endsection
 

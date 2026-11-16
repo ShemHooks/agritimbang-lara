@@ -40,6 +40,32 @@
 
         <div id="prices-success" class="prices-alert prices-alert-success" role="status" hidden></div>
 
+        <section class="prices-card prices-reference-showcase" id="prices-reference-showcase">
+            <div class="prices-card-header">
+                <div>
+                    <h2>Official Livestock Prices</h2>
+                    <p>Latest MAO-approved livestock prices for your municipality.</p>
+                </div>
+            </div>
+            <div class="prices-category-tabs" role="tablist" aria-label="Price categories">
+                <button type="button" class="active" data-price-category="Slaughter">
+                    Slaughter
+                </button>
+                <button type="button" data-price-category="Breeding">
+                    Breeding
+                </button>
+                <button type="button" data-price-category="Fattening">
+                    Fattening
+                </button>
+                <button type="button" data-price-category="Work">
+                    Work
+                </button>
+            </div>
+            <div class="prices-reference-slider" id="prices-reference-slider" aria-live="polite">
+                Loading current official prices...
+            </div>
+        </section>
+
         <section class="prices-summary">
             <article class="prices-stat">
                 <span id="prices-total-label">Records on current page</span>
@@ -65,7 +91,7 @@
         <section class="prices-card">
             <div class="prices-card-header">
                 <div>
-                    <h2 id="prices-directory-title">Official Price Directory</h2>
+                    <h2 id="prices-directory-title">Opisyal nga Presyo / Official Price Directory</h2>
                     <p id="prices-directory-description">
                         MAO-approved livestock price references.
                     </p>

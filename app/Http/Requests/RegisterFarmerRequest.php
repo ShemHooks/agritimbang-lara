@@ -42,7 +42,7 @@ class RegisterFarmerRequest extends FormRequest
             'email' => [
                 'required',
                 'string',
-                'email',
+                'email:rfc',
                 'max:255',
                 'unique:users,email',
             ],
@@ -50,7 +50,8 @@ class RegisterFarmerRequest extends FormRequest
             'phone_number' => [
                 'nullable',
                 'string',
-                'max:20',
+                \App\Support\ContactValidationRules::philippineMobile(),
+                'max:13',
             ],
 
             'password' => [
@@ -59,6 +60,14 @@ class RegisterFarmerRequest extends FormRequest
                 Password::min(8),
             ],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'email' => strtolower(trim((string) $this->input('email', ''))),
+            'phone_number' => $this->filled('phone_number') ? trim((string) $this->input('phone_number')) : null,
+        ]);
     }
 
     /**
@@ -74,7 +83,8 @@ class RegisterFarmerRequest extends FormRequest
             'email.email' => 'Please provide a valid email address.',
             'email.unique' => 'An account with this email already exists.',
 
-            'phone_number.max' => 'Phone number must not exceed 20 characters.',
+            'phone_number.regex' => 'Use a valid Philippine mobile number: 09XXXXXXXXX (11 digits) or +639XXXXXXXXX.',
+            'phone_number.max' => 'Use a valid Philippine mobile number: 09XXXXXXXXX or +639XXXXXXXXX.',
 
             'password.required' => 'Password is required.',
             'password.confirmed' => 'Password confirmation does not match.',

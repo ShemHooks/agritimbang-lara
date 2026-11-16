@@ -15,6 +15,7 @@ class SystemAlertNotification extends Notification
         public readonly ?string $entityType = null,
         public readonly ?string $entityId = null,
         public readonly bool $email = false,
+        public readonly ?string $url = null,
     ) {}
 
     public function via(object $notifiable): array { return $this->email ? ['database', 'mail'] : ['database']; }
@@ -24,7 +25,7 @@ class SystemAlertNotification extends Notification
         return [
             'event' => $this->event, 'title' => $this->title, 'message' => $this->message,
             'municipality_id' => $this->municipalityId, 'entity_type' => $this->entityType,
-            'entity_id' => $this->entityId,
+            'entity_id' => $this->entityId, 'url' => $this->url,
         ];
     }
 

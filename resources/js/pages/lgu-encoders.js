@@ -104,7 +104,8 @@ function formField(name, label, type = "text", required = false) {
                 type="${type}"
                 name="${name}"
                 ${required ? "required" : ""}
-                ${type === "email" ? 'autocomplete="email"' : ""}
+                ${type === "email" ? 'autocomplete="email" maxlength="255"' : ""}
+                ${type === "tel" ? 'maxlength="13" pattern="(?:09[0-9]{9}|\\+639[0-9]{9})" title="Use 09XXXXXXXXX (11 digits) or +639XXXXXXXXX" placeholder="09XXXXXXXXX or +639XXXXXXXXX"' : ""}
             >
         </label>
     `;

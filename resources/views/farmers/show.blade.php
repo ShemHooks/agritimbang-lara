@@ -340,47 +340,6 @@
 
         </div>
 
-        {{-- =====================================================
-        LIVESTOCK SECTION — PHASE 5.3
-        ===================================================== --}}
-
-        <section class="fp-panel fp-livestock-panel">
-
-            <div class="fp-panel-heading">
-                <div>
-                    <span class="fp-section-eyebrow">
-                        LIVESTOCK MANAGEMENT
-                    </span>
-
-                    <h3>Registered Livestock</h3>
-
-                    <p>
-                        Livestock records associated with
-                        this farmer profile.
-                    </p>
-                </div>
-
-                <span class="fp-coming-soon">
-                    Phase 5.3
-                </span>
-            </div>
-
-            <div class="fp-livestock-placeholder">
-                <div class="fp-placeholder-icon" aria-hidden="true">
-                    ◇
-                </div>
-
-                <h4>Livestock Records Integration</h4>
-
-                <p>
-                    The farmer's livestock records and
-                    inventory summary will be connected
-                    during the Livestock Records module.
-                </p>
-            </div>
-
-        </section>
-
     </div>
 
 @endsection

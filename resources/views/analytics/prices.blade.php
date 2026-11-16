@@ -224,8 +224,7 @@
                     <h3>Price comparison</h3>
 
                     <p>
-                        Compare average official reference prices
-                        across livestock species.
+                        Compare average official reference prices by sale purpose.
                     </p>
                 </div>
             </div>

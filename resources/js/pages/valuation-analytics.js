@@ -25,6 +25,11 @@ const FACTOR_LABELS = {
 const state = {
     byWeightType: [],
     bySpecies: [],
+    byYear: [],
+    byWeightTypeYear: [],
+    bySpeciesYear: [],
+    adjustmentsByYear: [],
+    allTime: null,
     monthly: [],
     filteredMonthly: [],
     adjustments: {},
@@ -172,16 +177,51 @@ async function loadAnalytics() {
             !data ||
             !Array.isArray(data.by_weight_type) ||
             !Array.isArray(data.by_species) ||
+            !Array.isArray(data.by_year) ||
+            !Array.isArray(data.by_weight_type_year) ||
+            !Array.isArray(data.by_species_year) ||
+            !Array.isArray(data.adjustments_by_year) ||
             !Array.isArray(data.monthly)
         ) {
             throw new Error("Unexpected valuation analytics response.");
         }
 
         state.calculationCount = number(data.calculation_count);
-
         state.averageValue = number(data.average_estimated_value);
-
         state.inventoryValue = number(data.latest_inventory_value);
+        state.allTime = {
+            calculationCount: state.calculationCount,
+            averageValue: state.averageValue,
+            adjustments: data.average_adjustments || {},
+        };
+        state.byYear = data.by_year.map((item) => ({
+            year: String(item.year || ""),
+            calculation_count: number(item.calculation_count),
+            average_value: number(item.average_value),
+            actual_count: number(item.actual_count),
+        }));
+        state.byWeightTypeYear = data.by_weight_type_year.map((item) => ({
+            year: String(item.year || ""),
+            weight_type: String(item.weight_type || "unknown").toLowerCase(),
+            total: number(item.total),
+        }));
+        state.bySpeciesYear = data.by_species_year.map((item) => ({
+            year: String(item.year || ""),
+            id: item.id,
+            name: String(item.name || "Unknown Species"),
+            calculation_count: number(item.calculation_count),
+            average_value: number(item.average_value),
+        }));
+        state.adjustmentsByYear = data.adjustments_by_year.map((item) => ({
+            year: String(item.year || ""),
+            adjustments: {
+                breed_factor: number(item.breed_factor),
+                age_factor: number(item.age_factor),
+                reproductive_factor: number(item.reproductive_factor),
+                frame_factor: number(item.frame_factor),
+                condition_factor: number(item.condition_factor),
+            },
+        }));
 
         state.byWeightType = data.by_weight_type.map((item) => ({
             weight_type: String(item.weight_type || "unknown").toLowerCase(),
@@ -205,6 +245,8 @@ async function loadAnalytics() {
             .sort((a, b) => a.month.localeCompare(b.month));
 
         state.adjustments = data.average_adjustments || {};
+        state._allByWeightType = [...state.byWeightType];
+        state._allBySpecies = [...state.bySpecies];
 
         $("va-content").hidden = false;
 
@@ -255,7 +297,10 @@ function populateYears() {
     const previousYear = state.year;
 
     const years = [
-        ...new Set(state.monthly.map((item) => item.month.substring(0, 4))),
+        ...new Set([
+            ...state.monthly.map((item) => item.month.substring(0, 4)),
+            ...state.byYear.map((item) => item.year),
+        ].filter(Boolean)),
     ].sort((a, b) => b.localeCompare(a));
 
     select.replaceChildren(new Option("All Years", ""));
@@ -280,6 +325,25 @@ function applyYearFilter() {
               item.month.startsWith(`${state.year}-`),
           )
         : [...state.monthly];
+
+    if (state.year) {
+        const annual = state.byYear.find((item) => item.year === state.year);
+        state.calculationCount = annual?.calculation_count ?? 0;
+        state.averageValue = annual?.average_value ?? 0;
+        state.byWeightType = state.byWeightTypeYear
+            .filter((item) => item.year === state.year)
+            .map(({ weight_type, total }) => ({ weight_type, total }));
+        state.bySpecies = state.bySpeciesYear
+            .filter((item) => item.year === state.year)
+            .map(({ id, name, calculation_count, average_value }) => ({ id, name, calculation_count, average_value }));
+        state.adjustments = state.adjustmentsByYear.find((item) => item.year === state.year)?.adjustments ?? {};
+    } else if (state.allTime) {
+        state.calculationCount = state.allTime.calculationCount;
+        state.averageValue = state.allTime.averageValue;
+        state.byWeightType = state._allByWeightType;
+        state.bySpecies = state._allBySpecies;
+        state.adjustments = state.allTime.adjustments;
+    }
 
     state.page = 1;
 

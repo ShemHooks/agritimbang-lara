@@ -119,6 +119,13 @@ class LguAuctionHouseController extends Controller
         ]);
     }
 
+    public function encoderAssignmentStatus(Request $request): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->service->encoderAssignmentStatus($request->user()),
+        ]);
+    }
+
     public function eligibleEncoders(
         Request $request
     ): JsonResponse {

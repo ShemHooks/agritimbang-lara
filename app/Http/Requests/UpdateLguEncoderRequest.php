@@ -42,7 +42,7 @@ class UpdateLguEncoderRequest extends FormRequest
             'email' => [
                 'sometimes',
                 'required',
-                'email',
+                'email:rfc',
                 'max:255',
                 Rule::unique('users', 'email')->ignore($encoderId),
             ],
@@ -51,7 +51,8 @@ class UpdateLguEncoderRequest extends FormRequest
                 'sometimes',
                 'nullable',
                 'string',
-                'max:20',
+                \App\Support\ContactValidationRules::philippineMobile(),
+                'max:13',
             ],
 
             'password' => [

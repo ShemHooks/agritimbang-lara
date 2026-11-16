@@ -90,25 +90,25 @@
             <article class="va-stat">
                 <span>Total FPC Calculations</span>
                 <strong id="va-total-calculations">—</strong>
-                <small>Historical valuation calculations</small>
+                <small>Calculations in the selected reporting year</small>
             </article>
 
             <article class="va-stat">
                 <span>Average Estimated Value</span>
                 <strong id="va-average-value">—</strong>
-                <small>Average value per historical calculation</small>
+                <small>Average calculation value in the selected reporting year</small>
             </article>
 
             <article class="va-stat">
                 <span>Latest Inventory Value</span>
                 <strong id="va-inventory-value">—</strong>
-                <small>Latest valuations of eligible livestock</small>
+                <small>Current estimate; not a historical year total</small>
             </article>
 
             <article class="va-stat">
                 <span>Actual Weight Usage</span>
                 <strong id="va-actual-rate">—</strong>
-                <small>Percentage of calculations using actual weight</small>
+                <small>Actual-weight share in the selected reporting year</small>
             </article>
 
         </section>
@@ -172,8 +172,7 @@
             </div>
 
             <p class="va-chart-note">
-                Reporting year affects monthly activity only.
-                Summary cards and species breakdown remain all-time.
+                The selected year updates calculation totals, average values, weight methods, FPC factors, species breakdown, and monthly activity. Latest inventory value remains a live estimate of currently eligible livestock.
             </p>
         </section>
 

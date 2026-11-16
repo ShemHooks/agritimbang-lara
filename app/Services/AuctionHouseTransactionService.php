@@ -34,9 +34,9 @@ class AuctionHouseTransactionService
 
         abort_unless(
             $encoder->lguOfficerProfile !== null &&
-            $encoder->roles()->where('slug', 'lgu_officer')->exists(),
+            $encoder->roles()->whereIn('slug', ['lgu_encoder', 'lgu_officer'])->exists(),
             403,
-            'Only LGU personnel can encode auction-house sales.'
+            'Only authorized LGU Encoders can encode auction-house sales.'
         );
 
         $livestockIds = array_column(

@@ -17,7 +17,7 @@ class StoreAuctionHouseTransactionRequest extends FormRequest
             'auction_house_id' => ['required', 'uuid', 'exists:auction_houses,id'],
             'farmer_id' => ['required', 'uuid', 'exists:farmer_profiles,id'],
             'buyer_name' => ['required', 'string', 'max:255'],
-            'buyer_phone' => ['nullable', 'string', 'max:30'],
+            'buyer_phone' => ['nullable', 'string', \App\Support\ContactValidationRules::philippineMobile(), 'max:13'],
             'transaction_date' => ['required', 'date', 'before_or_equal:now'],
             'acknowledgement_reference' => [
                 'required',

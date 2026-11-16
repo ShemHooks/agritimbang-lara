@@ -76,7 +76,7 @@
 
                     <label class="field">
                         <span>Phone number (optional)</span>
-                        <input name="phone_number" type="tel" maxlength="20" autocomplete="tel">
+                        <input name="phone_number" type="tel" maxlength="13" pattern="(?:09[0-9]{9}|\+639[0-9]{9})" title="Use 09XXXXXXXXX (11 digits) or +639XXXXXXXXX" placeholder="09XXXXXXXXX or +639XXXXXXXXX" autocomplete="tel">
                         <small data-error="phone_number"></small>
                     </label>
 

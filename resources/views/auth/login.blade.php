@@ -93,10 +93,25 @@
                     <button type="submit" class="primary-button">Sign in</button>
                 </form>
                 <div class="register-prompt">
-                    <div><strong>New to AgriTimbang?</strong><span>Create a farmer account and submit your verification
-                            document.</span></div>@if (Route::has('register'))<a class="register-link"
-                            href="{{ route('register') }}">Register account →</a>@else<span class="register-link"
-                        title="Registration screen coming soon">Registration coming soon</span>@endif
+                    <div>
+                        <strong>New to AgriTimbang?</strong>
+                        <span>Create a farmer account and submit your verification document.</span>
+                    </div>
+                    @if (Route::has('register'))
+                        <a class="register-link" href="{{ route('register') }}">Register account →</a>
+                    @else
+                        <span class="register-link" title="Registration screen coming soon">Registration coming soon</span>
+                    @endif
+                </div>
+
+                <div class="register-prompt">
+                    <div>
+                        <strong>Looking for Livestocks For Sale?</strong>
+                        <span>Browse Auction Livestocks for Sale</span>
+                    </div>
+                    @if (Route::has('forsale'))
+                        <a class="register-link" href="{{ route('forsale') }}">View Livestocks For Sale →</a>
+                    @endif
                 </div>
             </div>
             <p class="copyright"> Agritimbang Research and Development Team</p>

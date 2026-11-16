@@ -29,6 +29,8 @@ class FormulaProfileResolver
             ),
 
             'GOAT' => $this->resolveGoat(
+                $breedCode,
+                $breedGroup,
                 $ageGroup
             ),
 
@@ -96,21 +98,58 @@ class FormulaProfileResolver
             return 'HOG_COMMERCIAL_FALLBACK';
         }
 
-        return null;
+        // Any unrecognized, unspecified, or "other" hog breed uses the
+        // commercial fallback so every registered hog can be estimated.
+        return 'HOG_COMMERCIAL_FALLBACK';
     }
 
     private function resolveGoat(
+        string $breedCode,
+        string $breedGroup,
         string $ageGroup
     ): ?string {
+        // Missing or generic breed values use the general goat fallback.
+        // This formula uses heart girth and body length only, so rump height
+        // is not required for an unspecified-breed goat.
+        if ($this->isGenericBreed($breedCode, $breedGroup)) {
+            return 'GOAT_YOUNG_FALLBACK';
+        }
+
         return match ($ageGroup) {
             'adult' => 'GOAT_BARILI_ADULT',
 
             'kid',
             'young',
-            'yearling' => 'GOAT_YOUNG_FALLBACK',
+            'yearling',
+            'young_adult',
+            'unspecified',
+            'unknown',
+            'other',
+            'others',
+            '' => 'GOAT_YOUNG_FALLBACK',
 
-            default => null,
+            default => 'GOAT_YOUNG_FALLBACK',
         };
+    }
+
+    private function isGenericBreed(
+        string $breedCode,
+        string $breedGroup
+    ): bool {
+        $code = strtolower(trim($breedCode));
+        $group = strtolower(trim($breedGroup));
+
+        if ($code === '') {
+            return true;
+        }
+
+        foreach (['unspecified', 'unknown', 'other', 'others'] as $generic) {
+            if (str_contains($code, $generic) || str_contains($group, $generic)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function resolveCarabao(
@@ -131,12 +170,14 @@ class FormulaProfileResolver
         }
 
         if (
-            $breedCode === 'PH_SWAMP' ||
-            $breedGroup === 'native_swamp'
+            in_array($breedCode, ['PH_SWAMP', 'BUFFALO', 'WATER_BUFFALO'], true) ||
+            in_array($breedGroup, ['native_swamp', 'buffalo', 'water_buffalo'], true)
         ) {
             return 'CARABAO_NATIVE_FALLBACK';
         }
 
-        return null;
+        // Unrecognized, unspecified, and other breeds use the
+        // native/swamp fallback rather than being treated as Murrah.
+        return 'CARABAO_NATIVE_FALLBACK';
     }
 }

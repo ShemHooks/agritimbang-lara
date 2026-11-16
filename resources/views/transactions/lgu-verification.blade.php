@@ -53,8 +53,8 @@
                 <input id="verification-search" type="search" placeholder="Search by transaction ID, farmer, or buyer…"
                     aria-label="Search transactions">
                 <select id="verification-status" aria-label="Filter transaction status">
-                    <option value="">All statuses</option>
-                    <option value="pending_lgu_verification">Pending verification</option>
+                    <option value="review_queue" selected>Pending verification</option>
+                    <option value="all">All statuses</option>
                     <option value="verified">Verified</option>
                     <option value="rejected">Rejected</option>
                 </select>

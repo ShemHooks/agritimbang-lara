@@ -21,6 +21,8 @@
         <span class="welcome-ornament" aria-hidden="true">✳</span>
     </section>
 
+    <div id="ld-registration-feedback" class="ld-registration-feedback" role="status" aria-live="polite" hidden></div>
+
     <div class="ld-toolbar">
         <div class="ld-toolbar-info">
             <span class="ld-toolbar-label">LIVESTOCK INVENTORY</span>

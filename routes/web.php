@@ -18,6 +18,12 @@ Route::view('/login', 'auth.login')
 Route::view('/register', 'auth.register')
     ->name('register');
 
+Route::get('/forsale-livestocks', [\App\Http\Controllers\BuyerInterestController::class, 'publicIndex'])
+    ->name('forsale');
+
+Route::get('/auction-interest/{schedule}', [\App\Http\Controllers\BuyerInterestController::class, 'showPage'])
+    ->name('buyer-interest.index');
+
 Route::view('/verify-email', 'auth.verify-email')
     ->name('verification.notice');
 
@@ -77,6 +83,24 @@ Route::get('/farmers/{farmer}', function (string $farmer) {
 Route::view('/livestock', 'livestock.index')
     ->name('livestock.index');
 
+Route::view('/auctions', 'auctions.farmer')
+    ->name('farmer.auctions.index');
+
+Route::get('/auctions/{schedule}', function (string $schedule) {
+    return view('auctions.schedule', ['scheduleId' => $schedule]);
+})->name('farmer.auctions.show');
+
+Route::get('/auctions/{schedule}/register', function (string $schedule) {
+    return view('auctions.register', ['scheduleId' => $schedule]);
+})->name('farmer.auctions.register');
+
+Route::view('/lgu/auction-schedules', 'lgu.auction-schedules')
+    ->name('lgu.auction-schedules.index');
+
+Route::get('/lgu/auction-schedules/{schedule}/registrations', function (string $schedule) {
+    return view('lgu.auction-registrations', ['scheduleId' => $schedule]);
+})->name('lgu.auction-schedules.registrations');
+
 Route::view('/admin/lgu-authorities', 'users.authorities')
     ->name('admin.lgu-authorities.index');
 
@@ -131,6 +155,8 @@ Route::get('/buyer/confirm/{token}', function (string $token) {
     ->middleware('throttle:30,1')
     ->name('buyer.confirmation.show');
 
+Route::view('/transactions', 'transactions.index')->name('transactions.index');
+
 Route::view('/transactions/create', 'transactions.create')
     ->name('transactions.create');
 
@@ -175,6 +201,15 @@ Route::view('/profile', 'profile.index')
 
 Route::view('/transactions/assist', 'transactions.assist')
     ->name('transactions.assist');
+
+Route::view('/transactions/history', 'transactions.encoder-history')
+    ->name('transactions.encoder-history');
+
+Route::view('/lgu/transactions/history', 'transactions.encoder-history')
+    ->name('lgu.transactions.history');
+
+Route::view('/admin/transactions/history', 'transactions.encoder-history')
+    ->name('admin.transactions.history');
 
 Route::view('/reports', 'reports.index')
     ->name('reports.index');
