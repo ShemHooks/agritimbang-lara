@@ -9,15 +9,15 @@ class DemoDatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        if (app()->environment('production')) {
+        if (app()->environment('local')) {
             throw new RuntimeException('DemoDatabaseSeeder cannot run in production.');
         }
 
         $this->call([
-            DemoUsersSeeder::class,
-            PSAOfficialPriceReferenceSeeder::class,
+            // DemoUsersSeeder::class,
             BariliOctober2026PriceReferenceSeeder::class,
-            DemoMarketDataSeeder::class,
+            PSAOfficialPriceReferenceSeeder::class,
+            // DemoMarketDataSeeder::class,
         ]);
     }
 }

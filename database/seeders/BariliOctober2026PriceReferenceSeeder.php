@@ -22,7 +22,7 @@ class BariliOctober2026PriceReferenceSeeder extends Seeder
 
     public function run(): void
     {
-        if (app()->environment('testing')) return;
+        if (app()->environment('local')) return;
         $municipalityId = DB::table('municipalities')->where('psgc_code', self::MUNICIPALITY_PSGC)->value('id');
         if (!$municipalityId) throw new RuntimeException('Barili municipality is missing. Run MunicipalitySeeder first.');
 
